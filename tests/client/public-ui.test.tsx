@@ -62,7 +62,7 @@ describe('public React experience', () => {
     for (const heading of ['#', 'Player', 'P', 'W', 'L', '+/-', 'PTS']) {
       expect(screen.getByRole('columnheader', { name: heading })).toBeInTheDocument();
     }
-    expect(screen.getByText('Alpha')).toBeInTheDocument();
+    expect(screen.getByRole('rowheader', { name: 'Alpha' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /latest results/i })).toBeInTheDocument();
     expect(screen.getByText(/3\s*[-–]\s*1/)).toBeInTheDocument();
     expect(document.body.textContent).not.toContain('@');
