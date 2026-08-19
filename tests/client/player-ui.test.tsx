@@ -97,9 +97,9 @@ describe('player experience', () => {
     installFetch({ submitError: true });
     window.history.pushState({}, '', '/results/new');
     render(<App />);
-    const opponent = await screen.findByLabelText(/opponent/i);
+    const opponent = await screen.findByLabelText(/^opponent$/i);
     const mine = screen.getByLabelText(/my legs/i);
-    const theirs = screen.getByLabelText(/opponent legs/i);
+    const theirs = screen.getByLabelText(/^opponent legs$/i);
     fireEvent.change(opponent, { target: { value: 'bob' } });
     fireEvent.change(mine, { target: { value: '2' } });
     fireEvent.change(theirs, { target: { value: '1' } });
