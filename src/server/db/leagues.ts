@@ -46,3 +46,34 @@ export async function listPublicPlayers(
   `).bind(leagueId).all<PublicPlayerDto>();
   return rows.results;
 }
+
+export async function isActiveLeagueMember(
+  db: D1Database,
+  userId: string,
+  leagueId = 'misfits-501',
+): Promise<boolean> {
+  const row = await db.prepare(`
+    SELECT 1 AS ok
+    FROM league_players lp
+    JOIN users u ON u.id = lp.user_id
+    WHERE lp.league_id = ? AND lp.user_id = ? AND lp.active = 1
+      AND u.status = 'ACTIVE' AND u.username IS NOT NULL
+  `).bind(leagueId, userId).first<{ ok: number }>();
+  return row?.ok === 1;
+}
+
+export async function listOpponents(
+  db: D1Database,
+  userId: string,
+  leagueId = 'misfits-501',
+): Promise<PublicPlayerDto[]> {
+  const rows = await db.prepare(`
+    SELECT u.id AS id, u.username AS username
+    FROM league_players lp
+    JOIN users u ON u.id = lp.user_id
+    WHERE lp.league_id = ? AND lp.user_id <> ? AND lp.active = 1
+      AND u.status = 'ACTIVE' AND u.username IS NOT NULL
+    ORDER BY u.username COLLATE NOCASE ASC
+  `).bind(leagueId, userId).all<PublicPlayerDto>();
+  return rows.results;
+}

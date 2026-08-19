@@ -4,6 +4,7 @@ import { ApiError, errorPayload } from './errors';
 import type { AppVariables } from './auth/guards';
 import { createAuthRoutes, type AuthRouteDeps } from './routes/auth';
 import { createPublicRoutes } from './routes/public';
+import { createResultRoutes } from './routes/results';
 
 export type AppDeps = AuthRouteDeps;
 type AppEnv = { Bindings: Env; Variables: AppVariables };
@@ -23,6 +24,7 @@ export function createApp(deps: AppDeps = {}) {
   app.get('/api/health', (c) => c.json({ ok: true }));
   app.route('/', createAuthRoutes(deps));
   app.route('/', createPublicRoutes());
+  app.route('/', createResultRoutes());
   return app;
 }
 
