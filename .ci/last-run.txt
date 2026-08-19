@@ -1,4 +1,4 @@
-commit=5fe1bf61fc7f2ee011982a28d6a9ca2511446c30
+commit=99fd0302dce82dfc5be34f6cbad89d7d0e0eb44b
 typecheck=2
 tests=1
 build=0
@@ -13,166 +13,166 @@ tests/helpers/d1.ts(2,50): error TS2307: Cannot find module 'node:sqlite' or its
 tests/server/schema.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
 
 --- tests ---
-                [36m<tr>[39m
-                  [36m<td>[39m
-                    [0m1[0m
-                  [36m</td>[39m
-                  [36m<th[39m
-                    [33mscope[39m=[32m"row"[39m
-                  [36m>[39m
-                    [0mAlpha[0m
-                  [36m</th>[39m
-                  [36m<td>[39m
-                    [0m4[0m
-                  [36m</td>[39m
-                  [36m<td>[39m
-                    [0m3[0m
-                  [36m</td>[39m
-                  [36m<td>[39m
-                    [0m1[0m
-                  [36m</td>[39m
-                  [36m<td>[39m
-                    [0m+5[0m
-                  [36m</td>[39m
-                  [36m<td>[39m
-                    [36m<strong>[39m
-                      [0m6[0m
-                    [36m</strong>[39m
-                  [36m</td>[39m
-                [36m</tr>[39m
-                [36m<tr>[39m
-                  [36m<td>[39m
-                    [0m2[0m
-                  [36m</td>[39m
-                  [36m<th[39m
-                    [33mscope[39m=[32m"row"[39m
-                  [36m>[39m
-                    [0mBravo[0m
-                  [36m</th>[39m
-                  [36m<td>[39m
-                    [0m4[0m
-                  [36m</td>[39m
-                  [36m<td>[39m
-                    [0m1[0m
-                  [36m</td>[39m
-                  [36m<td>[39m
-                    [0m3[0m
-                  [36m</td>[39m
-                  [36m<td>[39m
-                    [0m-5[0m
-                  [36m</td>[39m
-                  [36m<td>[39m
-                    [36m<strong>[39m
-                      [0m2[0m
-                    [36m</strong>[39m
-                  [36m</td>[39m
-                [36m</tr>[39m
-              [36m</tbody>[39m
-            [36m</table>[39m
-          [36m</div>[39m
-        [36m</section>[39m
-        [36m<section[39m
-          [33maria-labelledby[39m=[32m"latest-title"[39m
-          [33mclass[39m=[32m"panel"[39m
-        [36m>[39m
-          [36m<div[39m
-            [33mclass[39m=[32m"section-heading"[39m
-          [36m>[39m
-            [36m<h2[39m
-              [33mid[39m=[32m"latest-title"[39m
-            [36m>[39m
-              [0mLatest results[0m
-            [36m</h2>[39m
-            [36m<a[39m
-              [33mclass[39m=[32m""[39m
-              [33mdata-discover[39m=[32m"true"[39m
-              [33mhref[39m=[32m"/results"[39m
-            [36m>[39m
-              [0mView all[0m
-            [36m</a>[39m
-          [36m</div>[39m
-          [36m<ol[39m
-            [33mclass[39m=[32m"result-list"[39m
-          [36m>[39m
-            [36m<li[39m
-              [33mclass[39m=[32m"result-row"[39m
-            [36m>[39m
-              [36m<div[39m
-                [33mclass[39m=[32m"result-player result-player-a"[39m
-              [36m>[39m
-                [36m<span>[39m
-                  [0mAlpha[0m
-                [36m</span>[39m
-                [36m<strong>[39m
-                  [0m3[0m
-                [36m</strong>[39m
-              [36m</div>[39m
-              [36m<span[39m
-                [33maria-label[39m=[32m"3 - 1"[39m
-                [33mclass[39m=[32m"result-score"[39m
-              [36m>[39m
-                [0m3[0m
-                [0m - [0m
-                [0m1[0m
-              [36m</span>[39m
-              [36m<div[39m
-                [33mclass[39m=[32m"result-player result-player-b"[39m
-              [36m>[39m
-                [36m<strong>[39m
-                  [0m1[0m
-                [36m</strong>[39m
-                [36m<span>[39m
-                  [0mBravo[0m
-                [36m</span>[39m
-              [36m</div>[39m
-            [36m</li>[39m
-          [36m</ol>[39m
-        [36m</section>[39m
-        [36m<section[39m
-          [33maria-label[39m=[32m"League action"[39m
-          [33mclass[39m=[32m"home-action"[39m
+          [36m<img[39m
+            [33malt[39m=[32m"Misfits 501"[39m
+            [33mclass[39m=[32m"brand-logo"[39m
+            [33mheight[39m=[32m"384"[39m
+            [33msrc[39m=[32m"/brand/misfits-501.webp"[39m
+            [33mwidth[39m=[32m"384"[39m
+          [36m/>[39m
+        [36m</a>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Primary navigation"[39m
         [36m>[39m
           [36m<a[39m
-            [33mclass[39m=[32m"primary-button"[39m
+            [33mclass[39m=[32m""[39m
             [33mdata-discover[39m=[32m"true"[39m
-            [33mhref[39m=[32m"/login"[39m
+            [33mhref[39m=[32m"/"[39m
           [36m>[39m
-            [0mSign in to add a result[0m
+            [0mLeague[0m
           [36m</a>[39m
+          [36m<a[39m
+            [33maria-current[39m=[32m"page"[39m
+            [33mclass[39m=[32m"active"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/results"[39m
+          [36m>[39m
+            [0mResults[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m""[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/players"[39m
+          [36m>[39m
+            [0mPlayers[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m""[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/me"[39m
+          [36m>[39m
+            [0mMy league[0m
+          [36m</a>[39m
+        [36m</nav>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"account-actions"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"text-button"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mSign out[0m
+            [0m · Alice[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<main[39m
+        [33mclass[39m=[32m"page auth-page"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"auth-card result-form-card"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mMatch result[0m
+          [36m</p>[39m
+          [36m<h1>[39m
+            [0mAdd result[0m
+          [36m</h1>[39m
+          [36m<form>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"opponent"[39m
+            [36m>[39m
+              [0mOpponent[0m
+            [36m</label>[39m
+            [36m<select[39m
+              [33mid[39m=[32m"opponent"[39m
+              [33mrequired[39m=[32m""[39m
+            [36m>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mChoose opponent[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"bob"[39m
+              [36m>[39m
+                [0mBob[0m
+              [36m</option>[39m
+            [36m</select>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"score-inputs"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<label[39m
+                  [33mfor[39m=[32m"my-legs"[39m
+                [36m>[39m
+                  [0mMy legs[0m
+                [36m</label>[39m
+                [36m<input[39m
+                  [33mid[39m=[32m"my-legs"[39m
+                  [33minputmode[39m=[32m"numeric"[39m
+                  [33mmin[39m=[32m"0"[39m
+                  [33mtype[39m=[32m"number"[39m
+                  [33mvalue[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</div>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+              [36m>[39m
+                [0m-[0m
+              [36m</span>[39m
+              [36m<div>[39m
+                [36m<label[39m
+                  [33mfor[39m=[32m"opponent-legs"[39m
+                [36m>[39m
+                  [0mOpponent legs[0m
+                [36m</label>[39m
+                [36m<input[39m
+                  [33mid[39m=[32m"opponent-legs"[39m
+                  [33minputmode[39m=[32m"numeric"[39m
+                  [33mmin[39m=[32m"0"[39m
+                  [33mtype[39m=[32m"number"[39m
+                  [33mvalue[39m=[32m"1"[39m
+                [36m/>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"primary-button"[39m
+              [33mdisabled[39m=[32m""[39m
+              [33mtype[39m=[32m"submit"[39m
+            [36m>[39m
+              [0mSubmit result[0m
+            [36m</button>[39m
+          [36m</form>[39m
         [36m</section>[39m
       [36m</main>[39m
     [36m</div>[39m
   [36m</div>[39m
 [36m</body>[39m
-[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
-[90m [2m❯[22m getElementError node_modules/@testing-library/dom/dist/query-helpers.js:[2m20:35[22m[39m
-[90m [2m❯[22m getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:[2m23:10[22m[39m
-[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m55:13[22m[39m
-[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
-[36m [2m❯[22m tests/client/public-ui.test.tsx:[2m65:19[22m[39m
-    [90m 63|[39m       expect(screen.getByRole('columnheader', { name: heading })).toBe…
-    [90m 64|[39m     }
-    [90m 65|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'Alpha'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
-    [90m   |[39m                   [31m^[39m
-    [90m 66|[39m     expect(screen.getByRole('heading', { name: /latest results/i })).t…
-    [90m 67|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([36m/3\s*[-–]\s*1/[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+[90m [2m❯[22m waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:[2m163:27[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m86:33[22m[39m
+[36m [2m❯[22m tests/client/player-ui.test.tsx:[2m107:25[22m[39m
+    [90m105|[39m     fireEvent[33m.[39m[34mchange[39m(theirs[33m,[39m { target[33m:[39m { value[33m:[39m [32m'1'[39m } })[33m;[39m
+    [90m106|[39m     fireEvent.click(screen.getByRole('button', { name: /submit result/…
+    [90m107|[39m     expect(await screen.findByRole('alert')).toHaveTextContent(/not va…
+    [90m   |[39m                         [31m^[39m
+    [90m108|[39m     [34mexpect[39m(opponent)[33m.[39m[34mtoHaveValue[39m([32m'bob'[39m)[33m;[39m
+    [90m109|[39m     [34mexpect[39m(mine)[33m.[39m[34mtoHaveValue[39m([34m2[39m)[33m;[39m
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯[22m[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
 
 
-[2m Test Files [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m11 passed[39m[22m[90m (14)[39m
-[2m      Tests [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m80 passed[39m[22m[90m (84)[39m
-[2m   Start at [22m 23:00:12
-[2m   Duration [22m 3.22s[2m (transform 770ms, setup 0ms, import 2.29s, tests 3.51s, environment 1.50s)[22m
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m12 passed[39m[22m[90m (14)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m82 passed[39m[22m[90m (84)[39m
+[2m   Start at [22m 23:01:44
+[2m   Duration [22m 3.21s[2m (transform 744ms, setup 0ms, import 2.36s, tests 3.21s, environment 1.62s)[22m
 
 
-::error file=/home/runner/work/misfits/misfits/tests/client/admin-ui.test.tsx,title=tests/client/admin-ui.test.tsx > admin experience > shows league health and admin navigation to administrators,line=75,column=19::TestingLibraryElementError: Unable to find an element with the text: 12. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Admin%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Boss%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page admin-page"%0A      >%0A        <header%0A          class="admin-heading"%0A        >%0A          <div>%0A            <p%0A              class="eyebrow"%0A            >%0A              League control%0A            </p>%0A            <h1>%0A              Admin%0A            </h1>%0A          </div>%0A        </header>%0A        <nav%0A          aria-label="Admin navigation"%0A          class="admin-nav"%0A        >%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Dashboard%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/league"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/audit"%0A          >%0A            Audit%0A          </a>%0A        </nav>%0A        <section%0A          aria-labelledby="admin-dashboard-title"%0A          class="admin-section"%0A        >%0A          <h2%0A            id="admin-dashboard-title"%0A          >%0A            Admin dashboard%0A          </h2>%0A          <p>%0A            Loading…%0A          </p>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19%0A ❯ tests/client/admin-ui.test.tsx:75:19%0A%0A
+::error file=/home/runner/work/misfits/misfits/tests/client/admin-ui.test.tsx,title=tests/client/admin-ui.test.tsx > admin experience > shows league health and admin navigation to administrators,line=77,column=19::TestingLibraryElementError: Found multiple elements with the role "link" and name `/players/i`%0A%0AHere are the matching elements:%0A%0AIgnored nodes: comments, script, style%0A<a%0A  class=""%0A  data-discover="true"%0A  href="/players"%0A>%0A  Players%0A</a>%0A%0AIgnored nodes: comments, script, style%0A<a%0A  class=""%0A  data-discover="true"%0A  href="/admin/players"%0A>%0A  Players%0A</a>%0A%0A(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Admin%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Boss%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page admin-page"%0A      >%0A        <header%0A          class="admin-heading"%0A        >%0A          <div>%0A            <p%0A              class="eyebrow"%0A            >%0A              League control%0A            </p>%0A            <h1>%0A              Admin%0A            </h1>%0A          </div>%0A        </header>%0A        <nav%0A          aria-label="Admin navigation"%0A          class="admin-nav"%0A        >%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Dashboard%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/league"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/audit"%0A          >%0A            Audit%0A          </a>%0A        </nav>%0A        <section%0A          aria-labelledby="admin-dashboard-title"%0A          class="admin-section"%0A        >%0A          <h2%0A            id="admin-dashboard-title"%0A          >%0A            Admin dashboard%0A          </h2>%0A          <div%0A            class="admin-stats"%0A          >%0A            <div>%0A              <strong>%0A                12%0A              </strong>%0A              <span>%0A                Players%0A              </span>%0A            </div>%0A            <div>%0A              <strong>%0A                34%0A              </strong>%0A              <span>%0A                Results%0A              </span>%0A            </div>%0A            <div>%0A              <strong>%0A                2%0A              </strong>%0A              <span>%0A                Pending%0A              </span>%0A            </div>%0A            <div>%0A              <strong>%0A                1%0A              </strong>%0A              <span>%0A                Disputed%0A              </span>%0A            </div>%0A          </div>%0A          <div%0A            class="panel"%0A          >%0A            <strong>%0A              Misfits 501%0A            </strong>%0A            <p>%0A              Season %0A              2026%0A               · %0A              OPEN%0A            </p>%0A          </div>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19%0A ❯ getElementError node_modules/@testing-library/dom/dist/query-helpers.js:20:35%0A ❯ getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:23:10%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:55:13%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19%0A ❯ tests/client/admin-ui.test.tsx:77:19%0A%0A
 
-::error file=/home/runner/work/misfits/misfits/tests/client/admin-ui.test.tsx,title=tests/client/admin-ui.test.tsx > admin experience > supports manual result entry and explicit delete confirmation,line=96,column=25::TestingLibraryElementError: Found multiple elements with the text: /alice/i%0A%0AHere are the matching elements:%0A%0AIgnored nodes: comments, script, style%0A<option%0A  value="alice"%0A>%0A  Alice%0A</option>%0A%0AIgnored nodes: comments, script, style%0A<option%0A  value="alice"%0A>%0A  Alice%0A</option>%0A%0AIgnored nodes: comments, script, style%0A<strong>%0A  Alice%0A   %0A  3%0A   - %0A  1%0A   %0A  Boss%0A</strong>%0A%0A(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Admin%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Boss%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page admin-page"%0A      >%0A        <header%0A          class="admin-heading"%0A        >%0A          <div>%0A            <p%0A              class="eyebrow"%0A            >%0A              League control%0A            </p>%0A            <h1>%0A              Admin%0A            </h1>%0A          </div>%0A        </header>%0A        <nav%0A          aria-label="Admin navigation"%0A          class="admin-nav"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Dashboard%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/league"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/audit"%0A          >%0A            Audit%0A          </a>%0A        </nav>%0A        <section%0A          class="admin-section"%0A        >%0A          <h2>%0A            Results%0A          </h2>%0A          <form%0A            class="panel admin-result-form"%0A          >%0A            <h3>%0A              Enter result manually%0A            </h3>%0A            <label>%0A              Player A%0A              <select%0A                required=""%0A              >%0A                <option%0A                  value=""%0A                >%0A                  Choose%0A                </option>%0A                <option%0A                  value="admin"%0A                >%0A                  Boss%0A                </option>%0A                <option%0A                  value="alice"%0A                >%0A                  Alice%0A                </option>%0A              </select>%0A            </label>%0A            <label>%0A              Player A legs%0A              <input%0A                min="0"%0A                type="number"%0A                value="3"%0A              />%0A            </label>%0A            <label>%0A              Player B%0A              <select%0A                required=""%0A              >%0A                <option%0A                  value=""%0A                >%0A                  Choose%0A                </option>%0A                <option%0A                  value="admin"%0A                >%0A                  Boss%0A                </option>%0A                <option%0A                  value="alice"%0A                >%0A                  Alice%0A                </option>%0A              </select>%0A            </label>%0A            <label>%0A              Player B legs%0A              <input%0A                min="0"%0A                type="number"%0A                value="0"%0A              />%0A            </label>%0A            <button%0A              class="primary-button"%0A              type="submit"%0A            >%0A              Add confirmed result%0A            </button>%0A          </form>%0A          <div%0A            class="admin-card-list"%0A          >%0A            <article%0A              class="panel admin-result-row"%0A            >%0A              <div>%0A                <strong>%0A                  Alice%0A                   %0A                  3%0A                   - %0A                  1%0A                   %0A                  Boss%0A                </strong>%0A                <span%0A                  class="status-badge status-confirmed"%0A                >%0A                  Confirmed%0A                </span>%0A              </div>%0A              <button%0A                class="danger-button"%0A                type="button"%0A              >%0A                Delete result%0A              </button>%0A            </article>%0A          </div>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Admin%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Boss%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page admin-page"%0A      >%0A        <header%0A          class="admin-heading"%0A        >%0A          <div>%0A            <p%0A              class="eyebrow"%0A            >%0A              League control%0A            </p>%0A            <h1>%0A              Admin%0A            </h1>%0A          </div>%0A        </header>%0A        <nav%0A          aria-label="Admin navigation"%0A          class="admin-nav"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Dashboard%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/league"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/audit"%0A          >%0A            Audit%0A          </a>%0A        </nav>%0A        <section%0A          class="admin-section"%0A        >%0A          <h2>%0A            Results%0A          </h2>%0A          <form%0A            class="panel admin-result-form"%0A          >%0A            <h3>%0A              Enter result manually%0A            </h3>%0A            <label>%0A              Player A%0A              <select%0A                required=""%0A              >%0A                <option%0A                  value=""%0A                >%0A                  Choose%0A                </option>%0A                <option%0A                  value="admin"%0A                >%0A                  Boss%0A                </option>%0A                <option%0A                  value="alice"%0A                >%0A                  Alice%0A                </option>%0A              </select>%0A            </label>%0A            <label>%0A              Player A legs%0A              <input%0A                min="0"%0A                type="number"%0A                value="3"%0A              />%0A            </label>%0A            <label>%0A              Player B%0A              <select%0A                required=""%0A              >%0A                <option%0A                  value=""%0A                >%0A                  Choose%0A                </option>%0A                <option%0A                  value="admin"%0A                >%0A                  Boss%0A                </option>%0A                <option%0A                  value="alice"%0A                >%0A                  Alice%0A                </option>%0A              </select>%0A            </label>%0A            <label>%0A              Player B legs%0A              <input%0A                min="0"%0A                type="number"%0A                value="0"%0A              />%0A            </label>%0A            <button%0A              class="primary-button"%0A              type="submit"%0A            >%0A              Add confirmed result%0A            </button>%0A          </form>%0A          <div%0A            class="admin-card-list"%0A          >%0A            <article%0A              class="panel admin-result-row"%0A            >%0A              <div>%0A                <strong>%0A                  Alice%0A                   %0A                  3%0A                   - %0A                  1%0A                   %0A                  Boss%0A                </strong>%0A                <span%0A                  class="status-badge status-confirmed"%0A                >%0A                  Confirmed%0A                </span>%0A              </div>%0A              <button%0A                class="danger-button"%0A                type="button"%0A              >%0A                Delete result%0A              </button>%0A            </article>%0A          </div>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33%0A ❯ tests/client/admin-ui.test.tsx:96:25%0A%0A
-
-::error file=/home/runner/work/misfits/misfits/tests/client/player-ui.test.tsx,title=tests/client/player-ui.test.tsx > player experience > keeps entered result values after a recoverable validation error,line=100,column=35::TestingLibraryElementError: Found multiple elements with the text of: /opponent/i%0A%0AHere are the matching elements:%0A%0AIgnored nodes: comments, script, style%0A<select%0A  id="opponent"%0A  required=""%0A>%0A  <option%0A    value=""%0A  >%0A    Choose opponent%0A  </option>%0A  <option%0A    value="bob"%0A  >%0A    Bob%0A  </option>%0A</select>%0A%0AIgnored nodes: comments, script, style%0A<input%0A  id="opponent-legs"%0A  inputmode="numeric"%0A  min="0"%0A  type="number"%0A  value="0"%0A/>%0A%0A(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Alice%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page auth-page"%0A      >%0A        <section%0A          class="auth-card result-form-card"%0A        >%0A          <p%0A            class="eyebrow"%0A          >%0A            Match result%0A          </p>%0A          <h1>%0A            Add result%0A          </h1>%0A          <form>%0A            <label%0A              for="opponent"%0A            >%0A              Opponent%0A            </label>%0A            <select%0A              id="opponent"%0A              required=""%0A            >%0A              <option%0A                value=""%0A              >%0A                Choose opponent%0A              </option>%0A              <option%0A                value="bob"%0A              >%0A                Bob%0A              </option>%0A            </select>%0A            <div%0A              class="score-inputs"%0A            >%0A              <div>%0A                <label%0A                  for="my-legs"%0A                >%0A                  My legs%0A                </label>%0A                <input%0A                  id="my-legs"%0A                  inputmode="numeric"%0A                  min="0"%0A                  type="number"%0A                  value="3"%0A                />%0A              </div>%0A              <span%0A                aria-hidden="true"%0A              >%0A                -%0A              </span>%0A              <div>%0A                <label%0A                  for="opponent-legs"%0A                >%0A                  Opponent legs%0A                </label>%0A                <input%0A                  id="opponent-legs"%0A                  inputmode="numeric"%0A                  min="0"%0A                  type="number"%0A                  value="0"%0A                />%0A              </div>%0A            </div>%0A            <button%0A              class="primary-button"%0A              disabled=""%0A              type="submit"%0A            >%0A              Submit result%0A            </button>%0A          </form>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Alice%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page auth-page"%0A      >%0A        <section%0A          class="auth-card result-form-card"%0A        >%0A          <p%0A            class="eyebrow"%0A          >%0A            Match result%0A          </p>%0A          <h1>%0A            Add result%0A          </h1>%0A          <form>%0A            <label%0A              for="opponent"%0A            >%0A              Opponent%0A            </label>%0A            <select%0A              id="opponent"%0A              required=""%0A            >%0A              <option%0A                value=""%0A              >%0A                Choose opponent%0A              </option>%0A              <option%0A                value="bob"%0A              >%0A                Bob%0A              </option>%0A            </select>%0A            <div%0A              class="score-inputs"%0A            >%0A              <div>%0A                <label%0A                  for="my-legs"%0A                >%0A                  My legs%0A                </label>%0A                <input%0A                  id="my-legs"%0A                  inputmode="numeric"%0A                  min="0"%0A                  type="number"%0A                  value="3"%0A                />%0A              </div>%0A              <span%0A                aria-hidden="true"%0A              >%0A                -%0A              </span>%0A              <div>%0A                <label%0A                  for="opponent-legs"%0A                >%0A                  Opponent legs%0A                </label>%0A                <input%0A                  id="opponent-legs"%0A                  inputmode="numeric"%0A                  min="0"%0A                  type="number"%0A                  value="0"%0A                />%0A              </div>%0A            </div>%0A            <button%0A              class="primary-button"%0A              disabled=""%0A              type="submit"%0A            >%0A              Submit result%0A            </button>%0A          </form>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33%0A ❯ tests/client/player-ui.test.tsx:100:35%0A%0A
-
-::error file=/home/runner/work/misfits/misfits/tests/client/public-ui.test.tsx,title=tests/client/public-ui.test.tsx > public React experience > puts the league table and latest results on the homepage for signed-out visitors,line=65,column=19::TestingLibraryElementError: Found multiple elements with the text: Alpha%0A%0AHere are the matching elements:%0A%0AIgnored nodes: comments, script, style%0A<th%0A  scope="row"%0A>%0A  Alpha%0A</th>%0A%0AIgnored nodes: comments, script, style%0A<span>%0A  Alpha%0A</span>%0A%0A(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-current="page"%0A          aria-label="Misfits 501 home"%0A          class="brand-link active"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <a%0A            class="button-link"%0A            data-discover="true"%0A            href="/login"%0A          >%0A            Sign in%0A          </a>%0A        </div>%0A      </header>%0A      <main%0A        class="page home-page"%0A      >%0A        <section%0A          aria-labelledby="league-title"%0A          class="league-heading"%0A        >%0A          <div>%0A            <p%0A              class="eyebrow"%0A            >%0A              Season %0A              2026%0A            </p>%0A            <h1%0A              id="league-title"%0A            >%0A              Misfits 501%0A            </h1>%0A          </div>%0A          <span%0A            class="status-badge status-open"%0A          >%0A            Open%0A          </span>%0A        </section>%0A        <section%0A          aria-labelledby="table-title"%0A          class="panel"%0A        >%0A          <div%0A            class="section-heading"%0A          >%0A            <h2%0A              id="table-title"%0A            >%0A              League table%0A            </h2>%0A            <span>%0A              Race to %0A              3%0A               · %0A              2%0A               pts/win%0A            </span>%0A          </div>%0A          <div%0A            class="table-scroll"%0A          >%0A            <table%0A              aria-label="League table"%0A              class="league-table"%0A            >%0A              <thead>%0A                <tr>%0A                  <th%0A                    scope="col"%0A                  >%0A                    #%0A                  </th>%0A                  <th%0A                    scope="col"%0A                  >%0A                    Player%0A                  </th>%0A                  <th%0A                    scope="col"%0A                  >%0A                    P%0A                  </th>%0A                  <th%0A                    scope="col"%0A                  >%0A                    W%0A                  </th>%0A                  <th%0A                    scope="col"%0A                  >%0A                    L%0A                  </th>%0A                  <th%0A                    scope="col"%0A                  >%0A                    +/-%0A                  </th>%0A                  <th%0A                    scope="col"%0A                  >%0A                    PTS%0A                  </th>%0A                </tr>%0A              </thead>%0A              <tbody>%0A                <tr>%0A                  <td>%0A                    1%0A                  </td>%0A                  <th%0A                    scope="row"%0A                  >%0A                    Alpha%0A                  </th>%0A                  <td>%0A                    4%0A                  </td>%0A                  <td>%0A                    3%0A                  </td>%0A                  <td>%0A                    1%0A                  </td>%0A                  <td>%0A                    +5%0A                  </td>%0A                  <td>%0A                    <strong>%0A                      6%0A                    </strong>%0A                  </td>%0A                </tr>%0A                <tr>%0A                  <td>%0A                    2%0A                  </td>%0A                  <th%0A                    scope="row"%0A                  >%0A                    Bravo%0A                  </th>%0A                  <td>%0A                    4%0A                  </td>%0A                  <td>%0A                    1%0A                  </td>%0A                  <td>%0A                    3%0A                  </td>%0A                  <td>%0A                    -5%0A                  </td>%0A                  <td>%0A                    <strong>%0A                      2%0A                    </strong>%0A                  </td>%0A                </tr>%0A              </tbody>%0A            </table>%0A          </div>%0A        </section>%0A        <section%0A          aria-labelledby="latest-title"%0A          class="panel"%0A        >%0A          <div%0A            class="section-heading"%0A          >%0A            <h2%0A              id="latest-title"%0A            >%0A              Latest results%0A            </h2>%0A            <a%0A              class=""%0A              data-discover="true"%0A              href="/results"%0A            >%0A              View all%0A            </a>%0A          </div>%0A          <ol%0A            class="result-list"%0A          >%0A            <li%0A              class="result-row"%0A            >%0A              <div%0A                class="result-player result-player-a"%0A              >%0A                <span>%0A                  Alpha%0A                </span>%0A                <strong>%0A                  3%0A                </strong>%0A              </div>%0A              <span%0A                aria-label="3 - 1"%0A                class="result-score"%0A              >%0A                3%0A                 - %0A                1%0A              </span>%0A              <div%0A                class="result-player result-player-b"%0A              >%0A                <strong>%0A                  1%0A                </strong>%0A                <span>%0A                  Bravo%0A                </span>%0A              </div>%0A            </li>%0A          </ol>%0A        </section>%0A        <section%0A          aria-label="League action"%0A          class="home-action"%0A        >%0A          <a%0A            class="primary-button"%0A            data-discover="true"%0A            href="/login"%0A          >%0A            Sign in to add a result%0A          </a>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19%0A ❯ getElementError node_modules/@testing-library/dom/dist/query-helpers.js:20:35%0A ❯ getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:23:10%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:55:13%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19%0A ❯ tests/client/public-ui.test.tsx:65:19%0A%0A
+::error file=/home/runner/work/misfits/misfits/tests/client/player-ui.test.tsx,title=tests/client/player-ui.test.tsx > player experience > keeps entered result values after a recoverable validation error,line=107,column=25::TestingLibraryElementError: Unable to find role="alert"%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Alice%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page auth-page"%0A      >%0A        <section%0A          class="auth-card result-form-card"%0A        >%0A          <p%0A            class="eyebrow"%0A          >%0A            Match result%0A          </p>%0A          <h1>%0A            Add result%0A          </h1>%0A          <form>%0A            <label%0A              for="opponent"%0A            >%0A              Opponent%0A            </label>%0A            <select%0A              id="opponent"%0A              required=""%0A            >%0A              <option%0A                value=""%0A              >%0A                Choose opponent%0A              </option>%0A              <option%0A                value="bob"%0A              >%0A                Bob%0A              </option>%0A            </select>%0A            <div%0A              class="score-inputs"%0A            >%0A              <div>%0A                <label%0A                  for="my-legs"%0A                >%0A                  My legs%0A                </label>%0A                <input%0A                  id="my-legs"%0A                  inputmode="numeric"%0A                  min="0"%0A                  type="number"%0A                  value="2"%0A                />%0A              </div>%0A              <span%0A                aria-hidden="true"%0A              >%0A                -%0A              </span>%0A              <div>%0A                <label%0A                  for="opponent-legs"%0A                >%0A                  Opponent legs%0A                </label>%0A                <input%0A                  id="opponent-legs"%0A                  inputmode="numeric"%0A                  min="0"%0A                  type="number"%0A                  value="1"%0A                />%0A              </div>%0A            </div>%0A            <button%0A              class="primary-button"%0A              disabled=""%0A              type="submit"%0A            >%0A              Submit result%0A            </button>%0A          </form>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Alice%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page auth-page"%0A      >%0A        <section%0A          class="auth-card result-form-card"%0A        >%0A          <p%0A            class="eyebrow"%0A          >%0A            Match result%0A          </p>%0A          <h1>%0A            Add result%0A          </h1>%0A          <form>%0A            <label%0A              for="opponent"%0A            >%0A              Opponent%0A            </label>%0A            <select%0A              id="opponent"%0A              required=""%0A            >%0A              <option%0A                value=""%0A              >%0A                Choose opponent%0A              </option>%0A              <option%0A                value="bob"%0A              >%0A                Bob%0A              </option>%0A            </select>%0A            <div%0A              class="score-inputs"%0A            >%0A              <div>%0A                <label%0A                  for="my-legs"%0A                >%0A                  My legs%0A                </label>%0A                <input%0A                  id="my-legs"%0A                  inputmode="numeric"%0A                  min="0"%0A                  type="number"%0A                  value="2"%0A                />%0A              </div>%0A              <span%0A                aria-hidden="true"%0A              >%0A                -%0A              </span>%0A              <div>%0A                <label%0A                  for="opponent-legs"%0A                >%0A                  Opponent legs%0A                </label>%0A                <input%0A                  id="opponent-legs"%0A                  inputmode="numeric"%0A                  min="0"%0A                  type="number"%0A                  value="1"%0A                />%0A              </div>%0A            </div>%0A            <button%0A              class="primary-button"%0A              disabled=""%0A              type="submit"%0A            >%0A              Submit result%0A            </button>%0A          </form>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33%0A ❯ tests/client/player-ui.test.tsx:107:25%0A%0A
 
 --- build ---
 
@@ -187,7 +187,7 @@ rendering chunks...
 [2mdist/misfits_501/[22m[32mwrangler.json             [39m[1m[2m  1.48 kB[22m[1m[22m
 [2mdist/misfits_501/[22m[2massets/[22m[36mindex-Bp0wU4tX.js  [39m[1m[2m 32.77 kB[22m[1m[22m
 [2mdist/misfits_501/[22m[36mindex.js                  [39m[1m[2m239.71 kB[22m[1m[22m
-[32m✓ built in 813ms[39m
+[32m✓ built in 917ms[39m
 [36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
 transforming...
 [32m✓[39m 62 modules transformed.
@@ -197,4 +197,4 @@ computing gzip size...
 [2mdist/client/[22m[32mindex.html                 [39m[1m[2m  0.45 kB[22m[1m[22m[2m │ gzip:  0.28 kB[22m
 [2mdist/client/[22m[2massets/[22m[35mindex-aOVV_bgR.css  [39m[1m[2m 10.37 kB[22m[1m[22m[2m │ gzip:  3.00 kB[22m
 [2mdist/client/[22m[2massets/[22m[36mindex-DjHO5Od2.js   [39m[1m[2m256.63 kB[22m[1m[22m[2m │ gzip: 79.90 kB[22m
-[32m✓ built in 1.16s[39m
+[32m✓ built in 1.10s[39m
