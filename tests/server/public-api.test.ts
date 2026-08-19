@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createApp } from '../../src/server/index';
 import type { Env } from '../../src/server/env';
 import { createTestDb, insertUser } from '../helpers/d1';
@@ -36,10 +36,11 @@ function env(db: D1Database): Env {
 }
 
 describe('public league API', () => {
-  it('returns standings calculated only from confirmed matches', async () => {
+  it('returns standings calculated only from confirmed matches without browser-stale caching', async () => {
     const { db } = seedPublicLeague();
     const response = await createApp().request('/api/public/league', {}, env(db));
     expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toContain('max-age=0');
     const body = await response.json() as any;
     expect(body.league).toMatchObject({ name: 'Misfits 501', seasonName: '2026', status: 'OPEN', targetLegs: 3 });
     expect(body.standings.map((row: any) => row.username)).toEqual(['Alpha', 'Bravo']);
