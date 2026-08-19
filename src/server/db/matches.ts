@@ -211,3 +211,73 @@ export async function listUserMatches(
   `).bind(leagueId, userId, userId).all<PlayerResultRow>();
   return rows.results;
 }
+
+export async function listAllResults(
+  db: D1Database,
+  leagueId = 'misfits-501',
+): Promise<PlayerResultDto[]> {
+  const rows = await db.prepare(`
+    ${PLAYER_RESULT_SELECT}
+    WHERE m.league_id = ?
+    ORDER BY m.created_at DESC, m.id DESC
+  `).bind(leagueId).all<PlayerResultRow>();
+  return rows.results;
+}
+
+export function prepareConfirmedMatchInsert(
+  db: D1Database,
+  input: {
+    id: string;
+    leagueId: string;
+    playerAId: string;
+    playerBId: string;
+    playerALegs: number;
+    playerBLegs: number;
+    adminId: string;
+    now: string;
+  },
+): D1PreparedStatement {
+  return db.prepare(`
+    INSERT INTO matches (
+      id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
+      submitted_by, status, confirmed_by, dispute_note, created_at, updated_at, confirmed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, NULL, ?, ?, ?)
+  `).bind(
+    input.id,
+    input.leagueId,
+    input.playerAId,
+    input.playerBId,
+    input.playerALegs,
+    input.playerBLegs,
+    input.adminId,
+    input.adminId,
+    input.now,
+    input.now,
+    input.now,
+  );
+}
+
+export function prepareMatchUpdate(
+  db: D1Database,
+  match: MatchRecord,
+): D1PreparedStatement {
+  return db.prepare(`
+    UPDATE matches SET
+      player_a_legs = ?, player_b_legs = ?, status = ?, confirmed_by = ?,
+      dispute_note = ?, updated_at = ?, confirmed_at = ?
+    WHERE id = ?
+  `).bind(
+    match.player_a_legs,
+    match.player_b_legs,
+    match.status,
+    match.confirmed_by,
+    match.dispute_note,
+    match.updated_at,
+    match.confirmed_at,
+    match.id,
+  );
+}
+
+export function prepareMatchDelete(db: D1Database, id: string): D1PreparedStatement {
+  return db.prepare('DELETE FROM matches WHERE id = ?').bind(id);
+}
