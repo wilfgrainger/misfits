@@ -7,7 +7,7 @@ afterEach(() => {
 
 describe('browser API client', () => {
   it('rejects a failed result submission with the server validation error', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => new Response(JSON.stringify({
       error: { code: 'INVALID_RESULT', message: 'That score is not valid.' },
     }), {
       status: 400,
