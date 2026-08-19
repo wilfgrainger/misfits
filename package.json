@@ -23,7 +23,6 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.0.0",
-    "@cloudflare/vitest-pool-workers": "^0.8.0",
     "@cloudflare/workers-types": "^4.20260801.0",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
