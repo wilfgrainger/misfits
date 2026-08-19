@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/client/App';
+import { api, ApiClientError } from '../../src/client/api/client';
 
 function json(body: unknown, status = 200) {
   return Promise.resolve(new Response(status === 204 ? null : JSON.stringify(body), {
@@ -51,6 +52,7 @@ function installFetch(options: {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('player experience', () => {
@@ -94,7 +96,8 @@ describe('player experience', () => {
   });
 
   it('keeps entered result values after a recoverable validation error', async () => {
-    installFetch({ submitError: true });
+    installFetch();
+    vi.spyOn(api, 'submitResult').mockRejectedValue(new ApiClientError(400, 'INVALID_RESULT', 'That score is not valid.'));
     window.history.pushState({}, '', '/results/new');
     render(<App />);
     const opponent = await screen.findByLabelText(/^opponent$/i);
