@@ -42,7 +42,19 @@ describe('standings engine', () => {
       2,
     );
 
-    expect(rows.map((row) => row.userId)).toEqual(['b', 'a', 'c', 'z']);
+    expect(rows.map((row) => row.userId)).toEqual(['b', 'a', 'z', 'c']);
+  });
+
+  it('uses case-insensitive username as the final tie-breaker', () => {
+    const rows = calculateStandings(
+      [
+        { userId: 'b', username: 'bravo' },
+        { userId: 'a', username: 'Alpha' },
+      ],
+      [],
+      2,
+    );
+    expect(rows.map((row) => row.userId)).toEqual(['a', 'b']);
   });
 
   it('ignores match rows whose players are not in the active player set', () => {
