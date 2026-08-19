@@ -1,4 +1,4 @@
-commit=912957b976ae6e8a5a121f0884a79a217f6c9df8
+commit=5fe1bf61fc7f2ee011982a28d6a9ca2511446c30
 typecheck=2
 tests=1
 build=0
@@ -8,8 +8,9 @@ build=0
 > misfits-501@0.1.0 typecheck
 > tsc -p tsconfig.client.json --noEmit && tsc -p tsconfig.worker.json --noEmit
 
-src/client/api/client.ts(115,13): error TS2339: Property 'error' does not exist on type 'never'.
-src/client/api/client.ts(116,13): error TS2339: Property 'error' does not exist on type 'never'.
+tests/helpers/d1.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+tests/helpers/d1.ts(2,50): error TS2307: Cannot find module 'node:sqlite' or its corresponding type declarations.
+tests/server/schema.test.ts(1,30): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
 
 --- tests ---
                 [36m<tr>[39m
@@ -161,8 +162,8 @@ src/client/api/client.ts(116,13): error TS2339: Property 'error' does not exist 
 
 [2m Test Files [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m11 passed[39m[22m[90m (14)[39m
 [2m      Tests [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m80 passed[39m[22m[90m (84)[39m
-[2m   Start at [22m 22:58:54
-[2m   Duration [22m 3.47s[2m (transform 644ms, setup 0ms, import 2.34s, tests 3.62s, environment 1.85s)[22m
+[2m   Start at [22m 23:00:12
+[2m   Duration [22m 3.22s[2m (transform 770ms, setup 0ms, import 2.29s, tests 3.51s, environment 1.50s)[22m
 
 
 ::error file=/home/runner/work/misfits/misfits/tests/client/admin-ui.test.tsx,title=tests/client/admin-ui.test.tsx > admin experience > shows league health and admin navigation to administrators,line=75,column=19::TestingLibraryElementError: Unable to find an element with the text: 12. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <div%0A      class="app-shell"%0A    >%0A      <header%0A        class="site-header"%0A      >%0A        <a%0A          aria-label="Misfits 501 home"%0A          class="brand-link"%0A          data-discover="true"%0A          href="/"%0A        >%0A          <img%0A            alt="Misfits 501"%0A            class="brand-logo"%0A            height="384"%0A            src="/brand/misfits-501.webp"%0A            width="384"%0A          />%0A        </a>%0A        <nav%0A          aria-label="Primary navigation"%0A        >%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/me"%0A          >%0A            My league%0A          </a>%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Admin%0A          </a>%0A        </nav>%0A        <div%0A          class="account-actions"%0A        >%0A          <button%0A            class="text-button"%0A            type="button"%0A          >%0A            Sign out%0A             · Boss%0A          </button>%0A        </div>%0A      </header>%0A      <main%0A        class="page admin-page"%0A      >%0A        <header%0A          class="admin-heading"%0A        >%0A          <div>%0A            <p%0A              class="eyebrow"%0A            >%0A              League control%0A            </p>%0A            <h1>%0A              Admin%0A            </h1>%0A          </div>%0A        </header>%0A        <nav%0A          aria-label="Admin navigation"%0A          class="admin-nav"%0A        >%0A          <a%0A            aria-current="page"%0A            class="active"%0A            data-discover="true"%0A            href="/admin"%0A          >%0A            Dashboard%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/players"%0A          >%0A            Players%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/results"%0A          >%0A            Results%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/league"%0A          >%0A            League%0A          </a>%0A          <a%0A            class=""%0A            data-discover="true"%0A            href="/admin/audit"%0A          >%0A            Audit%0A          </a>%0A        </nav>%0A        <section%0A          aria-labelledby="admin-dashboard-title"%0A          class="admin-section"%0A        >%0A          <h2%0A            id="admin-dashboard-title"%0A          >%0A            Admin dashboard%0A          </h2>%0A          <p>%0A            Loading…%0A          </p>%0A        </section>%0A      </main>%0A    </div>%0A  </div>%0A</body>%0A ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17%0A ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19%0A ❯ tests/client/admin-ui.test.tsx:75:19%0A%0A
@@ -186,7 +187,7 @@ rendering chunks...
 [2mdist/misfits_501/[22m[32mwrangler.json             [39m[1m[2m  1.48 kB[22m[1m[22m
 [2mdist/misfits_501/[22m[2massets/[22m[36mindex-Bp0wU4tX.js  [39m[1m[2m 32.77 kB[22m[1m[22m
 [2mdist/misfits_501/[22m[36mindex.js                  [39m[1m[2m239.71 kB[22m[1m[22m
-[32m✓ built in 920ms[39m
+[32m✓ built in 813ms[39m
 [36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
 transforming...
 [32m✓[39m 62 modules transformed.
@@ -196,4 +197,4 @@ computing gzip size...
 [2mdist/client/[22m[32mindex.html                 [39m[1m[2m  0.45 kB[22m[1m[22m[2m │ gzip:  0.28 kB[22m
 [2mdist/client/[22m[2massets/[22m[35mindex-aOVV_bgR.css  [39m[1m[2m 10.37 kB[22m[1m[22m[2m │ gzip:  3.00 kB[22m
 [2mdist/client/[22m[2massets/[22m[36mindex-DjHO5Od2.js   [39m[1m[2m256.63 kB[22m[1m[22m[2m │ gzip: 79.90 kB[22m
-[32m✓ built in 1.14s[39m
+[32m✓ built in 1.16s[39m
