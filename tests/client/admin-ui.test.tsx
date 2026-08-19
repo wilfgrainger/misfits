@@ -74,8 +74,8 @@ describe('admin experience', () => {
     expect(await screen.findByRole('heading', { name: /admin dashboard/i })).toBeInTheDocument();
     expect(await screen.findByText('12')).toBeInTheDocument();
     expect(await screen.findByText('34')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /players/i })).toHaveAttribute('href', '/admin/players');
-    expect(screen.getByRole('link', { name: /audit/i })).toHaveAttribute('href', '/admin/audit');
+    expect(screen.getAllByRole('link', { name: /players/i }).some((link) => link.getAttribute('href') === '/admin/players')).toBe(true);
+    expect(screen.getAllByRole('link', { name: /audit/i }).some((link) => link.getAttribute('href') === '/admin/audit')).toBe(true);
   });
 
   it('shows private email only in admin player management and surfaces safety errors', async () => {
@@ -88,13 +88,19 @@ describe('admin experience', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/final active administrator/i);
   });
 
-  it('supports manual result entry and explicit delete confirmation', async () => {
+  it('supports explicit result correction and delete confirmation', async () => {
     const fetchMock = installAdminFetch();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     window.history.pushState({}, '', '/admin/results');
     render(<App />);
     expect(await screen.findByText(/Alice\s+3\s+-\s+1\s+Boss/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /delete result/i }));
+
+    fireEvent.change(screen.getByLabelText(/player a legs for alice vs boss/i), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText(/player b legs for alice vs boss/i), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: /save result alice vs boss/i }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/results/r1' && init?.method === 'PATCH')).toBe(true));
+
+    fireEvent.click(screen.getByRole('button', { name: /delete result alice vs boss/i }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/results/r1' && init?.method === 'DELETE')).toBe(true));
     expect(window.confirm).toHaveBeenCalled();
   });
