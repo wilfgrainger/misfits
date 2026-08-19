@@ -72,8 +72,8 @@ describe('admin experience', () => {
     window.history.pushState({}, '', '/admin');
     render(<App />);
     expect(await screen.findByRole('heading', { name: /admin dashboard/i })).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument();
-    expect(screen.getByText('34')).toBeInTheDocument();
+    expect(await screen.findByText('12')).toBeInTheDocument();
+    expect(await screen.findByText('34')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /players/i })).toHaveAttribute('href', '/admin/players');
     expect(screen.getByRole('link', { name: /audit/i })).toHaveAttribute('href', '/admin/audit');
   });
@@ -93,7 +93,7 @@ describe('admin experience', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     window.history.pushState({}, '', '/admin/results');
     render(<App />);
-    expect(await screen.findByText(/alice/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Alice\s+3\s+-\s+1\s+Boss/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /delete result/i }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/results/r1' && init?.method === 'DELETE')).toBe(true));
     expect(window.confirm).toHaveBeenCalled();
