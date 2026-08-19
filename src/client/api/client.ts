@@ -81,6 +81,13 @@ export interface AuditRecordDto {
   createdAt: string;
 }
 
+type ApiErrorBody = {
+  error?: {
+    code?: ApiErrorCode;
+    message?: string;
+  };
+} | null;
+
 export class ApiClientError extends Error {
   constructor(
     public readonly status: number,
@@ -104,9 +111,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    let body: { error?: { code?: ApiErrorCode; message?: string } } | null = null;
+    let body: ApiErrorBody = null;
     try {
-      body = await response.json() as typeof body;
+      body = await response.json() as ApiErrorBody;
     } catch {
       body = null;
     }
