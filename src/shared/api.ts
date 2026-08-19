@@ -24,3 +24,17 @@ export interface AuthUser {
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
 }
+
+export interface PublicPlayerDto {
+  id: string;
+  username: string;
+}
+
+export interface PublicResultDto {
+  id: string;
+  status: 'CONFIRMED';
+  playerA: { id: string; username: string; legs: number };
+  playerB: { id: string; username: string; legs: number };
+  createdAt: string;
+  confirmedAt: string | null;
+}

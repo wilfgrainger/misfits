@@ -1,0 +1,85 @@
+import type { ConfirmedMatch } from '../domain/standings';
+import type { PublicResultDto } from '../../shared/api';
+
+interface PublicMatchRow {
+  id: string;
+  playerAId: string;
+  playerAUsername: string;
+  playerALegs: number;
+  playerBId: string;
+  playerBUsername: string;
+  playerBLegs: number;
+  createdAt: string;
+  confirmedAt: string | null;
+}
+
+export interface MatchRecord {
+  id: string;
+  league_id: string;
+  player_a_id: string;
+  player_b_id: string;
+  player_a_legs: number;
+  player_b_legs: number;
+  submitted_by: string;
+  status: 'PENDING' | 'CONFIRMED' | 'DISPUTED';
+  confirmed_by: string | null;
+  dispute_note: string | null;
+  created_at: string;
+  updated_at: string;
+  confirmed_at: string | null;
+}
+
+export async function listConfirmedMatches(
+  db: D1Database,
+  leagueId = 'misfits-501',
+  limit = 50,
+): Promise<PublicResultDto[]> {
+  const safeLimit = Math.max(1, Math.min(100, Math.trunc(limit)));
+  const rows = await db.prepare(`
+    SELECT
+      m.id AS id,
+      m.player_a_id AS playerAId,
+      a.username AS playerAUsername,
+      m.player_a_legs AS playerALegs,
+      m.player_b_id AS playerBId,
+      b.username AS playerBUsername,
+      m.player_b_legs AS playerBLegs,
+      m.created_at AS createdAt,
+      m.confirmed_at AS confirmedAt
+    FROM matches m
+    JOIN users a ON a.id = m.player_a_id
+    JOIN users b ON b.id = m.player_b_id
+    WHERE m.league_id = ? AND m.status = 'CONFIRMED'
+    ORDER BY COALESCE(m.confirmed_at, m.updated_at, m.created_at) DESC, m.id DESC
+    LIMIT ?
+  `).bind(leagueId, safeLimit).all<PublicMatchRow>();
+
+  return rows.results.map((row) => ({
+    id: row.id,
+    status: 'CONFIRMED' as const,
+    playerA: { id: row.playerAId, username: row.playerAUsername, legs: row.playerALegs },
+    playerB: { id: row.playerBId, username: row.playerBUsername, legs: row.playerBLegs },
+    createdAt: row.createdAt,
+    confirmedAt: row.confirmedAt,
+  }));
+}
+
+export async function listConfirmedMatchesForStandings(
+  db: D1Database,
+  leagueId = 'misfits-501',
+): Promise<ConfirmedMatch[]> {
+  const rows = await db.prepare(`
+    SELECT
+      player_a_id AS playerAId,
+      player_b_id AS playerBId,
+      player_a_legs AS playerALegs,
+      player_b_legs AS playerBLegs
+    FROM matches
+    WHERE league_id = ? AND status = 'CONFIRMED'
+  `).bind(leagueId).all<ConfirmedMatch>();
+  return rows.results;
+}
+
+export function getMatchById(db: D1Database, id: string): Promise<MatchRecord | null> {
+  return db.prepare('SELECT * FROM matches WHERE id = ?').bind(id).first<MatchRecord>();
+}
