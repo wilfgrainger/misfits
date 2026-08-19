@@ -47,6 +47,9 @@ jobs:
           RESULT=$(( TYPECHECK || TESTS || BUILD ))
           echo "result=${RESULT}" >> "$GITHUB_OUTPUT"
           exit 0
+      - name: Print verification evidence
+        if: always()
+        run: cat .ci/last-run.txt
       - name: Commit verification evidence and lockfile
         if: always() && github.event_name == 'push'
         shell: bash
