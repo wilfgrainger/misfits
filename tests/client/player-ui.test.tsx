@@ -98,6 +98,7 @@ describe('player experience', () => {
     window.history.pushState({}, '', '/results/new');
     render(<App />);
     const opponent = await screen.findByLabelText(/^opponent$/i);
+    await screen.findByRole('option', { name: 'Bob' });
     const mine = screen.getByLabelText(/my legs/i);
     const theirs = screen.getByLabelText(/^opponent legs$/i);
     fireEvent.change(opponent, { target: { value: 'bob' } });
