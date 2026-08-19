@@ -1,0 +1,16 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+describe('v1 D1 schema', () => {
+  it('defines all required tables and constraints', () => {
+    const sql = readFileSync('migrations/0001_initial.sql', 'utf8');
+    for (const table of ['users', 'sessions', 'leagues', 'league_players', 'matches', 'audit_log']) {
+      expect(sql).toContain(`CREATE TABLE ${table}`);
+    }
+    expect(sql).toContain('google_sub TEXT NOT NULL UNIQUE');
+    expect(sql).toContain('username TEXT UNIQUE COLLATE NOCASE');
+    expect(sql).toContain("CHECK(role IN ('PLAYER','ADMIN'))");
+    expect(sql).toContain("CHECK(status IN ('PENDING','CONFIRMED','DISPUTED'))");
+    expect(sql).toContain("VALUES ('misfits-501', 'Misfits 501', 'misfits-501', '2026', 'OPEN', 2, 3");
+  });
+});
