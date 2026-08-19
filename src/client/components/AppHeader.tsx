@@ -13,8 +13,7 @@ export function AppHeader() {
   return (
     <header className="site-header">
       <NavLink to="/" className="brand-link" aria-label="Misfits 501 home">
-        <span className="brand-mark" aria-hidden="true">501</span>
-        <span>Misfits 501</span>
+        <img className="brand-logo" src="/brand/misfits-501.webp" alt="Misfits 501" width="384" height="384" />
       </NavLink>
       <nav aria-label="Primary navigation">
         <NavLink to="/">League</NavLink>
