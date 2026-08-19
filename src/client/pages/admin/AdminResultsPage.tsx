@@ -2,6 +2,93 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, ApiClientError, type AdminPlayerDto, type PlayerResultDto } from '../../api/client';
 import { StatusBadge } from '../../components/StatusBadge';
 
+function ResultEditor({ result, onChanged, onDelete }: {
+  result: PlayerResultDto;
+  onChanged: () => Promise<void>;
+  onDelete: (id: string, label: string) => Promise<void>;
+}) {
+  const [playerALegs, setPlayerALegs] = useState(result.playerALegs);
+  const [playerBLegs, setPlayerBLegs] = useState(result.playerBLegs);
+  const [status, setStatus] = useState<'CONFIRMED' | 'DISPUTED'>(result.status === 'DISPUTED' ? 'DISPUTED' : 'CONFIRMED');
+  const [disputeNote, setDisputeNote] = useState(result.disputeNote ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const label = `${result.playerAUsername} vs ${result.playerBUsername}`;
+
+  async function save() {
+    setError(null);
+    setSaving(true);
+    try {
+      await api.updateAdminResult(result.id, {
+        playerALegs,
+        playerBLegs,
+        status,
+        disputeNote: status === 'DISPUTED' ? disputeNote : null,
+      });
+      await onChanged();
+    } catch (reason) {
+      setError(reason instanceof ApiClientError ? reason.message : 'Result could not be corrected.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <article className="panel admin-result-editor">
+      <div className="admin-result-row">
+        <div>
+          <strong>{result.playerAUsername} {result.playerALegs} - {result.playerBLegs} {result.playerBUsername}</strong>
+          <StatusBadge status={result.status} />
+        </div>
+      </div>
+      <div className="admin-grid-form admin-result-edit-grid">
+        <label>
+          Player A legs
+          <input
+            aria-label={`Player A legs for ${label}`}
+            type="number"
+            min="0"
+            value={playerALegs}
+            onChange={(event) => setPlayerALegs(Number(event.target.value))}
+          />
+        </label>
+        <label>
+          Player B legs
+          <input
+            aria-label={`Player B legs for ${label}`}
+            type="number"
+            min="0"
+            value={playerBLegs}
+            onChange={(event) => setPlayerBLegs(Number(event.target.value))}
+          />
+        </label>
+        <label>
+          Status
+          <select value={status} onChange={(event) => setStatus(event.target.value as 'CONFIRMED' | 'DISPUTED')}>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="DISPUTED">Disputed</option>
+          </select>
+        </label>
+        {status === 'DISPUTED' ? (
+          <label>
+            Dispute note
+            <input value={disputeNote} maxLength={500} onChange={(event) => setDisputeNote(event.target.value)} />
+          </label>
+        ) : null}
+      </div>
+      {error ? <p role="alert" className="form-error">{error}</p> : null}
+      <div className="result-actions">
+        <button type="button" className="secondary-button" disabled={saving} aria-label={`Save result ${label}`} onClick={() => void save()}>
+          {saving ? 'Saving…' : 'Save result'}
+        </button>
+        <button type="button" className="danger-button" aria-label={`Delete result ${label}`} onClick={() => void onDelete(result.id, label)}>
+          Delete result
+        </button>
+      </div>
+    </article>
+  );
+}
+
 export function AdminResultsPage() {
   const [results, setResults] = useState<PlayerResultDto[]>([]);
   const [players, setPlayers] = useState<AdminPlayerDto[]>([]);
@@ -29,8 +116,8 @@ export function AdminResultsPage() {
     }
   }
 
-  async function remove(id: string) {
-    if (!window.confirm('Delete this result? This changes the league table.')) return;
+  async function remove(id: string, label: string) {
+    if (!window.confirm(`Delete ${label}? This changes the league table.`)) return;
     setError(null);
     try {
       await api.deleteAdminResult(id);
@@ -53,12 +140,7 @@ export function AdminResultsPage() {
         <button className="primary-button" type="submit">Add confirmed result</button>
       </form>
       <div className="admin-card-list">
-        {results.map((result) => (
-          <article className="panel admin-result-row" key={result.id}>
-            <div><strong>{result.playerAUsername} {result.playerALegs} - {result.playerBLegs} {result.playerBUsername}</strong><StatusBadge status={result.status} /></div>
-            <button type="button" className="danger-button" onClick={() => void remove(result.id)}>Delete result</button>
-          </article>
-        ))}
+        {results.map((result) => <ResultEditor key={result.id} result={result} onChanged={load} onDelete={remove} />)}
       </div>
     </section>
   );
