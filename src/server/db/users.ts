@@ -78,3 +78,71 @@ export async function setUsernameAndJoinLeague(
   `).bind(leagueId, userId, now.toISOString());
   await db.batch([updateUser, joinLeague]);
 }
+
+export interface AdminPlayerDto {
+  id: string;
+  email: string;
+  username: string | null;
+  role: UserRole;
+  status: UserStatus;
+  leagueActive: boolean;
+  joinedAt: string | null;
+  createdAt: string;
+  lastLoginAt: string;
+}
+
+interface AdminPlayerRow {
+  id: string;
+  email: string;
+  username: string | null;
+  role: UserRole;
+  status: UserStatus;
+  leagueActive: number;
+  joinedAt: string | null;
+  createdAt: string;
+  lastLoginAt: string;
+}
+
+const ADMIN_PLAYER_SELECT = `
+  SELECT
+    u.id AS id,
+    u.email AS email,
+    u.username AS username,
+    u.role AS role,
+    u.status AS status,
+    COALESCE(lp.active, 0) AS leagueActive,
+    lp.joined_at AS joinedAt,
+    u.created_at AS createdAt,
+    u.last_login_at AS lastLoginAt
+  FROM users u
+  LEFT JOIN league_players lp ON lp.user_id = u.id AND lp.league_id = ?
+`;
+
+function mapAdminPlayer(row: AdminPlayerRow): AdminPlayerDto {
+  return { ...row, leagueActive: row.leagueActive === 1 };
+}
+
+export async function getAdminPlayer(
+  db: D1Database,
+  userId: string,
+  leagueId = 'misfits-501',
+): Promise<AdminPlayerDto | null> {
+  const row = await db.prepare(`${ADMIN_PLAYER_SELECT} WHERE u.id = ?`)
+    .bind(leagueId, userId).first<AdminPlayerRow>();
+  return row ? mapAdminPlayer(row) : null;
+}
+
+export async function listAdminPlayers(
+  db: D1Database,
+  leagueId = 'misfits-501',
+): Promise<AdminPlayerDto[]> {
+  const rows = await db.prepare(`${ADMIN_PLAYER_SELECT} ORDER BY COALESCE(u.username, u.email) COLLATE NOCASE ASC`)
+    .bind(leagueId).all<AdminPlayerRow>();
+  return rows.results.map(mapAdminPlayer);
+}
+
+export async function countActiveAdmins(db: D1Database): Promise<number> {
+  const row = await db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE'")
+    .first<{ count: number }>();
+  return Number(row?.count ?? 0);
+}
