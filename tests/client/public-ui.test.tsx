@@ -46,6 +46,13 @@ afterEach(() => {
 });
 
 describe('public React experience', () => {
+  it('uses the supplied Misfits 501 artwork as the accessible brand mark', async () => {
+    window.history.pushState({}, '', '/');
+    render(<App />);
+    const logo = await screen.findByRole('img', { name: /misfits 501/i });
+    expect(logo).toHaveAttribute('src', '/brand/misfits-501.webp');
+  });
+
   it('puts the league table and latest results on the homepage for signed-out visitors', async () => {
     window.history.pushState({}, '', '/');
     render(<App />);
