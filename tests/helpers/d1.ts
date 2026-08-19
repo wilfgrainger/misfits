@@ -1,20 +1,20 @@
 import { readFileSync } from 'node:fs';
-import { DatabaseSync, type StatementSync } from 'node:sqlite';
+import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlite';
 
 interface BoundStatement {
   _statement: StatementSync;
-  _values: unknown[];
-  bind(...values: unknown[]): BoundStatement;
+  _values: SQLInputValue[];
+  bind(...values: SQLInputValue[]): BoundStatement;
   first<T = unknown>(): Promise<T | null>;
   all<T = unknown>(): Promise<{ success: true; results: T[] }>;
   run(): Promise<{ success: true; meta: { changes: number; last_row_id: number | null } }>;
 }
 
-function wrap(statement: StatementSync, values: unknown[] = []): BoundStatement {
+function wrap(statement: StatementSync, values: SQLInputValue[] = []): BoundStatement {
   return {
     _statement: statement,
     _values: values,
-    bind(...next: unknown[]) {
+    bind(...next: SQLInputValue[]) {
       return wrap(statement, next);
     },
     async first<T>() {
