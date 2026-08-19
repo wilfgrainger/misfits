@@ -5,6 +5,7 @@ import type { AppVariables } from './auth/guards';
 import { createAuthRoutes, type AuthRouteDeps } from './routes/auth';
 import { createPublicRoutes } from './routes/public';
 import { createResultRoutes } from './routes/results';
+import { createAdminRoutes } from './routes/admin';
 
 export type AppDeps = AuthRouteDeps;
 type AppEnv = { Bindings: Env; Variables: AppVariables };
@@ -25,6 +26,7 @@ export function createApp(deps: AppDeps = {}) {
   app.route('/', createAuthRoutes(deps));
   app.route('/', createPublicRoutes());
   app.route('/', createResultRoutes());
+  app.route('/', createAdminRoutes());
   return app;
 }
 
