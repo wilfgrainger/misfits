@@ -8,7 +8,7 @@ import { calculateStandings } from '../domain/standings';
 type AppEnv = { Bindings: Env; Variables: AppVariables };
 
 function publicCache(c: { header(name: string, value: string): void }) {
-  c.header('Cache-Control', 'public, max-age=30');
+  c.header('Cache-Control', 'public, max-age=0, must-revalidate');
 }
 
 export function createPublicRoutes() {
