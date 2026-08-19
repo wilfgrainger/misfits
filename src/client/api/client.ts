@@ -30,6 +30,24 @@ export interface MeResponse {
   requiresOnboarding: boolean;
 }
 
+export interface PlayerResultDto {
+  id: string;
+  status: 'PENDING' | 'CONFIRMED' | 'DISPUTED';
+  playerAId: string;
+  playerAUsername: string;
+  playerALegs: number;
+  playerBId: string;
+  playerBUsername: string;
+  playerBLegs: number;
+  submittedBy: string;
+  confirmedBy: string | null;
+  disputeNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  confirmedAt: string | null;
+  canRespond: boolean;
+}
+
 export class ApiClientError extends Error {
   constructor(
     public readonly status: number,
@@ -76,4 +94,19 @@ export const api = {
   getPublicPlayers: () => request<{ players: PublicPlayerDto[] }>('/api/public/players'),
   getMe: () => request<MeResponse>('/api/me'),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
+  setUsername: (username: string) => request<MeResponse>('/api/me/username', {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  }),
+  getOpponents: () => request<{ opponents: PublicPlayerDto[] }>('/api/me/opponents'),
+  getMyResults: () => request<{ results: PlayerResultDto[] }>('/api/me/results'),
+  submitResult: (input: { opponentId: string; myLegs: number; opponentLegs: number }) => request<{ result: PlayerResultDto }>('/api/results', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }),
+  confirmResult: (id: string) => request<{ result: PlayerResultDto }>(`/api/results/${id}/confirm`, { method: 'POST' }),
+  disputeResult: (id: string, note?: string) => request<{ result: PlayerResultDto }>(`/api/results/${id}/dispute`, {
+    method: 'POST',
+    body: JSON.stringify(note ? { note } : {}),
+  }),
 };
