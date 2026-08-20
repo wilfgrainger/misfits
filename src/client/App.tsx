@@ -160,6 +160,12 @@ export default function App() {
     if (match) window.sessionStorage.setItem('league_pending_invite', match[1]);
   }, []);
 
+  useEffect(() => {
+    if (myLeagues.length > 0 && selectedLeagueId && !myLeagues.some((league) => league.id === selectedLeagueId)) {
+      setSelectedLeagueId(myLeagues[0].id);
+    }
+  }, [myLeagues, selectedLeagueId]);
+
   const submitUsername = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
@@ -208,7 +214,7 @@ export default function App() {
 
         {view === 'onboarding' && <form className="onboarding-form" onSubmit={submitUsername}><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Continue</button></form>}
 
-        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.isMasterAdmin ? 'Master administrator' : 'League owner / player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div><AdminLeagueDesk user={user} onLeagueChanged={handleLeagueCreated} /><div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><p className="section-kicker">NO MEMBERSHIPS</p><h2>Join with an invite link.</h2><p>Open a league invite link in this browser to enter a league.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
+        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.isMasterAdmin ? 'Master administrator' : 'League owner / player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div><AdminLeagueDesk user={user} selectedLeagueId={selectedLeagueId} onLeagueChanged={handleLeagueCreated} onLeagueSelected={(league) => { if (league) setSelectedLeagueId(league.id); }} /><div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><p className="section-kicker">NO MEMBERSHIPS</p><h2>Join with an invite link.</h2><p>Open a league invite link in this browser to enter a league.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
 
         {view !== 'signed-in' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
       </section>

@@ -165,7 +165,14 @@ button:disabled { cursor: wait; opacity: .55; }
 .picker-item-active { background: #17231e; }
 .picker-item-active strong, .picker-item-active span { color: #f1ead7; }
 .compact-form { display: grid; gap: .5rem; margin-top: .8rem; }
+.compact-form label { display: grid; gap: .35rem; color: #17231e; font-size: .86rem; font-weight: 800; }
 .compact-form input { min-height: 44px; padding: .65rem; color: #17231e; background: #fffdf5; border: 1px solid #a7afa5; border-radius: 6px; }
+.compact-form select { margin-top: 0; }
+.create-league-form { margin-top: 1.4rem; }
+.create-form-intro { display: grid; gap: .25rem; }
+.create-form-intro .section-kicker { margin-bottom: 0; }
+.form-help, .admin-section-caption { margin: .25rem 0 0; color: #536058; font-size: .84rem; line-height: 1.4; }
+.admin-section-caption { font-weight: 650; }
 .admin-block .stack-form { margin-top: 0; }
 .admin-list li { justify-content: space-between; align-items: center; gap: .75rem; }
 .admin-list li > div:first-child { display: grid; min-width: 0; gap: .2rem; }
@@ -178,6 +185,7 @@ button:disabled { cursor: wait; opacity: .55; }
   .public-home, .sign-in-panel, .member-area, .admin-desk, .player-workspace { margin-top: 2rem; padding-left: 0; padding-right: 0; }
   .content-tabs { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
   .compact-form { grid-template-columns: 2fr 1fr 1fr 1fr auto; align-items: end; }
+  .create-league-form { grid-template-columns: 1fr; align-items: stretch; }
   .modal-backdrop { align-items: center; justify-items: center; padding: 1rem; }
   .modal-sheet { width: min(100%, 32rem); padding: 1.5rem; border: 1px solid #c8cbbb; border-radius: 8px; }
 }

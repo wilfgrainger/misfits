@@ -88,6 +88,7 @@
 - [x] Select the league returned by a successful invite join when the player already belongs to another league.
 - [x] Guard opponent confirmation and dispute writes against concurrent resolution of the same pending result.
 - [x] Report invite clipboard failures honestly while keeping the generated invite URL visible for manual sharing.
+- [x] Keep the admin league picker and member workspace synchronized when a user belongs to multiple leagues.
 - [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate

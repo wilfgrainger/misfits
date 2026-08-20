@@ -7,10 +7,15 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
     id: 'league-created', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const,
     pointsPerWin: 2, targetLegs: 3, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
   };
+  const secondLeague = {
+    id: 'league-second', name: 'Thursday Club', slug: 'thursday-club', seasonName: '2026', status: 'OPEN' as const,
+    pointsPerWin: 2, targetLegs: 5, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
+  };
   const shared = {
     user: { id: 'player-a', username: 'Alpha', role: 'PLAYER' as const, status: 'ACTIVE' as const, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false },
     myLeagues: [] as typeof createdLeague[],
     adminLeagues: [] as typeof createdLeague[],
+    multipleLeagues: false,
   };
   class ApiClientError extends Error {
     constructor(public readonly status: number, message: string) { super(message); }
@@ -18,8 +23,8 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
   class ApiClient {
     me() { return Promise.resolve({ user: shared.user, requiresOnboarding: false }); }
     leagues() { return Promise.resolve({ leagues: [] }); }
-    myLeagues() { return Promise.resolve({ leagues: shared.myLeagues }); }
-    adminLeagues() { return Promise.resolve({ leagues: shared.adminLeagues }); }
+    myLeagues() { return Promise.resolve({ leagues: shared.multipleLeagues ? [createdLeague, secondLeague] : shared.myLeagues }); }
+    adminLeagues() { return Promise.resolve({ leagues: shared.multipleLeagues ? [createdLeague, secondLeague] : shared.adminLeagues }); }
     adminPlayers() { return Promise.resolve({ players: [] }); }
     adminMembers() { return Promise.resolve({ members: [] }); }
     adminInvites() { return Promise.resolve({ invites: [] }); }
@@ -54,12 +59,13 @@ describe('integrated league creation', () => {
     cleanup();
     state.myLeagues = [];
     state.adminLeagues = [];
+    state.multipleLeagues = false;
   });
 
   it('moves a new owner directly into the created league workspace', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Create league' })).toBeTruthy());
-    fireEvent.change(screen.getByLabelText('New league name'), { target: { value: 'Tuesday Club' } });
+    fireEvent.change(screen.getByLabelText('League name'), { target: { value: 'Tuesday Club' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create league' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
     expect(screen.queryByText('Join with an invite link.')).toBeNull();
@@ -70,5 +76,16 @@ describe('integrated league creation', () => {
     await waitFor(() => expect(screen.getByText('League settings saved.')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
     expect(screen.getByRole('button', { name: 'League closed' })).toBeTruthy();
+  });
+
+  it('keeps the player workspace on the league selected in the league desk', async () => {
+    state.multipleLeagues = true;
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Thursday Club/ })[0]);
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Thursday Club' })).toBeTruthy());
+    expect(screen.getByLabelText('Thursday Club table')).toBeTruthy();
   });
 });
