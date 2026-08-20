@@ -56,7 +56,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 
 ## Browser observation
 
-- Playwright at a `390x844` viewport on Worker `8e9d60c2-5b59-4a0e-87e5-08daa368fdf6` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping; `document.documentElement.scrollWidth` equalled the `390px` viewport width.
+- Playwright at a `390x844` viewport on Worker `cdffe647-4dd5-42fe-8e0b-3a27706e148b` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping; the current browser reported `document.documentElement.scrollWidth = 350` against a `390px` viewport.
 - Clicking the official Google button on the latest deployment opened a Google Accounts tab with `origin=https://darts.graingers.agency`; the isolated browser then showed Google's email-or-phone sign-in screen and had no account session available to complete the credential step.
 - At `390x844`, the public deep link rendered without visible overlap or horizontal clipping; a local Playwright screenshot was captured for the check.
 - Clicking `Share league` on the public deep link opened the desktop browser share flow. Chromium returned `AbortError: Share failed` when the native share target was dismissed/unavailable, and the client then attempted clipboard fallback for the stable URL `https://darts.graingers.agency/league/misfits-501`.
