@@ -72,7 +72,7 @@ The first verified Google account whose email matches `BOOTSTRAP_ADMIN_EMAIL` be
 
 ## Product workflows
 
-- Admins create or edit leagues, set capacity and games-per-pair, issue invite links, manage members and manage results.
+- Admins create or edit leagues, set capacity, games-per-pair, target legs and points per win, issue or revoke invite links, manage members and manage results.
 - A player joins a league through an invite link after Google sign-in. Joining is checked again by the Worker for expiry, revocation, capacity and league state.
 - A player can submit only a game involving their own account. Both player averages are required. The other player confirms or disputes the result.
 - Only confirmed results affect standings. Averages are stored per game and shown on result rows and standings.

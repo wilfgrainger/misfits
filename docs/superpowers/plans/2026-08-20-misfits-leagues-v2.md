@@ -10,6 +10,14 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-20-misfits-leagues-v2-design.md`
 
+## Reconciled Status (20 August 2026)
+
+The implementation work described by Tasks 1-7 is complete and is covered by the current source tree, automated suite and deployment evidence. Task 8 Steps 1-4, 7 and 8 are also complete: the local gate passes, the additive migration is live, the Worker is deployed, anonymous production reads and the mobile/GIS surface have been rechecked, and `main` is pushed to GitHub.
+
+The remaining acceptance work is deliberately narrow: a real signed-in Google browser must exercise the invite join, profile edit, self-involved result submission and opponent confirmation flow, followed by the forbidden-player-path checks. The isolated Playwright browser can verify the official GIS button and Google origin, but it has no Google account session and cannot substitute for that evidence. The current release evidence is in `docs/superpowers/evidence/2026-08-20-misfits-leagues-v2-verification.md`.
+
+The unchecked task boxes below are retained as the original execution plan record; this reconciliation and the evidence file are the current status authority.
+
 ## Global Constraints
 
 - Google remains the only login method; do not add passwords, magic links or local credentials.
