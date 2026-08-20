@@ -1,8 +1,8 @@
 # White-Label Leagues v3 Verification
 
 **Date:** 20 August 2026  
-**Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`)<br>
-**Cloudflare Worker version:** `fc707011-8bb8-4a07-a13f-75925b34cdb6`<br>
+**Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`), `b335c61` (`fix: harden league result workflows`)<br>
+**Cloudflare Worker version:** `43c18f33-06c9-4ef4-8e35-6b2d897cd6d3`<br>
 **Live origin:** `https://darts.graingers.agency`
 
 ## Design and source reconciliation
@@ -14,7 +14,7 @@
 
 ## Automated verification
 
-- `npm test`: 22 test files, 76 tests passed.
+- `npm test`: 22 test files, 80 tests passed.
 - `npm run typecheck`: passed for client and Worker TypeScript projects.
 - `npm run build`: passed; Vite generated the production assets.
 - `git diff --check`: passed.
@@ -24,7 +24,7 @@
 - The production CSP now permits Google GIS inline styles under `style-src` while keeping inline scripts disallowed.
 - The production Worker now has an explicit `MASTER_ADMIN_EMAIL` secret in addition to the Google client and bootstrap secrets.
 
-Focused v3 coverage proves the additive master-admin/visibility schema, configured master identity promotion, ordinary-user isolation, owner-only league management, master access to all leagues, automatic owner membership, private public-read filtering, private member reads, generic shell copy, visibility controls and People-panel gating. Existing Google credential handling, opaque sessions, profiles, invite hashing/join/capacity, player-only results, per-game averages, confirmation/dispute, standings and admin result controls remain green in the same suite.
+Focused v3 coverage proves the additive master-admin/visibility schema, configured master identity promotion, ordinary-user isolation, owner-only league management, master access to all leagues, automatic owner membership, private public-read filtering, private member reads, generic shell copy, visibility controls and People-panel gating. Post-release coverage now also proves draw rejection, slug-based public standings/results, league-switch form reset and closed-league result-entry gating. Existing Google credential handling, opaque sessions, profiles, invite hashing/join/capacity, player-only results, per-game averages, confirmation/dispute, standings and admin result controls remain green in the same suite.
 
 ## Production migration and account state
 
@@ -41,6 +41,8 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 - `GET /api/health`: `200`, `{"ok":true}`.
 - `GET /api/public/leagues`: `200`; the seeded Misfits league is present with `visibility: "PUBLIC"`.
 - `GET /api/public/leagues/misfits-501`: `200`; public league metadata and redacted players returned.
+- `GET /api/public/leagues/misfits-501/standings`: `200`; the stable league slug resolves to the public standings resource.
+- `GET /api/public/leagues/misfits-501/results`: `200`; the stable league slug resolves to the public results resource.
 - Unauthenticated `GET /api/admin/leagues`: `401`.
 - Unauthenticated `GET /api/admin/players`: `401`.
 - `GET https://darts-501.zerobytemode.workers.dev/`: `404`; the workers.dev hostname remains inactive.
@@ -48,7 +50,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 
 ## Browser observation
 
-- Playwright at a `390x844` viewport showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping.
+- Playwright at a `390x844` viewport on Worker `43c18f33-06c9-4ef4-8e35-6b2d897cd6d3` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping.
 - Clicking the official Google button opened a Google Accounts tab with `origin=https://darts.graingers.agency`.
 - At `390x844`, the public deep link rendered without visible overlap or horizontal clipping; a local Playwright screenshot was captured for the check.
 - Clicking `Share league` on the public deep link opened the desktop browser share flow. Chromium returned `AbortError: Share failed` when the native share target was dismissed/unavailable, and the client then attempted clipboard fallback for the stable URL `https://darts.graingers.agency/league/misfits-501`.

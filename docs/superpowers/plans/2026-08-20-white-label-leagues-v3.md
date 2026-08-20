@@ -1,6 +1,6 @@
 # White-Label Leagues v3 Implementation Plan
 
-> **Status:** Implemented and deployed. The only open acceptance item is a real signed-in Google browser run, which requires an available authenticated browser session.
+> **Status:** Implemented, deployed and post-release hardened. The only open acceptance item is a real signed-in Google browser run, which requires an available authenticated browser session.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans or superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
@@ -67,6 +67,16 @@
 - [x] Verify anonymous public filtering, authenticated guards and the custom domain live.
 - [ ] Recheck the real Google browser path when a signed-in browser session is available; record the proof boundary honestly.
 - [x] Commit evidence, push, refetch remote refs and record exact release SHA/version.
+
+### Task 5: Post-release correctness hardening
+
+**Files:** `src/server/domain/result.ts`, `src/server/routes/results.ts`, `src/client/components/PlayerLeague.tsx`, focused domain/route/client tests
+
+- [x] Add failing coverage for decisive target-leg scores and reject draw scores such as `3-3`.
+- [x] Make public standings and result endpoints resolve both league IDs and stable league slugs.
+- [x] Reset opponent, leg and average entry state when a player switches leagues.
+- [x] Make player result entry visibly unavailable while a league is closed.
+- [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate
 
