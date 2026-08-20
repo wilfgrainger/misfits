@@ -1,8 +1,8 @@
 # Misfits Leagues v2 Verification
 
 **Date:** 20 August 2026  
-**Release commit:** `fc2034898ed7bf53a05f0bcdda29ce30016e1a3c`  
-**Cloudflare Worker version:** `5940fdd8-a2b8-4e34-9c7a-497c785c7614`  
+**Release commit:** `041737c0997286e6b7acc14a0761efa5a1dfe717`  
+**Cloudflare Worker version:** `bd3f6a0d-c7ac-4b81-b754-968ccaa94f85`  
 **Live origin:** `https://darts.graingers.agency`
 
 ## Source and automated verification
@@ -28,6 +28,7 @@ Focused coverage includes Google picture persistence, profile ownership/validati
 - `https://darts-501.zerobytemode.workers.dev/`: `404`; the workers.dev namespace is not an active public route.
 - The official Google button rendered on the live custom origin. Clicking it opened a Google Accounts sign-in tab whose request included `origin=https://darts.graingers.agency`.
 - A 390x844 live screenshot was checked after deployment. The brand header, public table, result columns and Google sign-in control fit without horizontal clipping or overlap.
+- After the final server hardening deployment, `GET /api/health` and the seeded standings endpoint were rechecked and returned `200`.
 
 ## Proof boundary
 
