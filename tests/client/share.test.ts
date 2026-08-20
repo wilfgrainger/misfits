@@ -20,4 +20,11 @@ describe('league sharing', () => {
     await expect(shareLeague({ clipboard: { writeText } }, 'Misfits 501', 'misfits-501', 'https://darts.example')).resolves.toBe('copied');
     expect(writeText).toHaveBeenCalledWith('https://darts.example/league/misfits-501');
   });
+
+  it('falls back to the clipboard when the desktop share target rejects the native sheet', async () => {
+    const share = vi.fn().mockRejectedValue(Object.assign(new Error('Share failed'), { name: 'AbortError' }));
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    await expect(shareLeague({ share, clipboard: { writeText } }, 'Misfits 501', 'misfits-501', 'https://darts.example')).resolves.toBe('copied');
+    expect(writeText).toHaveBeenCalledWith('https://darts.example/league/misfits-501');
+  });
 });

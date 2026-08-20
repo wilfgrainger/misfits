@@ -25,6 +25,8 @@ describe('mobile league workspaces', () => {
   });
 
   it('renders the admin league creation and invite workspace', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input);
       if (path.endsWith('/api/admin/leagues')) return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
@@ -47,6 +49,9 @@ describe('mobile league workspaces', () => {
     expect(screen.getByLabelText('Target legs')).toBeTruthy();
     expect(screen.getByLabelText('Points per win')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Create invite link' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Share league' }));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('League link copied.'));
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/league/misfits-501`);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Revoke invite' })).toBeTruthy());
     expect(screen.getByRole('heading', { name: 'Enter historical result' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Record confirmed result' })).toBeTruthy();

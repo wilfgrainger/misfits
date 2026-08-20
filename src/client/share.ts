@@ -29,8 +29,16 @@ export async function shareLeague(
 ): Promise<'shared' | 'copied'> {
   const url = buildLeagueUrl(slug, origin);
   if (browser.share) {
-    await browser.share({ title: name, text: `Join the ${name} league.`, url });
-    return 'shared';
+    try {
+      await browser.share({ title: name, text: `Join the ${name} league.`, url });
+      return 'shared';
+    } catch (cause) {
+      const error = cause as { name?: string; message?: string };
+      const nativeShareFailed = error.name === 'NotAllowedError'
+        || error.name === 'TypeError'
+        || (error.name === 'AbortError' && error.message === 'Share failed');
+      if (!nativeShareFailed || !browser.clipboard?.writeText) throw cause;
+    }
   }
   if (browser.clipboard?.writeText) {
     await browser.clipboard.writeText(url);
