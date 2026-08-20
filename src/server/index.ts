@@ -5,6 +5,7 @@ import { createAdminRoutes } from './routes/admin';
 import { createProfileRoutes } from './routes/profile';
 import { createLeagueRoutes } from './routes/leagues';
 import { createAdminLeagueRoutes } from './routes/admin-leagues';
+import { createResultRoutes } from './routes/results';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -14,5 +15,6 @@ app.route('/', createAdminRoutes());
 app.route('/', createProfileRoutes());
 app.route('/', createLeagueRoutes());
 app.route('/', createAdminLeagueRoutes());
+app.route('/', createResultRoutes());
 
 export default app;

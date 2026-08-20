@@ -4,6 +4,7 @@ import { validateLeagueInput } from '../domain/league';
 import { AppError, jsonError } from '../errors';
 import { createInvite, revokeInvite } from '../db/invites';
 import { createLeague, getLeagueById, listLeagueMembers, listPublicLeagues, setMembershipActive, updateLeague } from '../db/leagues';
+import { createAdminResult, deleteAdminResult, getAdminResults, serializeResult, updateAdminResult } from '../db/results';
 
 interface AdminLeagueRouteDependencies {
   now?: () => Date;
@@ -108,6 +109,41 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('VALIDATION_ERROR', 'Member could not be updated', 400));
+    }
+  });
+
+  routes.get('/api/admin/leagues/:id/results', requireUser, requireAdmin, async (c) => {
+    const results = await getAdminResults(c.env.DB, c.req.param('id'));
+    return c.json({ results: results.map(serializeResult) }, 200, { 'Cache-Control': 'private, no-store' });
+  });
+
+  routes.post('/api/admin/leagues/:id/results', requireSameOrigin, requireUser, requireAdmin, async (c) => {
+    try {
+      const result = await createAdminResult(c.env.DB, c.get('user').id, c.req.param('id'), await c.req.json().catch(() => null), now());
+      return c.json({ result: serializeResult(result) }, 201, { 'Cache-Control': 'private, no-store' });
+    } catch (error) {
+      if (error instanceof AppError) return jsonError(c, error);
+      return jsonError(c, new AppError('INVALID_RESULT', 'Result could not be entered', 400));
+    }
+  });
+
+  routes.patch('/api/admin/results/:id', requireSameOrigin, requireUser, requireAdmin, async (c) => {
+    try {
+      const result = await updateAdminResult(c.env.DB, c.get('user').id, c.req.param('id'), await c.req.json().catch(() => null), now());
+      return c.json({ result: serializeResult(result) }, 200, { 'Cache-Control': 'private, no-store' });
+    } catch (error) {
+      if (error instanceof AppError) return jsonError(c, error);
+      return jsonError(c, new AppError('INVALID_RESULT', 'Result could not be updated', 400));
+    }
+  });
+
+  routes.delete('/api/admin/results/:id', requireSameOrigin, requireUser, requireAdmin, async (c) => {
+    try {
+      await deleteAdminResult(c.env.DB, c.get('user').id, c.req.param('id'), now());
+      return c.json({ ok: true }, 200, { 'Cache-Control': 'private, no-store' });
+    } catch (error) {
+      if (error instanceof AppError) return jsonError(c, error);
+      return jsonError(c, new AppError('INVALID_RESULT', 'Result could not be deleted', 400));
     }
   });
 
