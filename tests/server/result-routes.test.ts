@@ -17,7 +17,7 @@ type User = {
 };
 type League = { id: string; name: string; slug: string; season_name: string; status: 'OPEN' | 'CLOSED'; points_per_win: number; target_legs: number; max_players: number; matches_per_pair: number; created_at: string; updated_at: string; created_by: string };
 type Match = {
-  id: string; league_id: string; player_a_id: string; player_b_id: string; player_a_legs: number; player_b_legs: number; player_a_average: number; player_b_average: number; submitted_by: string; status: 'PENDING' | 'CONFIRMED' | 'DISPUTED'; confirmed_by: string | null; dispute_note: string | null; created_at: string; updated_at: string; confirmed_at: string | null; deleted_at: string | null;
+  id: string; league_id: string; player_a_id: string; player_b_id: string; player_a_legs: number; player_b_legs: number; player_a_average: number | null; player_b_average: number | null; submitted_by: string; status: 'PENDING' | 'CONFIRMED' | 'DISPUTED'; confirmed_by: string | null; dispute_note: string | null; created_at: string; updated_at: string; confirmed_at: string | null; deleted_at: string | null;
 };
 type Session = { token_hash: string; user_id: string; created_at: string; expires_at: string };
 
@@ -198,6 +198,25 @@ describe('result routes', () => {
     const body = await standings.json() as { standings: Array<{ playerId: string; played: number; points: number }> };
     expect(body.standings.find((row) => row.playerId === 'player-a')).toMatchObject({ played: 1, points: 2 });
     expect(body.standings.find((row) => row.playerId === 'player-c')).toMatchObject({ played: 0, points: 0 });
+  });
+
+  it('normalizes legacy confirmed results whose averages predate the averages columns', async () => {
+    const { db, env, routes } = setup();
+    db.matches.set('legacy-match', {
+      id: 'legacy-match', league_id: 'league-1', player_a_id: 'player-a', player_b_id: 'player-b',
+      player_a_legs: 3, player_b_legs: 1, player_a_average: null, player_b_average: null,
+      submitted_by: 'player-a', status: 'CONFIRMED', confirmed_by: 'admin-1', dispute_note: null,
+      created_at: now.toISOString(), updated_at: now.toISOString(), confirmed_at: now.toISOString(), deleted_at: null,
+    });
+
+    const publicResults = await routes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/results'), env, {} as never);
+    expect(publicResults.status).toBe(200);
+    expect(await publicResults.json()).toMatchObject({ results: [{ playerAAverage: 0, playerBAverage: 0 }] });
+
+    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/standings'), env, {} as never);
+    expect(standings.status).toBe(200);
+    const standingsBody = await standings.json() as { standings: Array<{ playerId: string; average: number }> };
+    expect(standingsBody.standings.find((row) => row.playerId === 'player-a')).toMatchObject({ average: 0 });
   });
 
   it('lets an administrator enter, correct and delete a result with audit history', async () => {

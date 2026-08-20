@@ -27,6 +27,16 @@ export interface ResultRecord {
   player_b_username?: string | null;
 }
 
+function normalizeResult(result: ResultRecord): ResultRecord {
+  const playerAAverage = Number(result.player_a_average);
+  const playerBAverage = Number(result.player_b_average);
+  return {
+    ...result,
+    player_a_average: Number.isFinite(playerAAverage) ? playerAAverage : 0,
+    player_b_average: Number.isFinite(playerBAverage) ? playerBAverage : 0,
+  };
+}
+
 function publicResult(result: ResultRecord) {
   return {
     id: result.id,
@@ -53,7 +63,7 @@ export function serializeResult(result: ResultRecord) {
 }
 
 async function getResultById(db: D1Database, resultId: string): Promise<ResultRecord | null> {
-  return (await db.prepare(
+  const result = await db.prepare(
     `SELECT matches.id, matches.league_id, matches.player_a_id, matches.player_b_id,
             matches.player_a_legs, matches.player_b_legs, matches.player_a_average, matches.player_b_average,
             matches.submitted_by, matches.status, matches.confirmed_by, matches.dispute_note,
@@ -63,7 +73,8 @@ async function getResultById(db: D1Database, resultId: string): Promise<ResultRe
        JOIN users a ON a.id = matches.player_a_id
        JOIN users b ON b.id = matches.player_b_id
       WHERE matches.id = ?`,
-  ).bind(resultId).first<ResultRecord>()) ?? null;
+  ).bind(resultId).first<ResultRecord>();
+  return result ? normalizeResult(result) : null;
 }
 
 async function listResults(db: D1Database, leagueId: string, status?: MatchStatus, playerId?: string): Promise<ResultRecord[]> {
@@ -82,7 +93,7 @@ async function listResults(db: D1Database, leagueId: string, status?: MatchStatu
       WHERE matches.league_id = ? AND matches.deleted_at IS NULL${statusClause}${playerClause}
       ORDER BY matches.created_at DESC`,
   ).bind(...values).all<ResultRecord>();
-  return result.results;
+  return result.results.map(normalizeResult);
 }
 
 async function countPairResults(db: D1Database, leagueId: string, playerAId: string, playerBId: string): Promise<number> {
@@ -266,7 +277,7 @@ export async function getPlayerResults(db: D1Database, userId: string): Promise<
       WHERE matches.player_a_id = ? OR matches.player_b_id = ? OR matches.submitted_by = ?
       ORDER BY matches.created_at DESC`,
   ).bind(userId, userId, userId).all<ResultRecord>();
-  return result.results;
+  return result.results.map(normalizeResult);
 }
 
 export async function getAdminResults(db: D1Database, leagueId: string): Promise<ResultRecord[]> {

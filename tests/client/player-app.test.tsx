@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayerLeague } from '../../src/client/components/PlayerLeague';
 import { AdminLeagueDesk } from '../../src/client/components/AdminLeagueDesk';
@@ -25,14 +25,21 @@ describe('mobile league workspaces', () => {
   });
 
   it('renders the admin league creation and invite workspace', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({ leagues: [league] }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ players: [] }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ members: [] }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input);
+      if (path.endsWith('/api/admin/leagues')) return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
+      if (path.endsWith('/api/admin/players')) return new Response(JSON.stringify({ players: [] }), { status: 200 });
+      if (path.endsWith('/members')) return new Response(JSON.stringify({ members: [] }), { status: 200 });
+      if (path.endsWith('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.includes('/invites')) return new Response(JSON.stringify({ invite: { url: 'https://misfits.test/join/token' } }), { status: 201 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
     const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const };
     render(<AdminLeagueDesk user={admin} />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Admin desk' })).toBeTruthy());
     expect(screen.getByRole('button', { name: 'Create league' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Create invite link' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Create invite link' }));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Invite link copied.'));
   });
 });
