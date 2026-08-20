@@ -85,6 +85,8 @@
 - [x] Restrict profile links to the official DartCounter host and mark API error responses as non-cacheable.
 - [x] Keep capacity edits and administrator pair corrections inside their configured limits at the D1 write boundary.
 - [x] Add a cross-route authenticated lifecycle test covering Google sign-in, onboarding, ownership, invite join, profiles, player-only result entry, averages, confirmation and standings.
+- [x] Select the league returned by a successful invite join when the player already belongs to another league.
+- [x] Guard opponent confirmation and dispute writes against concurrent resolution of the same pending result.
 - [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate
