@@ -50,7 +50,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 - `POST /api/auth/google` with a deliberately invalid credential: `401`; this verifies the rejection boundary, not a successful Google session.
 - `GET https://darts-501.zerobytemode.workers.dev/`: `404`; the workers.dev hostname remains inactive.
 - The checks above were rerun after deployment of Worker version `5208c35c-369f-4d81-bbd8-615403fc30c1`; the custom domain served the generic app and current client asset, while the unauthenticated `/api/me` route returned `401` and the public league directory returned `200` with the seeded league.
-- The deployed bundle `index-BG_YOqcF.js` contains the current `Your leagues` admin workspace copy; the live custom domain also returned `no-store` for the home document and authenticated admin rejection.
+- The deployed bundle `index-BweOtgLI.js` contains the current `Your leagues` admin workspace copy; the live custom domain also returned `no-store` for the home document and authenticated admin rejection.
 - The compatibility-only `/auth/google` authorization-code entrypoint returned `503` because no client secret is configured; the normal official GIS button path remains the supported login flow and requires only the public client ID plus server-side GIS credential verification.
 - Live unauthenticated admin/profile errors, hidden private-league reads and invalid Google credentials returned `Cache-Control: no-store`.
 - During the temporary private fixture, anonymous requests to the private directory/detail/players/standings/results paths returned `404` with `LEAGUE_NOT_FOUND`, while the public directory continued to return only the seeded public league.
