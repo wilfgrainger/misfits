@@ -84,12 +84,15 @@ export async function upsertGoogleUser(
   const configuredMasterEmail = (masterAdminEmail ?? bootstrapAdminEmail)?.trim().toLowerCase();
   if (configuredMasterEmail && user.email.toLowerCase() === configuredMasterEmail) {
     await db.prepare("UPDATE users SET role = 'ADMIN', is_master_admin = 1 WHERE id = ?").bind(user.id).run();
-  } else if (
-    bootstrapAdminEmail &&
-    user.email.toLowerCase() === bootstrapAdminEmail.trim().toLowerCase() &&
-    (await countAdmins(db)) === 0
-  ) {
-    await db.prepare("UPDATE users SET role = 'ADMIN' WHERE id = ?").bind(user.id).run();
+  } else {
+    await db.prepare('UPDATE users SET is_master_admin = 0 WHERE id = ?').bind(user.id).run();
+    if (
+      bootstrapAdminEmail &&
+      user.email.toLowerCase() === bootstrapAdminEmail.trim().toLowerCase() &&
+      (await countAdmins(db)) === 0
+    ) {
+      await db.prepare("UPDATE users SET role = 'ADMIN' WHERE id = ?").bind(user.id).run();
+    }
   }
 
   return (await getUserById(db, user.id))!;

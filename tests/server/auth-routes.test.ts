@@ -49,6 +49,8 @@ class MemoryD1 {
       const user = this.users.get(String(values[0]))!;
       user.role = 'ADMIN';
       user.is_master_admin = 1;
+    } else if (sql.includes('SET is_master_admin = 0')) {
+      this.users.get(String(values[0]))!.is_master_admin = 0;
     } else if (sql.includes("UPDATE users SET role = 'ADMIN'")) {
       this.users.get(String(values[0]))!.role = 'ADMIN';
     } else if (sql.startsWith('UPDATE users SET profile_image_url')) {
@@ -142,6 +144,26 @@ describe('Google auth routes', () => {
     }), env, {} as never);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ user: { profileImageUrl: 'https://lh3.googleusercontent.com/picture' } });
+  });
+
+  it('removes stale master access when an existing Google identity no longer matches the configured master email', async () => {
+    const { routes, env, setIdentity, db } = setup();
+    const firstSignIn = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
+      method: 'POST',
+      headers: { Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: 'google-id-token-123456' }),
+    }), { ...env, GOOGLE_CLIENT_SECRET: '' }, {} as never);
+    expect(firstSignIn.status).toBe(200);
+    expect([...db.users.values()][0]).toMatchObject({ role: 'ADMIN', is_master_admin: 1 });
+
+    setIdentity({ sub: 'google-1', email: 'changed@example.com', emailVerified: true });
+    const secondSignIn = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
+      method: 'POST',
+      headers: { Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: 'google-id-token-123456' }),
+    }), { ...env, GOOGLE_CLIENT_SECRET: '' }, {} as never);
+    expect(secondSignIn.status).toBe(200);
+    expect([...db.users.values()][0]).toMatchObject({ role: 'ADMIN', is_master_admin: 0 });
   });
 
   it('rejects a Google Identity Services credential from another origin', async () => {
