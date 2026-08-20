@@ -1,5 +1,7 @@
 # Misfits 501 v1 Design
 
+> **Historical:** This one-league design is retained as the original approved v1 record. It is superseded by [`2026-08-20-misfits-leagues-v2-design.md`](2026-08-20-misfits-leagues-v2-design.md), which defines the current multi-league, invite, profile and per-game-average scope.
+
 **Status:** Approved design captured for implementation planning  
 **Date:** 19 August 2026  
 **Repository:** `wilfgrainger/misfits`  
