@@ -1,8 +1,8 @@
 # White-Label Leagues v3 Verification
 
 **Date:** 20 August 2026  
-**Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`), `b335c61` (`fix: harden league result workflows`), `b5762b7` (`fix: enforce pair limits across legacy match ordering`), `7df995d` (`fix: keep league workspace state synchronized`), `60b7504` (`fix: clear stale master access on sign-in`), `6c69679` (`fix: make league capacity limits atomic`), `b153c59` (`fix: make invite joins idempotent under races`)<br>
-**Cloudflare Worker version:** `29e10646-04b9-4fa3-9087-aefbdef2c658`<br>
+**Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`), `b335c61` (`fix: harden league result workflows`), `b5762b7` (`fix: enforce pair limits across legacy match ordering`), `7df995d` (`fix: keep league workspace state synchronized`), `60b7504` (`fix: clear stale master access on sign-in`), `6c69679` (`fix: make league capacity limits atomic`), `b153c59` (`fix: make invite joins idempotent under races`), `e22ae06` (`fix: harden league capacity and profile safety`)<br>
+**Cloudflare Worker version:** `60ac4dfd-e7b6-4be0-8ac3-a5562811ed4b`<br>
 **Live origin:** `https://darts.graingers.agency`
 
 ## Design and source reconciliation
@@ -14,7 +14,7 @@
 
 ## Automated verification
 
-- `npm test`: 23 test files, 86 tests passed.
+- `npm test`: 23 test files, 91 tests passed.
 - `npm run typecheck`: passed for client and Worker TypeScript projects.
 - `npm run build`: passed; Vite generated the production assets.
 - `git diff --check`: passed.
@@ -25,7 +25,7 @@
 - The production CSP now permits Google GIS inline styles under `style-src` while keeping inline scripts disallowed.
 - The production Worker now has an explicit `MASTER_ADMIN_EMAIL` secret in addition to the Google client and bootstrap secrets.
 
-Focused v3 coverage proves the additive master-admin/visibility schema, configured master identity promotion, ordinary-user isolation, owner-only league management, master access to all leagues, automatic owner membership, private public-read filtering, private member reads, generic shell copy, visibility controls and People-panel gating. Post-release coverage now also proves draw rejection, slug-based public standings/results, league-switch form reset, closed-league result-entry gating, repeat-limit enforcement when legacy matches use reversed player ordering, one People row per user across multiple memberships, master-account protection, owner workspace synchronization after create/edit, atomic pair/capacity limits, capacity-safe membership reactivation and idempotent invite joins when a membership insert loses a concurrent race. Google auth regression coverage also clears stale master access when an existing Google identity no longer matches the configured master email. Existing Google credential handling, opaque sessions, profiles, invite hashing/join/capacity, player-only results, per-game averages, confirmation/dispute, standings and admin result controls remain green in the same suite.
+Focused v3 coverage proves the additive master-admin/visibility schema, configured master identity promotion, ordinary-user isolation, owner-only league management, master access to all leagues, automatic owner membership, private public-read filtering, private member reads, generic shell copy, visibility controls and People-panel gating. Post-release coverage now also proves draw rejection, slug-based public standings/results, league-switch form reset, closed-league result-entry gating, repeat-limit enforcement when legacy matches use reversed player ordering, one People row per user across multiple memberships, master-account protection, owner workspace synchronization after create/edit, atomic pair/capacity limits, capacity-safe membership reactivation, idempotent invite joins when a membership insert loses a concurrent race, and rejection of administrator corrections into a full player pair. Google auth regression coverage also clears stale master access when an existing Google identity no longer matches the configured master email. Existing Google credential handling, opaque sessions, profiles, strict DartCounter HTTPS links, invite hashing/join/capacity, player-only results, per-game averages, confirmation/dispute, standings and admin result controls remain green in the same suite.
 
 ## Production migration and account state
 
@@ -48,7 +48,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 - Unauthenticated `GET /api/admin/players`: `401`.
 - `POST /api/auth/google` with a deliberately invalid credential: `401`; this verifies the rejection boundary, not a successful Google session.
 - `GET https://darts-501.zerobytemode.workers.dev/`: `404`; the workers.dev hostname remains inactive.
-- The checks above were rerun after deployment of Worker version `29e10646-04b9-4fa3-9087-aefbdef2c658`; the custom domain served the generic app and all public slug resources with `200`, while the unauthenticated admin route and invalid Google credential remained `401`.
+- The checks above were rerun after deployment of Worker version `60ac4dfd-e7b6-4be0-8ac3-a5562811ed4b`; the custom domain served the generic app and all public slug resources with `200`, while the unauthenticated admin route and invalid Google credential remained `401`.
 - During the temporary private fixture, anonymous requests to the private directory/detail/players/standings/results paths returned `404` with `LEAGUE_NOT_FOUND`, while the public directory continued to return only the seeded public league.
 
 ## Browser observation
