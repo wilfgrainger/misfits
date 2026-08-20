@@ -27,4 +27,25 @@ describe('ApiClient admin workspace calls', () => {
       body: JSON.stringify({ role: 'ADMIN' }),
     }));
   });
+
+  it('updates a profile and loads the signed-in player leagues', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      profile: { username: 'Wilf', profileImageUrl: 'https://lh3.googleusercontent.com/avatar', dartsCounterUrl: 'https://darts.example/wilf' },
+    }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({
+      leagues: [{ id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', seasonName: '2026', status: 'OPEN', pointsPerWin: 2, targetLegs: 3, maxPlayers: 16, matchesPerPair: 1 }],
+    }), { status: 200 }));
+
+    await expect(new ApiClient().updateProfile({ username: 'Wilf', dartsCounterUrl: 'https://darts.example/wilf' })).resolves.toMatchObject({ profile: { username: 'Wilf' } });
+    await expect(new ApiClient().myLeagues()).resolves.toMatchObject({ leagues: [{ id: 'league-1', maxPlayers: 16 }] });
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/me/profile');
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/me/leagues');
+  });
+
+  it('submits a result with both player averages', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ result: { id: 'result-1', status: 'PENDING' } }), { status: 201 }));
+    await expect(new ApiClient().submitResult('league-1', {
+      playerAId: 'player-a', playerBId: 'player-b', playerALegs: 3, playerBLegs: 1, playerAAverage: 51.24, playerBAverage: 47.1,
+    })).resolves.toMatchObject({ result: { status: 'PENDING' } });
+    expect(fetchMock).toHaveBeenCalledWith('/api/leagues/league-1/results', expect.objectContaining({ method: 'POST', body: expect.stringContaining('playerAAverage') }));
+  });
 });

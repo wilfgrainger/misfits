@@ -1,13 +1,44 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { ApiClient, ApiClientError, type AdminPlayer, type AdminPlayerChanges, type AuthPayload, type UserSummary } from './api';
+import { AdminLeagueDesk } from './components/AdminLeagueDesk';
+import { LeagueTabs } from './components/LeagueTabs';
+import { PlayerLeague } from './components/PlayerLeague';
+import { ApiClient, ApiClientError, type AuthPayload, type LeagueDetail, type LeagueSummary, type StandingRow, type ResultSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
 
 type ViewState = 'loading' | 'signed-out' | 'entering' | 'onboarding' | 'signed-in';
-
 const api = new ApiClient();
 
 function messageFor(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function PublicLeagueView({ league }: { league: LeagueSummary }) {
+  const [detail, setDetail] = useState<LeagueDetail | null>(null);
+  const [standings, setStandings] = useState<StandingRow[]>([]);
+  const [results, setResults] = useState<ResultSummary[]>([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setError('');
+    Promise.all([api.publicLeague(league.id), api.standings(league.id), api.results(league.id)]).then(([detailPayload, standingPayload, resultPayload]) => {
+      if (!active) return;
+      setDetail(detailPayload.league);
+      setStandings(standingPayload.standings);
+      setResults(resultPayload.results);
+    }).catch((cause: unknown) => { if (active) setError(messageFor(cause, 'League data could not be loaded.')); });
+    return () => { active = false; };
+  }, [league.id]);
+
+  return (
+    <section className="public-league" aria-labelledby="public-league-title">
+      <div className="section-heading"><div><p className="section-kicker">PUBLIC TABLE / {league.seasonName}</p><h2 id="public-league-title">{league.name}</h2></div><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span></div>
+      {error && <p className="error-message" role="alert">{error}</p>}
+      <div className="standings-list">{standings.map((row) => <div className="standing-row" key={row.playerId}><span className="standing-rank">{row.rank}</span><div className="standing-player"><strong>{row.username}</strong><small>{row.played} played / {row.average.toFixed(2)} avg</small></div><span className="standing-record">{row.won}-{row.lost}</span><strong className="standing-points">{row.points}</strong></div>)}{standings.length === 0 && <p className="empty-message">No confirmed games yet.</p>}</div>
+      {detail && <p className="public-meta">{detail.players.length} active {detail.players.length === 1 ? 'player' : 'players'} / first to {detail.targetLegs} legs</p>}
+      {results.length > 0 && <div className="public-results"><h3>Latest results</h3><ul className="result-list">{results.slice(0, 5).map((result) => <li className="result-row" key={result.id}><div className="result-main"><strong>{result.playerAUsername} <span>{result.playerALegs}</span></strong><span className="result-divider">-</span><strong>{result.playerBUsername} <span>{result.playerBLegs}</span></strong></div><div className="result-meta"><span>{result.playerAAverage.toFixed(2)} / {result.playerBAverage.toFixed(2)} avg</span></div></li>)}</ul></div>}
+    </section>
+  );
 }
 
 export default function App() {
@@ -15,51 +46,70 @@ export default function App() {
   const [message, setMessage] = useState('Checking your league session...');
   const [user, setUser] = useState<UserSummary | null>(null);
   const [username, setUsername] = useState('');
-  const [players, setPlayers] = useState<AdminPlayer[]>([]);
-  const [playersLoading, setPlayersLoading] = useState(false);
-  const [workspaceError, setWorkspaceError] = useState('');
-  const [playerAction, setPlayerAction] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const [publicLeagues, setPublicLeagues] = useState<LeagueSummary[]>([]);
+  const [publicLeagueId, setPublicLeagueId] = useState<string | null>(null);
+  const [myLeagues, setMyLeagues] = useState<LeagueSummary[]>([]);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
-  const loadAdminPlayers = async () => {
-    setPlayersLoading(true);
-    setWorkspaceError('');
+  const loadPublicLeagues = async () => {
     try {
-      setPlayers((await api.adminPlayers()).players);
-    } catch (error) {
-      setWorkspaceError(messageFor(error, 'The player list could not be loaded.'));
-    } finally {
-      setPlayersLoading(false);
+      const result = await api.leagues();
+      setPublicLeagues(result.leagues);
+      setPublicLeagueId((current) => current || result.leagues[0]?.id || null);
+    } catch {
+      setPublicLeagues([]);
     }
   };
 
-  const applyAuth = (payload: AuthPayload) => {
+  const loadMyLeagues = async () => {
+    try {
+      const result = await api.myLeagues();
+      setMyLeagues(result.leagues);
+      setSelectedLeagueId((current) => current && result.leagues.some((league) => league.id === current) ? current : result.leagues[0]?.id || null);
+    } catch {
+      setMyLeagues([]);
+    }
+  };
+
+  const joinPendingInvite = async () => {
+    const token = typeof window !== 'undefined' ? window.sessionStorage.getItem('misfits_pending_invite') : null;
+    if (!token) return;
+    try {
+      await api.joinInvite(token);
+      window.sessionStorage.removeItem('misfits_pending_invite');
+      setMessage('You joined the league.');
+    } catch (cause) {
+      setMessage(messageFor(cause, 'That invite could not be used.'));
+    }
+  };
+
+  const applyAuth = async (payload: AuthPayload) => {
     setSigningIn(false);
     setUser(payload.user);
-    setView(payload.requiresOnboarding ? 'onboarding' : 'signed-in');
-    setMessage(payload.requiresOnboarding
-      ? 'Choose the name your club will see.'
-      : payload.user.role === 'ADMIN' ? 'Your league desk is ready.' : 'You are signed in.');
-    if (!payload.requiresOnboarding && payload.user.role === 'ADMIN') void loadAdminPlayers();
+    if (payload.requiresOnboarding) {
+      setView('onboarding');
+      setMessage('Choose the name your club will see.');
+      return;
+    }
+    setView('signed-in');
+    setMessage(payload.user.role === 'ADMIN' ? 'Your league desk is ready.' : 'Your leagues are ready.');
+    await joinPendingInvite();
+    await loadMyLeagues();
   };
 
   useEffect(() => {
-    let active = true;
-    api.me().then((payload) => {
-      if (!active) return;
-      applyAuth(payload);
-    }).catch((error: unknown) => {
-      if (!active) return;
+    void loadPublicLeagues();
+    api.me().then((payload) => void applyAuth(payload)).catch((error: unknown) => {
       if (error instanceof ApiClientError && error.status === 401) {
         setView('signed-out');
-        setMessage('Sign in to save your place in the league.');
+        setMessage('Sign in to join leagues and record games.');
       } else {
         setView('signed-out');
         setMessage('The league could not be reached. Try signing in again.');
       }
     });
-    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -67,48 +117,36 @@ export default function App() {
     const container = googleButtonRef.current;
     let active = true;
     let dispose: (() => void) | undefined;
-    new GoogleAuth(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').mountButton(
-      container,
-      (credential) => {
+    new GoogleAuth(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').mountButton(container, (credential) => {
+      if (!active) return;
+      setSigningIn(true);
+      setMessage('Signing you in...');
+      api.signIn(credential).then((payload) => { if (active) void applyAuth(payload); }).catch((error: unknown) => {
         if (!active) return;
-        setSigningIn(true);
-        setMessage('Signing you in...');
-        api.signIn(credential).then((payload) => {
-          if (active) applyAuth(payload);
-        }).catch((error: unknown) => {
-          if (!active) return;
-          setSigningIn(false);
-          setMessage(messageFor(error, 'Google sign-in could not be completed.'));
-        });
-      },
-      () => {
-        if (!active) return;
-        setSigningIn(true);
-        setMessage('Opening Google sign-in...');
-      },
-    ).then((cleanup) => {
+        setSigningIn(false);
+        setMessage(messageFor(error, 'Google sign-in could not be completed.'));
+      });
+    }, () => { if (active) { setSigningIn(true); setMessage('Opening Google sign-in...'); } }).then((cleanup) => {
       if (active) dispose = cleanup;
       else cleanup();
-    }).catch((error: unknown) => {
-      if (!active) return;
-      setSigningIn(false);
-      setMessage(messageFor(error, 'Google sign-in could not be loaded.'));
-    });
-    return () => {
-      active = false;
-      dispose?.();
-    };
+    }).catch((error: unknown) => { if (active) { setSigningIn(false); setMessage(messageFor(error, 'Google sign-in could not be loaded.')); } });
+    return () => { active = false; dispose?.(); };
   }, [view]);
+
+  useEffect(() => {
+    const match = typeof window !== 'undefined' ? window.location.pathname.match(/^\/join\/([^/]+)/) : null;
+    if (match) window.sessionStorage.setItem('misfits_pending_invite', match[1]);
+  }, []);
 
   const submitUsername = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
       setView('entering');
-      setMessage('Joining the league...');
-      applyAuth(await api.setUsername(username));
+      setMessage('Saving your nickname...');
+      await applyAuth(await api.setUsername(username));
     } catch (error) {
       setView('onboarding');
-      setMessage(messageFor(error, 'That name could not be saved.'));
+      setMessage(messageFor(error, 'That nickname could not be saved.'));
     }
   };
 
@@ -116,117 +154,36 @@ export default function App() {
     await api.logout().catch(() => undefined);
     setSigningIn(false);
     setUser(null);
-    setPlayers([]);
-    setWorkspaceError('');
+    setMyLeagues([]);
+    setSelectedLeagueId(null);
     setView('signed-out');
     setMessage('You are signed out.');
   };
 
-  const updatePlayer = async (id: string, changes: AdminPlayerChanges) => {
-    setPlayerAction(id);
-    setWorkspaceError('');
-    try {
-      const result = await api.updateAdminPlayer(id, changes);
-      setPlayers((current) => current.map((player) => player.id === id ? result.player : player));
-      setMessage('Player access updated.');
-    } catch (error) {
-      setWorkspaceError(messageFor(error, 'That player change could not be saved.'));
-    } finally {
-      setPlayerAction(null);
-    }
-  };
-
-  const renderAdminWorkspace = () => {
-    if (!user || user.role !== 'ADMIN') return null;
-    return (
-      <div className="workspace" aria-labelledby="workspace-title">
-        <div className="workspace-heading">
-          <div>
-            <p className="workspace-kicker">LEAGUE CONTROL</p>
-            <h2 id="workspace-title">Admin desk</h2>
-          </div>
-          <button className="refresh-button" type="button" onClick={() => void loadAdminPlayers()} disabled={playersLoading}>
-            {playersLoading ? 'Loading' : 'Refresh'}
-          </button>
-        </div>
-        <p className="workspace-copy">Manage who can enter the 2026 open league. Promote trusted players to administrators or suspend access when needed.</p>
-        <div className="workspace-summary" aria-label="League summary">
-          <span><strong>{players.length}</strong> {players.length === 1 ? 'player' : 'players'}</span>
-          <span><strong>{players.filter((player) => player.role === 'ADMIN').length}</strong> {players.filter((player) => player.role === 'ADMIN').length === 1 ? 'administrator' : 'administrators'}</span>
-        </div>
-        {workspaceError && <p className="workspace-error" role="alert">{workspaceError}</p>}
-        {playersLoading && players.length === 0 && <p className="workspace-loading">Loading player access...</p>}
-        {!playersLoading && players.length === 0 && !workspaceError && <p className="workspace-loading">No players have joined yet.</p>}
-        {players.length > 0 && (
-          <ul className="player-list">
-            {players.map((player) => {
-              const isCurrentUser = player.id === user.id;
-              const isBusy = playerAction === player.id;
-              return (
-                <li className="player-row" key={player.id}>
-                  <div className="player-identity">
-                    <strong>{player.username ?? 'Name pending'}</strong>
-                    <span>{player.email}</span>
-                  </div>
-                  <div className="player-state">
-                    <span className={`player-tag ${player.role === 'ADMIN' ? 'player-tag-admin' : ''}`}>{player.role === 'ADMIN' ? 'Admin' : 'Player'}</span>
-                    <span className={`player-tag ${player.status === 'ACTIVE' ? 'player-tag-active' : 'player-tag-suspended'}`}>{player.status === 'ACTIVE' ? 'Active' : 'Suspended'}</span>
-                  </div>
-                  <div className="player-actions">
-                    {!isCurrentUser && <button className="action-button" type="button" disabled={isBusy} onClick={() => void updatePlayer(player.id, { role: player.role === 'ADMIN' ? 'PLAYER' : 'ADMIN' })}>
-                      {player.role === 'ADMIN' ? 'Remove admin' : 'Make admin'}
-                    </button>}
-                    {!isCurrentUser && <button className="action-button" type="button" disabled={isBusy} onClick={() => void updatePlayer(player.id, { status: player.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' })}>
-                      {player.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
-                    </button>}
-                    {isCurrentUser && <span className="player-note">You</span>}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    );
-  };
+  const saveUser = (saved: UserSummary) => setUser(saved);
+  const selectedLeague = myLeagues.find((league) => league.id === selectedLeagueId) ?? null;
+  const selectedPublicLeague = publicLeagues.find((league) => league.id === publicLeagueId) ?? null;
 
   return (
     <main className="shell" data-state={view}>
       <section className={`shell-panel ${view === 'signed-in' ? 'shell-panel-wide' : ''}`}>
         <header className="brand-header">
           <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501" />
-          <div className="brand-meta">
-            <p className="eyebrow">CLUB DARTS / 501</p>
-            <span className="online-label">Online</span>
-          </div>
+          <div className="brand-meta"><p className="eyebrow">CLUB DARTS / 501</p><span className="online-label">Online</span></div>
+          {user && <div className="header-user"><div className="avatar">{user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase()}</div><button className="header-signout" type="button" onClick={() => void logout()}>Sign out</button></div>}
         </header>
-        <div className="page-intro">
-          <h1>Club darts, properly settled.</h1>
-          <p className="intro">{message}</p>
-        </div>
+        <div className="page-intro"><h1>Club darts, properly settled.</h1><p className="intro">{message}</p></div>
 
-        {view === 'signed-out' && <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />}
-        {view === 'onboarding' && (
-          <form className="onboarding-form" onSubmit={submitUsername}>
-            <label htmlFor="username">Player name</label>
-            <input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required />
-            <button className="primary-button" type="submit">Join the league</button>
-          </form>
-        )}
-        {view === 'signed-in' && user && (
-          <div className="account-panel">
-            <div className="account-heading">
-              <div>
-                <p className="account-name">{user.username ?? 'Player'}</p>
-                <p className="account-role">{user.role === 'ADMIN' ? 'League administrator' : 'League player'}</p>
-              </div>
-              <button className="secondary-button" type="button" onClick={logout}>Sign out</button>
-            </div>
-            {renderAdminWorkspace()}
-          </div>
-        )}
+        {view === 'signed-out' && <>
+          {publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><div className="section-heading"><div><p className="section-kicker">LIVE LEAGUES</p><h2 id="public-leagues-title">The club board</h2></div><span className="count-label">{publicLeagues.length}</span></div><LeagueTabs leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
+          <div className="sign-in-panel"><p className="section-kicker">PLAYER ACCESS</p><h2>Sign in with Google</h2><p className="sign-in-copy">Use your Google account to join an invited league and keep your results attached to you.</p><div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} /></div>
+        </>}
 
-        {view !== 'signed-in' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Online'}</small>}
+        {view === 'onboarding' && <form className="onboarding-form" onSubmit={submitUsername}><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Continue</button></form>}
+
+        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.role === 'ADMIN' ? 'League administrator' : 'League player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div>{user.role === 'ADMIN' && <AdminLeagueDesk user={user} />}<div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <div className="empty-member"><p className="section-kicker">NO MEMBERSHIPS</p><h2>Join with an invite link.</h2><p>Open an admin invite link in this browser to enter a league.</p></div>}</div></div>}
+
+        {view !== 'signed-in' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
       </section>
     </main>
   );

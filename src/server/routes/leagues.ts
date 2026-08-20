@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { AppError, jsonError } from '../errors';
-import { getLeagueByIdOrSlug, listLeagueMembers, listPublicLeagues } from '../db/leagues';
+import { getLeagueByIdOrSlug, listLeagueMembers, listPublicLeagues, listUserLeagues } from '../db/leagues';
 import { joinLeagueByInvite } from '../db/invites';
 
 interface LeagueRouteDependencies {
@@ -37,6 +37,11 @@ export function createLeagueRoutes(dependencies: LeagueRouteDependencies = {}) {
     if (!league) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404));
     const members = await listLeagueMembers(c.env.DB, league.id);
     return c.json({ league: publicLeague(league), players: members.filter((member) => member.active === 1).map((member) => ({ id: member.user_id, username: member.username, profileImageUrl: member.profile_image_url })) }, 200, { 'Cache-Control': 'public, max-age=30' });
+  });
+
+  routes.get('/api/me/leagues', requireUser, async (c) => {
+    const leagues = await listUserLeagues(c.env.DB, c.get('user').id);
+    return c.json({ leagues: leagues.map((league) => publicLeague(league)) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
   routes.post('/api/invites/:token/join', requireSameOrigin, requireUser, async (c) => {

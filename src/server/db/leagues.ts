@@ -34,6 +34,18 @@ export async function listPublicLeagues(db: D1Database): Promise<LeagueRecord[]>
   return result.results;
 }
 
+export async function listUserLeagues(db: D1Database, userId: string): Promise<LeagueRecord[]> {
+  const result = await db.prepare(
+    `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.status,
+            leagues.points_per_win, leagues.target_legs, leagues.created_at, leagues.updated_at,
+            leagues.created_by, leagues.max_players, leagues.matches_per_pair
+       FROM leagues JOIN league_players ON league_players.league_id = leagues.id
+      WHERE league_players.user_id = ? AND league_players.active = 1
+      ORDER BY leagues.status = 'OPEN' DESC, leagues.updated_at DESC, leagues.name ASC`,
+  ).bind(userId).all<LeagueRecord>();
+  return result.results;
+}
+
 export async function getLeagueByIdOrSlug(db: D1Database, key: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
     `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
