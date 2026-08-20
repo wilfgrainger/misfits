@@ -108,6 +108,7 @@ export async function createLeague(db: D1Database, actorUserId: string, input: L
 export async function updateLeague(db: D1Database, actorUserId: string, leagueId: string, input: LeagueInput, now = new Date()): Promise<LeagueRecord> {
   const before = await getLeagueById(db, leagueId);
   if (!before) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
+  if (input.maxPlayers < await countActiveMembers(db, leagueId)) throw new AppError('LEAGUE_FULL', 'Capacity cannot be lower than the active member count', 409);
   const timestamp = now.toISOString();
   await db.prepare(
     `UPDATE leagues
@@ -127,6 +128,11 @@ export async function updateLeague(db: D1Database, actorUserId: string, leagueId
 export async function setMembershipActive(db: D1Database, actorUserId: string, leagueId: string, userId: string, active: boolean, now = new Date()): Promise<LeagueMemberRecord> {
   const before = await getMembership(db, leagueId, userId);
   if (!before) throw new AppError('VALIDATION_ERROR', 'League member was not found', 404);
+  if (active && before.active !== 1) {
+    const league = await getLeagueById(db, leagueId);
+    if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
+    if (await countActiveMembers(db, leagueId) >= league.max_players) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+  }
   await db.prepare('UPDATE league_players SET active = ? WHERE league_id = ? AND user_id = ?')
     .bind(active ? 1 : 0, leagueId, userId).run();
   await db.prepare(

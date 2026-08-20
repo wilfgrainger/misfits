@@ -214,6 +214,11 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
   const result = await validateAndNormalize(input, league.target_legs);
   await requireActiveMember(db, league.id, result.playerAId);
   await requireActiveMember(db, league.id, result.playerBId);
+  const [existingA, existingB] = canonicalPair(existing.player_a_id, existing.player_b_id);
+  const [nextA, nextB] = canonicalPair(result.playerAId, result.playerBId);
+  if (existingA !== nextA || existingB !== nextB) {
+    if (await countPairResults(db, league.id, result.playerAId, result.playerBId) >= league.matches_per_pair) throw new AppError('PAIR_LIMIT_REACHED', 'These players have reached the game limit for this league', 409);
+  }
   const status = (input as { status?: unknown })?.status;
   const nextStatus: MatchStatus = status === 'PENDING' || status === 'DISPUTED' || status === 'CONFIRMED' ? status : existing.status;
   const timestamp = now.toISOString();
