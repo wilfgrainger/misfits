@@ -25,6 +25,12 @@ export const requireUser: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
   return next();
 };
 
+export const requireNamedUser: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
+  const user = c.get('user');
+  if (!user?.username) return jsonError(c, new AppError('PROFILE_INVALID', 'Choose a nickname before continuing', 400));
+  return next();
+};
+
 export const requireAdmin: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
   const user = c.get('user');
   if (!user || user.role !== 'ADMIN') {

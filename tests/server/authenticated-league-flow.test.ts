@@ -224,6 +224,12 @@ describe('authenticated league lifecycle', () => {
     expect((await ownerSignIn.json()) as { requiresOnboarding: boolean }).toMatchObject({ requiresOnboarding: true });
     const ownerCookie = `league_board_session=${cookieFrom(ownerSignIn)}`;
 
+    const unnamedOwnerCreate = await app.fetch(new Request('https://misfits.test/api/admin/leagues', {
+      method: 'POST', headers: { Cookie: ownerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Blocked 501', seasonName: '2026' }),
+    }), env, {} as never);
+    expect(unnamedOwnerCreate.status).toBe(400);
+    expect(await unnamedOwnerCreate.json()).toMatchObject({ error: { code: 'PROFILE_INVALID' } });
+
     const ownerOnboarding = await app.fetch(new Request('https://misfits.test/api/me/username', {
       method: 'POST', headers: { Cookie: ownerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'Owner' }),
     }), env, {} as never);
@@ -256,6 +262,12 @@ describe('authenticated league lifecycle', () => {
 
     const playerSignIn = await signIn('player-token-credential-123456789');
     const playerCookie = `league_board_session=${cookieFrom(playerSignIn)}`;
+    const unnamedPlayerResult = await app.fetch(new Request(`https://misfits.test/api/leagues/${created.league.id}/results`, {
+      method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ playerAId: [...db.users.values()][0].id, playerBId: [...db.users.values()][1].id, playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5 }),
+    }), env, {} as never);
+    expect(unnamedPlayerResult.status).toBe(400);
+    expect(await unnamedPlayerResult.json()).toMatchObject({ error: { code: 'PROFILE_INVALID' } });
+
     const playerOnboarding = await app.fetch(new Request('https://misfits.test/api/me/username', {
       method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'Player' }),
     }), env, {} as never);

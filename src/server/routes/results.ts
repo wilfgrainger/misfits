@@ -1,5 +1,5 @@
 import { Hono, type Context } from 'hono';
-import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
+import { requireNamedUser, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { resolveRequestSession } from '../auth/session';
 import { AppError, jsonError } from '../errors';
 import { getLeagueByIdOrSlug, canViewLeague } from '../db/leagues';
@@ -43,7 +43,7 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
     return c.json({ results: results.map(serializeResult) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
-  routes.post('/api/leagues/:leagueId/results', requireSameOrigin, requireUser, async (c) => {
+  routes.post('/api/leagues/:leagueId/results', requireSameOrigin, requireUser, requireNamedUser, async (c) => {
     try {
       const result = await submitPlayerResult(c.env.DB, c.get('user').id, c.req.param('leagueId'), await c.req.json().catch(() => null), now());
       return c.json({ result: serializeResult(result) }, 201, { 'Cache-Control': 'private, no-store' });
