@@ -101,7 +101,7 @@ class MemoryD1 {
     }
     if (sql.includes('SELECT 1 AS member')) return this.memberships.has(`${String(values[0])}:${String(values[1])}`) ? ({ member: 1 } as T) : null;
     if (sql.includes('COUNT(*)') && sql.includes('matches')) {
-      return { count: [...this.matches.values()].filter((match) => match.league_id === String(values[0]) && match.player_a_id === String(values[1]) && match.player_b_id === String(values[2]) && !match.deleted_at && ['PENDING', 'CONFIRMED', 'DISPUTED'].includes(match.status)).length } as T;
+      return { count: [...this.matches.values()].filter((match) => match.league_id === String(values[0]) && ((match.player_a_id === String(values[1]) && match.player_b_id === String(values[2])) || (match.player_a_id === String(values[3]) && match.player_b_id === String(values[4]))) && !match.deleted_at && ['PENDING', 'CONFIRMED', 'DISPUTED'].includes(match.status)).length } as T;
     }
     if (sql.includes('FROM matches') && (sql.includes('WHERE id = ?') || sql.includes('WHERE matches.id = ?'))) return (this.matches.get(String(values[0])) ?? null) as T;
     if (sql.includes('FROM users WHERE id')) return (this.users.get(String(values[0])) ?? null) as T;
@@ -239,6 +239,22 @@ describe('result routes', () => {
     const body = await standings.json() as { standings: Array<{ playerId: string; played: number; points: number }> };
     expect(body.standings.find((row) => row.playerId === 'player-a')).toMatchObject({ played: 1, points: 2 });
     expect(body.standings.find((row) => row.playerId === 'player-c')).toMatchObject({ played: 0, points: 0 });
+  });
+
+  it('counts a legacy result stored in reverse player order toward the pair limit', async () => {
+    const { db, env, routes } = setup();
+    db.matches.set('legacy-reversed', {
+      id: 'legacy-reversed', league_id: 'league-1', player_a_id: 'player-b', player_b_id: 'player-a',
+      player_a_legs: 1, player_b_legs: 3, player_a_average: 47.1, player_b_average: 51.24,
+      submitted_by: 'player-b', status: 'CONFIRMED', confirmed_by: 'admin-1', dispute_note: null,
+      created_at: now.toISOString(), updated_at: now.toISOString(), confirmed_at: now.toISOString(), deleted_at: null,
+    });
+    const playerA = await cookieFor(db, 'player-a');
+    const duplicate = await routes.fetch(new Request('https://misfits.test/api/leagues/league-1/results', {
+      method: 'POST', headers: { Cookie: playerA, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: resultBody('player-a', 'player-b'),
+    }), env, {} as never);
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({ error: { code: 'PAIR_LIMIT_REACHED' } });
   });
 
   it('normalizes legacy confirmed results whose averages predate the averages columns', async () => {

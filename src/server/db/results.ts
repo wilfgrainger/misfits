@@ -100,9 +100,10 @@ async function countPairResults(db: D1Database, leagueId: string, playerAId: str
   const [a, b] = canonicalPair(playerAId, playerBId);
   const row = await db.prepare(
     `SELECT COUNT(*) AS count FROM matches
-      WHERE league_id = ? AND player_a_id = ? AND player_b_id = ?
+      WHERE league_id = ?
+        AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
         AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')`,
-  ).bind(leagueId, a, b).first<{ count: number }>();
+  ).bind(leagueId, a, b, b, a).first<{ count: number }>();
   return Number(row?.count ?? 0);
 }
 
