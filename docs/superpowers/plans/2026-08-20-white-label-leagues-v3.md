@@ -87,6 +87,7 @@
 - [x] Add a cross-route authenticated lifecycle test covering Google sign-in, onboarding, ownership, invite join, profiles, player-only result entry, averages, confirmation and standings.
 - [x] Select the league returned by a successful invite join when the player already belongs to another league.
 - [x] Guard opponent confirmation and dispute writes against concurrent resolution of the same pending result.
+- [x] Report invite clipboard failures honestly while keeping the generated invite URL visible for manual sharing.
 - [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate

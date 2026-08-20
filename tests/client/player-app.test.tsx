@@ -68,6 +68,30 @@ describe('mobile league workspaces', () => {
     expect(confirm).toHaveBeenCalled();
   });
 
+  it('does not claim an invite was copied when clipboard access is denied', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('clipboard denied'));
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith('/api/admin/leagues')) return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
+      if (path.endsWith('/api/admin/players')) return new Response(JSON.stringify({ players: [] }), { status: 200 });
+      if (path.endsWith('/members')) return new Response(JSON.stringify({ members: [] }), { status: 200 });
+      if (path.endsWith('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/invites') && init?.method !== 'POST') return new Response(JSON.stringify({ invites: [] }), { status: 200 });
+      if (path.endsWith('/invites') && init?.method === 'POST') return new Response(JSON.stringify({ invite: { id: 'invite-2', leagueId: 'league-1', expiresAt: null, url: 'https://misfits.test/join/token' } }), { status: 201 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+    const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const, isMasterAdmin: true };
+
+    render(<AdminLeagueDesk user={admin} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Create invite link' }));
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Invite link ready to copy.'));
+    expect(screen.getByText('https://misfits.test/join/token')).toBeTruthy();
+    expect(writeText).toHaveBeenCalledWith('https://misfits.test/join/token');
+  });
+
   it('lets an ordinary signed-in user create a league without global People controls', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input);
