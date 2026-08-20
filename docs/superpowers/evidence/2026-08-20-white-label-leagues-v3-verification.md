@@ -56,8 +56,8 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 
 ## Browser observation
 
-- Playwright at a `390x844` viewport on Worker `64188e1c-16f9-4b4e-a99c-da5342791df7` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping; `document.documentElement.scrollWidth` equalled the `390px` viewport width.
-- Clicking the official Google button opened a Google Accounts tab with `origin=https://darts.graingers.agency`.
+- Playwright at a `390x844` viewport on Worker `cb218e1c-c44a-437d-9cb1-ce28b969d844` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping; `document.documentElement.scrollWidth` equalled the `390px` viewport width.
+- Clicking the official Google button on the latest deployment opened a Google Accounts tab with `origin=https://darts.graingers.agency`; the isolated browser then showed Google's email-or-phone sign-in screen and had no account session available to complete the credential step.
 - At `390x844`, the public deep link rendered without visible overlap or horizontal clipping; a local Playwright screenshot was captured for the check.
 - Clicking `Share league` on the public deep link opened the desktop browser share flow. Chromium returned `AbortError: Share failed` when the native share target was dismissed/unavailable, and the client then attempted clipboard fallback for the stable URL `https://darts.graingers.agency/league/misfits-501`.
 - The Playwright context denied clipboard permission, so that automated session displayed the browser permission error after fallback. The fallback behavior is covered by the passing `share.test.ts` regression and the signed-in league-desk test; this is a browser-harness permission boundary, not an API or routing failure.
