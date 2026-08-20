@@ -82,6 +82,8 @@
 - [x] Keep the signed-in league workspace synchronized immediately after creating or editing a league.
 - [x] Enforce pair limits and active-player capacity with guarded D1 writes, including capacity-safe membership reactivation.
 - [x] Keep invite joins idempotent when a membership insert loses a concurrent race, without double-counting invite usage or audit entries.
+- [x] Restrict profile links to the official DartCounter host and mark API error responses as non-cacheable.
+- [x] Keep capacity edits and administrator pair corrections inside their configured limits at the D1 write boundary.
 - [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate

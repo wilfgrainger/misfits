@@ -25,7 +25,7 @@ The homepage remains the working application: public leagues, standings and resu
 - Private leagues are omitted from anonymous directory/detail/players/standings/results reads.
 - Private league owners, active members and the master administrator can read private league data after authentication.
 - Existing invite-link flow remains the sharing mechanism for private and public leagues.
-- Existing Google profile, nickname, Darts Counter link, player-only result entry, per-game averages, confirmation/dispute and league configuration behavior remains in scope.
+- Existing Google profile, nickname, official `dartcounter.net` profile link, player-only result entry, per-game averages, confirmation/dispute and league configuration behavior remains in scope.
 
 ### Explicitly excluded
 

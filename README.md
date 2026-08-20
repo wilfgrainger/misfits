@@ -80,7 +80,7 @@ The verified Google account whose email matches `MASTER_ADMIN_EMAIL` is the glob
 - A player joins a league through an invite link after Google sign-in. Joining is checked again by the Worker for expiry, revocation, capacity and league state.
 - A player can submit only a game involving their own account. Both player averages are required. The other player confirms or disputes the result.
 - Only confirmed results affect standings. Averages are stored per game and shown on result rows and standings.
-- The player profile uses the verified Google picture, a unique nickname and an optional HTTPS Darts Counter profile link.
+- The player profile uses the verified Google picture, a unique nickname and an optional HTTPS link on the official `dartcounter.net` host.
 
 Raw session tokens, invite tokens, Google subjects and email addresses are not public league data. Invite tokens are hashed before D1 storage.
 
