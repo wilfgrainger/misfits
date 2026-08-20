@@ -2,7 +2,7 @@
 
 **Date:** 20 August 2026  
 **Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`)<br>
-**Cloudflare Worker version:** `3be7eceb-bdbe-49e2-98cc-085e786db0f9`<br>
+**Cloudflare Worker version:** `b71e78bb-34dd-40b9-b8d5-a4c0e7da7804`<br>
 **Live origin:** `https://darts.graingers.agency`
 
 ## Design and source reconciliation
@@ -14,14 +14,15 @@
 
 ## Automated verification
 
-- `npm test`: 19 test files, 70 tests passed.
+- `npm test`: 22 test files, 75 tests passed.
 - `npm run typecheck`: passed for client and Worker TypeScript projects.
 - `npm run build`: passed; Vite generated the production assets.
 - `git diff --check`: passed.
-- `npm run db:migrate:local`: `0003_white_label_access.sql` applied successfully.
+- `npm run db:migrate:local`: passed; no migrations were pending after `0003_white_label_access.sql`.
 - `npx wrangler deploy --dry-run`: passed; Worker, D1 and static asset bindings resolved.
 - The generic install manifest references `/brand/league-board.svg`; the public icon and manifest both returned `200` after deployment.
 - The production CSP now permits Google GIS inline styles under `style-src` while keeping inline scripts disallowed.
+- The production Worker now has an explicit `MASTER_ADMIN_EMAIL` secret in addition to the Google client and bootstrap secrets.
 
 Focused v3 coverage proves the additive master-admin/visibility schema, configured master identity promotion, ordinary-user isolation, owner-only league management, master access to all leagues, automatic owner membership, private public-read filtering, private member reads, generic shell copy, visibility controls and People-panel gating. Existing Google credential handling, opaque sessions, profiles, invite hashing/join/capacity, player-only results, per-game averages, confirmation/dispute, standings and admin result controls remain green in the same suite.
 
@@ -34,6 +35,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 ## Live HTTP observations
 
 - `GET https://darts.graingers.agency/`: `200`, document title `League Board`.
+- `GET https://darts.graingers.agency/league/misfits-501`: `200`; the public deep link selected Misfits 501 directly.
 - `GET /manifest.webmanifest`: `200`, generic League Board icon present.
 - `GET /brand/league-board.svg`: `200`, `image/svg+xml`.
 - `GET /api/health`: `200`, `{"ok":true}`.
@@ -48,6 +50,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 
 - Playwright at a `390x844` viewport showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping.
 - Clicking the official Google button opened a Google Accounts tab with `origin=https://darts.graingers.agency`.
+- Clicking `Share league` on the public deep link opened the browser share flow; the stable URL is `https://darts.graingers.agency/league/misfits-501`.
 - The isolated browser had no Google account session, so it could not complete account selection or exercise a signed-in owner/member flow. That remains a live-auth proof boundary, not a claim of failure.
 - After the CSP update, Playwright reported three console errors: the expected unauthenticated `/api/me` request plus Cloudflare-injected inline script and analytics-script policy messages. The earlier Google GIS inline-style CSP errors are gone. The visual surface and GIS click path still worked; this release does not claim a clean console because the Cloudflare-injected messages remain platform-level noise.
 

@@ -54,6 +54,7 @@
 - [x] Render the league-control workspace for every signed-in user; load People only for the master admin.
 - [x] Add Public/Private fields to create/edit forms and typed API responses.
 - [x] Remove Misfits-specific shell metadata and copy while retaining Misfits as a valid league fixture.
+- [x] Add stable public league deep links and a native-share/clipboard fallback.
 - [x] Run client tests, typecheck, build and mobile render checks; commit the client slice.
 
 ### Task 4: Reconcile docs, migrate, deploy and verify

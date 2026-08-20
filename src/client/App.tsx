@@ -5,6 +5,7 @@ import { PlayerLeague } from './components/PlayerLeague';
 import { ProfilePanel } from './components/ProfilePanel';
 import { ApiClient, ApiClientError, type AuthPayload, type LeagueDetail, type LeagueSummary, type StandingRow, type ResultSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
+import { shareLeague, publicLeagueKey } from './share';
 
 type ViewState = 'loading' | 'signed-out' | 'entering' | 'onboarding' | 'signed-in';
 const api = new ApiClient();
@@ -18,6 +19,7 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [results, setResults] = useState<ResultSummary[]>([]);
   const [error, setError] = useState('');
+  const [shareMessage, setShareMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -31,9 +33,20 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
     return () => { active = false; };
   }, [league.id]);
 
+  const share = async () => {
+    setShareMessage('');
+    try {
+      const mode = await shareLeague(navigator, league.name, league.slug, window.location.origin);
+      setShareMessage(mode === 'shared' ? 'Share sheet opened.' : 'League link copied.');
+    } catch (cause) {
+      setShareMessage(messageFor(cause, 'League link could not be shared.'));
+    }
+  };
+
   return (
     <section className="public-league" aria-labelledby="public-league-title">
-      <div className="section-heading"><div><p className="section-kicker">PUBLIC TABLE / {league.seasonName}</p><h2 id="public-league-title">{league.name}</h2></div><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span></div>
+      <div className="section-heading"><div><p className="section-kicker">PUBLIC TABLE / {league.seasonName}</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>Share league</button></div></div>
+      {shareMessage && <p className="success-message" role="status">{shareMessage}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
       <div className="standings-list">{standings.map((row) => <div className="standing-row" key={row.playerId}><span className="standing-rank">{row.rank}</span><div className="standing-player"><strong>{row.username}</strong><small>{row.played} played / {row.average.toFixed(2)} avg</small></div><span className="standing-record">{row.won}-{row.lost}</span><strong className="standing-points">{row.points}</strong></div>)}{standings.length === 0 && <p className="empty-message">No confirmed games yet.</p>}</div>
       {detail && <p className="public-meta">{detail.players.length} active {detail.players.length === 1 ? 'player' : 'players'} / first to {detail.targetLegs} legs</p>}
@@ -58,7 +71,9 @@ export default function App() {
     try {
       const result = await api.leagues();
       setPublicLeagues(result.leagues);
-      setPublicLeagueId((current) => current || result.leagues[0]?.id || null);
+      const requestedKey = typeof window !== 'undefined' ? publicLeagueKey(window.location.pathname) : null;
+      const requested = requestedKey ? result.leagues.find((league) => league.id === requestedKey || league.slug === requestedKey) : null;
+      setPublicLeagueId((current) => requested?.id || current || result.leagues[0]?.id || null);
     } catch {
       setPublicLeagues([]);
     }

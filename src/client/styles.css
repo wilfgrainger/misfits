@@ -102,6 +102,8 @@ button:disabled { cursor: wait; opacity: .55; }
 .league-tab-active { background: #17231e; border-color: #17231e; }
 .league-tab-active span, .league-tab-active small { color: #f1ead7; }
 .public-league { margin-top: 1.2rem; }
+.public-league-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .5rem; }
+.public-league-actions .action-button { width: auto; min-height: 40px; }
 .public-league .standing-list { margin-top: 1rem; }
 .public-results { margin-top: 1.5rem; }
 .public-results h3, .result-feed h3 { margin-bottom: .7rem; }

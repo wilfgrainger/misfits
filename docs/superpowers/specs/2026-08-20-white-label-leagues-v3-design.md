@@ -74,11 +74,11 @@ The public JSON includes `visibility` but never emails, invite token hashes or o
 
 ## 6. Client behavior
 
-- The shared shell uses generic copy such as “League board” and “Darts / leagues”; Misfits artwork is not used as the global shell identity.
+- The shared shell uses generic copy such as "League board" and "Darts / leagues"; Misfits artwork is not used as the global shell identity.
 - A signed-in user always sees the league-control workspace, including the create-league form.
 - The master administrator additionally sees the global People panel.
 - League creation and editing include a Public/Private control.
-- Public league sharing uses its normal league URL; private sharing uses the generated invite URL.
+- Public league sharing uses a stable `/league/<slug>` URL with a browser share/copy action; private sharing uses the generated invite URL.
 - The existing mobile-first layout remains the primary interaction model.
 
 ## 7. Testing and acceptance

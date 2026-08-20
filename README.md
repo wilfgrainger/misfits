@@ -76,6 +76,7 @@ The verified Google account whose email matches `MASTER_ADMIN_EMAIL` is the glob
 
 - Any signed-in user can create a league and becomes its owner. Owners set capacity, games-per-pair, target legs, points per win and public/private visibility, issue or revoke invite links, manage members and manage results for their own league.
 - The master administrator can manage every league and the global People/role controls.
+- Public leagues have stable share links at `/league/<slug>`; private leagues are shared through generated invite links.
 - A player joins a league through an invite link after Google sign-in. Joining is checked again by the Worker for expiry, revocation, capacity and league state.
 - A player can submit only a game involving their own account. Both player averages are required. The other player confirms or disputes the result.
 - Only confirmed results affect standings. Averages are stored per game and shown on result rows and standings.
