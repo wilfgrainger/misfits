@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { ApiClient, ApiClientError, type AdminPlayer, type AdminPlayerChanges, type AuthPayload, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
 
@@ -19,6 +19,8 @@ export default function App() {
   const [playersLoading, setPlayersLoading] = useState(false);
   const [workspaceError, setWorkspaceError] = useState('');
   const [playerAction, setPlayerAction] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const loadAdminPlayers = async () => {
     setPlayersLoading(true);
@@ -33,6 +35,7 @@ export default function App() {
   };
 
   const applyAuth = (payload: AuthPayload) => {
+    setSigningIn(false);
     setUser(payload.user);
     setView(payload.requiresOnboarding ? 'onboarding' : 'signed-in');
     setMessage(payload.requiresOnboarding
@@ -59,17 +62,43 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
-  const signIn = async () => {
-    try {
-      setView('entering');
-      setMessage('Opening Google sign-in...');
-      const credential = await new GoogleAuth(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').signIn();
-      applyAuth(await api.signIn(credential));
-    } catch (error) {
-      setView('signed-out');
-      setMessage(messageFor(error, 'Google sign-in could not be completed.'));
-    }
-  };
+  useEffect(() => {
+    if (view !== 'signed-out' || !googleButtonRef.current) return;
+    const container = googleButtonRef.current;
+    let active = true;
+    let dispose: (() => void) | undefined;
+    new GoogleAuth(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').mountButton(
+      container,
+      (credential) => {
+        if (!active) return;
+        setSigningIn(true);
+        setMessage('Signing you in...');
+        api.signIn(credential).then((payload) => {
+          if (active) applyAuth(payload);
+        }).catch((error: unknown) => {
+          if (!active) return;
+          setSigningIn(false);
+          setMessage(messageFor(error, 'Google sign-in could not be completed.'));
+        });
+      },
+      () => {
+        if (!active) return;
+        setSigningIn(true);
+        setMessage('Opening Google sign-in...');
+      },
+    ).then((cleanup) => {
+      if (active) dispose = cleanup;
+      else cleanup();
+    }).catch((error: unknown) => {
+      if (!active) return;
+      setSigningIn(false);
+      setMessage(messageFor(error, 'Google sign-in could not be loaded.'));
+    });
+    return () => {
+      active = false;
+      dispose?.();
+    };
+  }, [view]);
 
   const submitUsername = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,6 +114,7 @@ export default function App() {
 
   const logout = async () => {
     await api.logout().catch(() => undefined);
+    setSigningIn(false);
     setUser(null);
     setPlayers([]);
     setWorkspaceError('');
@@ -175,7 +205,7 @@ export default function App() {
           <p className="intro">{message}</p>
         </div>
 
-        {view === 'signed-out' && <button className="google-button" type="button" onClick={signIn}>Continue with Google</button>}
+        {view === 'signed-out' && <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />}
         {view === 'onboarding' && (
           <form className="onboarding-form" onSubmit={submitUsername}>
             <label htmlFor="username">Player name</label>

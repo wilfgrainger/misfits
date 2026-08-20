@@ -4,6 +4,16 @@ declare global {
       accounts: {
         id: {
           initialize(config: { client_id: string; callback: (response: { credential: string }) => void }): void;
+          renderButton(parent: HTMLElement, options: {
+            type: 'standard';
+            theme: 'outline';
+            size: 'large';
+            text: 'signin_with';
+            shape: 'rectangular';
+            logo_alignment: 'left';
+            width: string;
+            click_listener: () => void;
+          }): void;
           prompt(notification?: (notification: { isNotDisplayed(): boolean; getNotDisplayedReason(): string }) => void): void;
         };
       };
@@ -37,6 +47,38 @@ function loadGoogleScript(): Promise<void> {
 
 export class GoogleAuth {
   constructor(private readonly clientId: string) {}
+
+  async mountButton(
+    parent: HTMLElement,
+    onCredential: (credential: string) => void,
+    onClick: () => void,
+  ): Promise<() => void> {
+    if (!this.clientId) throw new Error('Google sign-in is not configured for this build');
+    await loadGoogleScript();
+    let active = true;
+    window.google!.accounts.id.initialize({
+      client_id: this.clientId,
+      callback: ({ credential }) => {
+        if (active && credential) onCredential(credential);
+      },
+    });
+    const width = Math.max(200, Math.min(400, Math.floor(parent.getBoundingClientRect().width || 400)));
+    parent.replaceChildren();
+    window.google!.accounts.id.renderButton(parent, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'signin_with',
+      shape: 'rectangular',
+      logo_alignment: 'left',
+      width: String(width),
+      click_listener: onClick,
+    });
+    return () => {
+      active = false;
+      parent.replaceChildren();
+    };
+  }
 
   async signIn(): Promise<string> {
     if (!this.clientId) throw new Error('Google sign-in is not configured for this build');
