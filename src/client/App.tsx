@@ -163,12 +163,17 @@ export default function App() {
   return (
     <main className="shell" data-state={view}>
       <section className={`shell-panel ${view === 'signed-in' ? 'shell-panel-wide' : ''}`}>
-        <div className="top-line">
-          <p className="eyebrow">MISFITS 501</p>
-          <span className="online-label">Online</span>
+        <header className="brand-header">
+          <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501" />
+          <div className="brand-meta">
+            <p className="eyebrow">CLUB DARTS / 501</p>
+            <span className="online-label">Online</span>
+          </div>
+        </header>
+        <div className="page-intro">
+          <h1>Club darts, properly settled.</h1>
+          <p className="intro">{message}</p>
         </div>
-        <h1>Club darts, properly settled.</h1>
-        <p className="intro">{message}</p>
 
         {view === 'signed-out' && <button className="google-button" type="button" onClick={signIn}>Continue with Google</button>}
         {view === 'onboarding' && (

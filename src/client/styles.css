@@ -1,52 +1,65 @@
-:root { color: #17231e; background: #0e1512; font-family: system-ui, sans-serif; }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
+:root { color: #17231e; background: #0b0d0c; font-family: system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: #0b0d0c; }
 button, input { font: inherit; }
-.shell { min-height: 100vh; display: grid; align-items: start; justify-items: center; padding: clamp(2rem, 8vh, 5rem) 1rem; box-sizing: border-box; }
-.shell-panel { width: min(100%, 29rem); box-sizing: border-box; padding: clamp(2rem, 7vw, 3.5rem); background: #f1ead7; border-radius: 24px; box-shadow: 0 24px 70px rgb(0 0 0 / 30%); }
-.shell-panel-wide { width: min(100%, 48rem); }
-.top-line, .account-heading, .workspace-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.eyebrow { color: #b83b35; letter-spacing: .12em; font-weight: 800; margin: 0; }
-.online-label { color: #536058; font-size: .78rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
-h1 { max-width: 10ch; font-size: clamp(2.5rem, 9vw, 4.5rem); line-height: .95; margin: 1rem 0; }
-.intro { color: #536058; max-width: 32rem; min-height: 3rem; }
-.google-button, .primary-button, .secondary-button { border: 0; border-radius: 6px; cursor: pointer; font-weight: 750; padding: .85rem 1rem; }
-.google-button, .primary-button { margin-top: 1.2rem; color: #f1ead7; background: #17231e; }
-.secondary-button { margin-top: 1.2rem; color: #17231e; background: transparent; border: 1px solid #a7afa5; }
-.google-button:focus-visible, .primary-button:focus-visible, .secondary-button:focus-visible, input:focus-visible { outline: 3px solid #b83b35; outline-offset: 3px; }
+button { min-height: 48px; }
+.shell { min-height: 100vh; display: grid; align-items: start; justify-items: center; padding: .75rem .75rem 2rem; }
+.shell-panel { width: min(100%, 36rem); padding: 1rem; background: #f1ead7; border: 1px solid rgb(255 255 255 / 12%); border-radius: 18px; box-shadow: 0 22px 55px rgb(0 0 0 / 35%); }
+.shell-panel-wide { width: min(100%, 60rem); }
+.brand-header { display: flex; align-items: center; gap: .8rem; padding-bottom: 1rem; border-bottom: 1px solid #c8cbbb; }
+.brand-mark { display: block; width: 5.5rem; aspect-ratio: 1; flex: 0 0 auto; object-fit: cover; border-radius: 10px; background: #050505; }
+.brand-meta { display: grid; gap: .4rem; min-width: 0; }
+.eyebrow { margin: 0; color: #b83b35; font-size: .78rem; letter-spacing: .12em; font-weight: 850; }
+.online-label { color: #536058; font-size: .75rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.page-intro { padding: 1.25rem 0 0; }
+h1 { max-width: 11ch; margin: 0; color: #17231e; font-size: 2.75rem; line-height: .95; letter-spacing: 0; }
+.intro { max-width: 32rem; margin: 1rem 0 0; color: #536058; }
+.google-button, .primary-button, .secondary-button { width: 100%; border: 0; border-radius: 6px; cursor: pointer; font-weight: 750; padding: .8rem 1rem; }
+.google-button, .primary-button { margin-top: 1.25rem; color: #f1ead7; background: #17231e; }
+.secondary-button { color: #17231e; background: transparent; border: 1px solid #a7afa5; }
+.google-button:focus-visible, .primary-button:focus-visible, .secondary-button:focus-visible, input:focus-visible, .refresh-button:focus-visible, .action-button:focus-visible { outline: 3px solid #b83b35; outline-offset: 3px; }
 .onboarding-form { display: grid; gap: .5rem; margin-top: 1rem; }
 .onboarding-form label { font-weight: 700; }
-.onboarding-form input { box-sizing: border-box; width: 100%; padding: .8rem; color: #17231e; background: #fffdf5; border: 1px solid #a7afa5; border-radius: 6px; }
-.account-panel { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #c8cbbb; }
-.account-name { margin: 0; font-size: 1.4rem; font-weight: 800; }
+.onboarding-form input { width: 100%; min-height: 48px; padding: .8rem; color: #17231e; background: #fffdf5; border: 1px solid #a7afa5; border-radius: 6px; }
+.account-panel { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #c8cbbb; }
+.account-heading { display: grid; gap: 1rem; }
+.account-name { margin: 0; font-size: 1.45rem; font-weight: 850; }
 .account-role { margin: .25rem 0 0; color: #536058; }
-.account-heading .secondary-button { margin-top: 0; }
-.workspace { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #c8cbbb; }
-.workspace-kicker { margin: 0 0 .25rem; color: #b83b35; font-size: .75rem; font-weight: 800; letter-spacing: .1em; }
-.workspace h2 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.6rem); line-height: 1; }
-.workspace-copy { max-width: 42rem; margin: 1rem 0; color: #536058; }
-.refresh-button, .action-button { border: 1px solid #a7afa5; border-radius: 6px; cursor: pointer; color: #17231e; background: transparent; font-weight: 750; padding: .65rem .8rem; }
+.workspace { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #c8cbbb; }
+.workspace-heading { display: grid; gap: .9rem; }
+.workspace-kicker { margin: 0 0 .25rem; color: #b83b35; font-size: .72rem; font-weight: 850; letter-spacing: .1em; }
+.workspace h2 { margin: 0; font-size: 2rem; line-height: 1; }
+.workspace-copy { max-width: 42rem; margin: .9rem 0 1.1rem; color: #536058; line-height: 1.45; }
+.refresh-button, .action-button { width: 100%; min-height: 44px; border: 1px solid #a7afa5; border-radius: 6px; cursor: pointer; color: #17231e; background: transparent; font-weight: 750; padding: .65rem .8rem; }
 .refresh-button:disabled, .action-button:disabled { cursor: wait; opacity: .55; }
-.refresh-button:focus-visible, .action-button:focus-visible { outline: 3px solid #b83b35; outline-offset: 3px; }
-.workspace-summary { display: flex; flex-wrap: wrap; gap: 1rem 2rem; padding: .85rem 0; color: #536058; border-top: 1px solid #c8cbbb; border-bottom: 1px solid #c8cbbb; }
-.workspace-summary strong { color: #17231e; font-size: 1.15rem; }
+.workspace-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding: .85rem 0; color: #536058; border-top: 1px solid #c8cbbb; border-bottom: 1px solid #c8cbbb; }
+.workspace-summary span { display: grid; gap: .15rem; }
+.workspace-summary strong { color: #17231e; font-size: 1.3rem; }
 .workspace-error, .workspace-loading { color: #8d312f; }
 .workspace-loading { margin: 1.25rem 0 0; color: #536058; }
 .player-list { list-style: none; padding: 0; margin: 0; }
-.player-row { display: grid; grid-template-columns: minmax(10rem, 1.4fr) minmax(8rem, .8fr) minmax(13rem, 1fr); gap: 1rem; align-items: center; padding: 1rem 0; border-bottom: 1px solid #c8cbbb; }
+.player-row { display: grid; gap: .7rem; align-items: start; padding: 1rem 0; border-bottom: 1px solid #c8cbbb; }
 .player-identity { min-width: 0; display: grid; gap: .2rem; }
 .player-identity strong, .player-identity span { overflow-wrap: anywhere; }
+.player-identity strong { font-size: 1.05rem; }
 .player-identity span { color: #536058; font-size: .9rem; }
 .player-state { display: flex; flex-wrap: wrap; gap: .4rem; }
 .player-tag { display: inline-flex; align-items: center; width: fit-content; padding: .25rem .45rem; border-radius: 999px; color: #536058; background: #dedcca; font-size: .75rem; font-weight: 750; }
 .player-tag-admin { color: #7d2927; background: #ead0c9; }
 .player-tag-active { color: #2f5d45; background: #d2dfd1; }
 .player-tag-suspended { color: #7d2927; background: #ead0c9; }
-.player-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+.player-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
 .player-note { color: #536058; font-size: .85rem; font-weight: 750; }
-.shell-stamp { display: block; margin-top: 2rem; color: #7b8278; }
+.shell-stamp { display: block; margin-top: 1.5rem; color: #7b8278; }
 
-@media (max-width: 680px) {
-  .shell-panel-wide { padding: 1.5rem; }
-  .player-row { grid-template-columns: 1fr; gap: .65rem; }
-  .player-actions { justify-content: flex-start; }
+@media (min-width: 681px) {
+  .shell { padding: 3rem 1.5rem; }
+  .shell-panel { padding: 1.5rem; }
+  .brand-mark { width: 6.5rem; }
+  h1 { font-size: 4rem; }
+  .account-heading, .workspace-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+  .account-heading .secondary-button, .refresh-button { width: auto; }
+  .player-row { grid-template-columns: minmax(10rem, 1.4fr) minmax(8rem, .8fr) minmax(13rem, 1fr); align-items: center; gap: 1rem; }
+  .player-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; }
+  .action-button { width: auto; }
 }
