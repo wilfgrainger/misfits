@@ -2,7 +2,7 @@
 
 **Date:** 20 August 2026  
 **Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`), `b335c61` (`fix: harden league result workflows`), `b5762b7` (`fix: enforce pair limits across legacy match ordering`)<br>
-**Cloudflare Worker version:** `1555e87e-8a52-48b0-969b-34a2a259f4cf`<br>
+**Cloudflare Worker version:** `4fcbbe4e-9812-43c7-8cd0-9dce7243d78e`<br>
 **Live origin:** `https://darts.graingers.agency`
 
 ## Design and source reconciliation
@@ -45,13 +45,14 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 - `GET /api/public/leagues/misfits-501/results`: `200`; the stable league slug resolves to the public results resource.
 - Unauthenticated `GET /api/admin/leagues`: `401`.
 - Unauthenticated `GET /api/admin/players`: `401`.
+- `POST /api/auth/google` with a deliberately invalid credential: `401`; this verifies the rejection boundary, not a successful Google session.
 - `GET https://darts-501.zerobytemode.workers.dev/`: `404`; the workers.dev hostname remains inactive.
-- The checks above were rerun after deployment of Worker version `1555e87e-8a52-48b0-969b-34a2a259f4cf`; the custom domain served the generic app and all public slug resources with `200`, while the unauthenticated admin route remained `401`.
+- The checks above were rerun after deployment of Worker version `4fcbbe4e-9812-43c7-8cd0-9dce7243d78e`; the custom domain served the generic app and all public slug resources with `200`, while the unauthenticated admin route and invalid Google credential remained `401`.
 - During the temporary private fixture, anonymous requests to the private directory/detail/players/standings/results paths returned `404` with `LEAGUE_NOT_FOUND`, while the public directory continued to return only the seeded public league.
 
 ## Browser observation
 
-- Playwright at a `390x844` viewport on Worker `43c18f33-06c9-4ef4-8e35-6b2d897cd6d3` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping.
+- Playwright at a `390x844` viewport on Worker `4fcbbe4e-9812-43c7-8cd0-9dce7243d78e` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping.
 - Clicking the official Google button opened a Google Accounts tab with `origin=https://darts.graingers.agency`.
 - At `390x844`, the public deep link rendered without visible overlap or horizontal clipping; a local Playwright screenshot was captured for the check.
 - Clicking `Share league` on the public deep link opened the desktop browser share flow. Chromium returned `AbortError: Share failed` when the native share target was dismissed/unavailable, and the client then attempted clipboard fallback for the stable URL `https://darts.graingers.agency/league/misfits-501`.
