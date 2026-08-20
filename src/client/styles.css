@@ -90,7 +90,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .count-label { display: inline-flex; align-items: center; min-height: 1.8rem; padding: .25rem .55rem; color: #536058; background: #dedcca; border-radius: 999px; font-size: .78rem; font-weight: 800; }
 .account-status { align-self: center; color: #536058; font-size: .85rem; font-weight: 750; }
-.public-home, .sign-in-panel, .member-area, .admin-desk, .player-workspace { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #c8cbbb; }
+.public-home, .sign-in-panel, .member-area, .admin-desk, .player-workspace { margin-top: 1.5rem; padding: 1.25rem 1rem 0; border-top: 1px solid #c8cbbb; }
 .sign-in-panel { padding-bottom: .25rem; }
 .sign-in-panel h2 { margin-top: .1rem; }
 .sign-in-copy, .public-meta, .empty-member p:not(.section-kicker) { max-width: 38rem; margin: .75rem 0 0; color: #536058; line-height: 1.45; }
@@ -172,7 +172,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .inline-actions .action-button { width: auto; min-height: 40px; }
 
 @media (min-width: 681px) {
-  .public-home, .sign-in-panel, .member-area, .admin-desk, .player-workspace { margin-top: 2rem; }
+  .public-home, .sign-in-panel, .member-area, .admin-desk, .player-workspace { margin-top: 2rem; padding-left: 0; padding-right: 0; }
   .content-tabs { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
   .compact-form { grid-template-columns: 2fr 1fr 1fr 1fr auto; align-items: end; }
   .modal-backdrop { align-items: center; justify-items: center; padding: 1rem; }
