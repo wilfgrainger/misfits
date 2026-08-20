@@ -68,7 +68,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 
 ## Browser observation
 
-- Playwright at a current `390x844` viewport on Worker `eb492d5a-d7c0-4e5d-aaa5-987801f4ad4d` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping. The fresh mobile screenshot was `output/playwright/live-390-v2-signed-out.png`; that artifact is local and intentionally untracked.
+- Playwright at a current `390x844` viewport on Worker `eb492d5a-d7c0-4e5d-aaa5-987801f4ad4d` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping. The fresh mobile screenshot was `output/playwright/live-390-v3-signed-out.png`; that artifact is local and intentionally untracked.
 - The mocked signed-in admin mobile render showed the new `Your leagues`, `Create a league` and `Manage Misfits 501` headings, visible labels for all create/settings fields and populated selected-league settings after the league list loaded. The full-page `390px` capture showed no horizontal overflow or overlapping sections; the focused regression and full suite both passed.
 - Clicking the official Google button on the latest deployment opened a Google Accounts tab with `origin=https://darts.graingers.agency`; the isolated browser then showed Google's email-or-phone sign-in screen and had no account session available to complete the credential step.
 - At `390x844`, the public deep link rendered without visible overlap or horizontal clipping; a local Playwright screenshot was captured for the check.

@@ -24,6 +24,60 @@ describe('mobile league workspaces', () => {
     expect(screen.getByRole('button', { name: 'Profile' })).toBeTruthy();
   });
 
+  it('submits a player result with both players and averages', async () => {
+    const resultPayload = { result: { id: 'result-1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5, submittedBy: 'player-a', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null } };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith('/api/public/leagues/league-1/standings')) return new Response(JSON.stringify({ standings: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players: [{ id: 'player-a', username: 'Alpha', profileImageUrl: null }, { id: 'player-b', username: 'Bravo', profileImageUrl: null }] }), { status: 200 });
+      if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/api/leagues/league-1/results') && init?.method === 'POST') return new Response(JSON.stringify(resultPayload), { status: 201 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+
+    render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
+    await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-b'));
+    fireEvent.change(screen.getByLabelText('Your legs'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Their legs'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Your average'), { target: { value: '61.2' } });
+    fireEvent.change(screen.getByLabelText('Their average'), { target: { value: '55.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send for confirmation' }));
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Result sent to your opponent.'));
+    const resultCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith('/api/leagues/league-1/results') && init?.method === 'POST');
+    expect(resultCall).toBeTruthy();
+    expect(JSON.parse(String(resultCall?.[1]?.body))).toEqual({ playerAId: 'player-a', playerBId: 'player-b', playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5 });
+  });
+
+  it('saves the signed-in player profile through the profile panel', async () => {
+    const onUserSaved = vi.fn();
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith('/api/public/leagues/league-1/standings')) return new Response(JSON.stringify({ standings: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players: [{ id: 'player-a', username: 'Alpha', profileImageUrl: null }, { id: 'player-b', username: 'Bravo', profileImageUrl: null }] }), { status: 200 });
+      if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/api/me/profile') && init?.method === 'PATCH') return new Response(JSON.stringify({ profile: { ...user, username: 'Alpha Prime', dartsCounterUrl: 'https://dartcounter.net/alpha', profileImageUrl: null } }), { status: 200 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+
+    render(<PlayerLeague user={user} league={league} onUserSaved={onUserSaved} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
+    fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'Alpha Prime' } });
+    fireEvent.change(screen.getByLabelText('Darts Counter profile'), { target: { value: 'https://dartcounter.net/alpha' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Profile saved.'));
+    const profileCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith('/api/me/profile') && init?.method === 'PATCH');
+    expect(profileCall).toBeTruthy();
+    expect(JSON.parse(String(profileCall?.[1]?.body))).toEqual({ username: 'Alpha Prime', dartsCounterUrl: 'https://dartcounter.net/alpha' });
+    expect(onUserSaved).toHaveBeenCalledWith({ ...user, username: 'Alpha Prime', dartsCounterUrl: 'https://dartcounter.net/alpha', profileImageUrl: null });
+  });
+
   it('renders the admin league creation and invite workspace', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
