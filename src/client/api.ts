@@ -83,6 +83,15 @@ export interface ProfileUpdate {
   dartsCounterUrl?: string | null;
 }
 
+export interface AdminInvite {
+  id: string;
+  leagueId: string;
+  expiresAt: string | null;
+  uses: number;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
 export interface ResultInput {
   playerAId: string;
   playerBId: string;
@@ -137,6 +146,7 @@ export class ApiClient {
   createAdminLeague(input: Partial<LeagueSummary> & { name: string; seasonName: string; maxPlayers: number }) { return this.call<{ league: LeagueSummary }>('/api/admin/leagues', { method: 'POST', body: JSON.stringify(input) }); }
   updateAdminLeague(id: string, input: Partial<LeagueSummary>) { return this.call<{ league: LeagueSummary }>(`/api/admin/leagues/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) }); }
   createInvite(leagueId: string, expiresAt?: string | null) { return this.call<{ invite: { id: string; leagueId: string; expiresAt: string | null; url: string } }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/invites`, { method: 'POST', body: JSON.stringify({ expiresAt: expiresAt ?? null }) }); }
+  adminInvites(leagueId: string) { return this.call<{ invites: AdminInvite[] }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/invites`); }
   revokeInvite(inviteId: string) { return this.call<{ ok: true }>(`/api/admin/invites/${encodeURIComponent(inviteId)}/revoke`, { method: 'POST' }); }
   adminMembers(leagueId: string) { return this.call<{ members: Array<{ userId: string; username: string | null; profileImageUrl: string | null; active: boolean; joinedAt: string }> }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/members`); }
   updateMember(leagueId: string, userId: string, active: boolean) { return this.call<{ member: { userId: string; active: boolean } }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/members/${encodeURIComponent(userId)}`, { method: 'PATCH', body: JSON.stringify({ active }) }); }

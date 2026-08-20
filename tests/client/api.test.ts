@@ -54,4 +54,10 @@ describe('ApiClient admin workspace calls', () => {
     await expect(new ApiClient().publicPlayers('league-1')).resolves.toMatchObject({ players: [{ id: 'player-1', username: 'Player' }] });
     expect(fetchMock).toHaveBeenCalledWith('/api/public/leagues/league-1/players', expect.objectContaining({ credentials: 'include' }));
   });
+
+  it('loads admin invite metadata without a raw invite token', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ invites: [{ id: 'invite-1', leagueId: 'league-1', expiresAt: null, uses: 0, revokedAt: null, createdAt: '2026-08-20T12:00:00.000Z' }] }), { status: 200 }));
+    await expect(new ApiClient().adminInvites('league-1')).resolves.toMatchObject({ invites: [{ id: 'invite-1', uses: 0 }] });
+    expect(fetchMock).toHaveBeenCalledWith('/api/admin/leagues/league-1/invites', expect.objectContaining({ credentials: 'include' }));
+  });
 });

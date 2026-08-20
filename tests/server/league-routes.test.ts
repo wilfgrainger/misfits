@@ -120,6 +120,7 @@ class MemoryD1 {
 
   private async all<T>(sql: string, _values: unknown[]): Promise<{ results: T[] }> {
     if (sql.includes('FROM leagues')) return { results: [...this.leagues.values()] as T[] };
+    if (sql.includes('FROM league_invites')) return { results: [...this.invites.values()] as T[] };
     if (sql.includes('FROM league_players') && sql.includes('JOIN users')) {
       return {
         results: [...this.memberships].map((key) => {
@@ -172,10 +173,10 @@ describe('league and invite routes', () => {
     const createdId = [...db.leagues.values()].find((league) => league.slug === 'tuesday-501')!.id;
     const edited = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/leagues/${createdId}`, {
       method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ maxPlayers: 12, matchesPerPair: 2, status: 'CLOSED' }),
+      body: JSON.stringify({ maxPlayers: 12, matchesPerPair: 2, targetLegs: 5, pointsPerWin: 3, status: 'CLOSED' }),
     }), env, {} as never);
     expect(edited.status).toBe(200);
-    expect(await edited.json()).toMatchObject({ league: { maxPlayers: 12, matchesPerPair: 2, status: 'CLOSED' } });
+    expect(await edited.json()).toMatchObject({ league: { maxPlayers: 12, matchesPerPair: 2, targetLegs: 5, pointsPerWin: 3, status: 'CLOSED' } });
   });
 
   it('creates a hashed invite, joins idempotently, enforces capacity and supports revocation', async () => {
@@ -223,6 +224,33 @@ describe('league and invite routes', () => {
     }), env, {} as never);
     expect(full.status).toBe(409);
     expect(await full.json()).toMatchObject({ error: { code: 'LEAGUE_FULL' } });
+  });
+
+  it('lists invite status and usage without exposing token hashes', async () => {
+    const { db, env, adminRoutes } = setup();
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const created = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/invites', {
+      method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
+    }), env, {} as never);
+    expect(created.status).toBe(201);
+    const inviteId = [...db.invites.values()][0].id;
+
+    const listed = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/invites', {
+      headers: { Cookie: adminCookie },
+    }), env, {} as never);
+    expect(listed.status).toBe(200);
+    const body = await listed.json() as { invites: Array<Record<string, unknown>> };
+    expect(body.invites).toMatchObject([{ id: inviteId, leagueId: 'league-1', uses: 0, revokedAt: null }]);
+    expect(body.invites[0]).not.toHaveProperty('tokenHash');
+
+    const revoked = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/invites/${inviteId}/revoke`, {
+      method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test' },
+    }), env, {} as never);
+    expect(revoked.status).toBe(200);
+    const afterRevoke = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/invites', {
+      headers: { Cookie: adminCookie },
+    }), env, {} as never);
+    expect(await afterRevoke.json()).toMatchObject({ invites: [{ id: inviteId, revokedAt: now.toISOString() }] });
   });
 
   it('lists public leagues without email addresses', async () => {

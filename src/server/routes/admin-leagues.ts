@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { requireAdmin, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { validateLeagueInput } from '../domain/league';
 import { AppError, jsonError } from '../errors';
-import { createInvite, revokeInvite } from '../db/invites';
+import { createInvite, listLeagueInvites, revokeInvite } from '../db/invites';
 import { createLeague, getLeagueById, listLeagueMembers, listPublicLeagues, setMembershipActive, updateLeague } from '../db/leagues';
 import { createAdminResult, deleteAdminResult, getAdminResults, serializeResult, updateAdminResult } from '../db/results';
 
@@ -70,6 +70,18 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
       if (error instanceof Error && /unique|constraint/i.test(error.message)) return jsonError(c, new AppError('VALIDATION_ERROR', 'That league slug is already in use', 409));
       return jsonError(c, new AppError('VALIDATION_ERROR', 'League could not be updated', 400));
     }
+  });
+
+  routes.get('/api/admin/leagues/:id/invites', requireUser, requireAdmin, async (c) => {
+    const invites = await listLeagueInvites(c.env.DB, c.req.param('id'));
+    return c.json({ invites: invites.map((invite) => ({
+      id: invite.id,
+      leagueId: invite.league_id,
+      expiresAt: invite.expires_at,
+      uses: invite.uses,
+      revokedAt: invite.revoked_at,
+      createdAt: invite.created_at,
+    })) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
   routes.post('/api/admin/leagues/:id/invites', requireSameOrigin, requireUser, requireAdmin, async (c) => {
