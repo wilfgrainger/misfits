@@ -2,7 +2,7 @@
 
 **Date:** 20 August 2026  
 **Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`), `b335c61` (`fix: harden league result workflows`), `b5762b7` (`fix: enforce pair limits across legacy match ordering`), `7df995d` (`fix: keep league workspace state synchronized`), `60b7504` (`fix: clear stale master access on sign-in`), `6c69679` (`fix: make league capacity limits atomic`), `b153c59` (`fix: make invite joins idempotent under races`), `e22ae06` (`fix: harden league capacity and profile safety`), `9a411b6` (`docs: record profile safety contract`), `ad223b9` (`refactor: remove legacy misfits auth naming`), `9be431e` (`docs: reconcile latest browser auth evidence`), `2ea7daa` (`fix: revoke legacy sessions during auth transition`), `34cb130` (`test: add authenticated league lifecycle coverage`), `51b65f9` (`fix: enforce nickname onboarding at write boundaries`), `9431691` (`docs: reconcile current browser evidence`), `1bc45d2` (`fix: select league after invite join`), `dad1afd` (`fix: make result resolution race safe`), `c68c7a5` (`docs: reconcile white-label verification plan`)<br>
-**Cloudflare Worker version:** `09b022f0-392b-48ef-b0c7-a495835eeb42`<br>
+**Cloudflare Worker version:** `ed6d3cbc-c946-420e-bde6-f5b382f0b4a6`<br>
 **Live origin:** `https://darts.graingers.agency`
 
 ## Design and source reconciliation
@@ -49,14 +49,14 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 - Unauthenticated `GET /api/admin/players`: `401`.
 - `POST /api/auth/google` with a deliberately invalid credential: `401`; this verifies the rejection boundary, not a successful Google session.
 - `GET https://darts-501.zerobytemode.workers.dev/`: `404`; the workers.dev hostname remains inactive.
-- The checks above were rerun after deployment of Worker version `09b022f0-392b-48ef-b0c7-a495835eeb42`; the custom domain served the generic app, health endpoint, manifest/icon and all public slug resources with `200`, while the unauthenticated admin routes and invalid Google credential returned `401`.
+- The checks above were rerun after deployment of Worker version `ed6d3cbc-c946-420e-bde6-f5b382f0b4a6`; the custom domain served the generic app, health endpoint, manifest/icon and all public slug resources with `200`, while the unauthenticated admin routes and invalid Google credential returned `401`.
 - The compatibility-only `/auth/google` authorization-code entrypoint returned `503` because no client secret is configured; the normal official GIS button path remains the supported login flow and requires only the public client ID plus server-side GIS credential verification.
 - Live unauthenticated admin/profile errors, hidden private-league reads and invalid Google credentials returned `Cache-Control: no-store`.
 - During the temporary private fixture, anonymous requests to the private directory/detail/players/standings/results paths returned `404` with `LEAGUE_NOT_FOUND`, while the public directory continued to return only the seeded public league.
 
 ## Browser observation
 
-- Playwright at a current `390x844` viewport on Worker `09b022f0-392b-48ef-b0c7-a495835eeb42` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping. The earlier DOM measurement reported `document.documentElement.scrollWidth = 350` against a `390px` viewport.
+- Playwright at a current `390x844` viewport on Worker `ed6d3cbc-c946-420e-bde6-f5b382f0b4a6` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping. The earlier DOM measurement reported `document.documentElement.scrollWidth = 350` against a `390px` viewport.
 - Clicking the official Google button on the latest deployment opened a Google Accounts tab with `origin=https://darts.graingers.agency`; the isolated browser then showed Google's email-or-phone sign-in screen and had no account session available to complete the credential step.
 - At `390x844`, the public deep link rendered without visible overlap or horizontal clipping; a local Playwright screenshot was captured for the check.
 - Clicking `Share league` on the public deep link opened the desktop browser share flow. Chromium returned `AbortError: Share failed` when the native share target was dismissed/unavailable, and the client then attempted clipboard fallback for the stable URL `https://darts.graingers.agency/league/misfits-501`.
