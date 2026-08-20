@@ -1,7 +1,7 @@
 # White-Label Leagues v3 Verification
 
 **Date:** 20 August 2026  
-**Release commit:** `4714cbe` (`feat: white-label leagues with owner access`)  
+**Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`)<br>
 **Cloudflare Worker version:** `3be7eceb-bdbe-49e2-98cc-085e786db0f9`<br>
 **Live origin:** `https://darts.graingers.agency`
 
