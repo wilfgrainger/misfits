@@ -1,7 +1,7 @@
 import { AppError } from '../errors';
 import { canonicalPair, validatePlayerResult, type ResultInput } from '../domain/result';
 import { calculateStandings, type StandingRow } from '../domain/standings';
-import { countActiveMembers, getLeagueById, getMembership, listLeagueMembers } from './leagues';
+import { getLeagueById, getMembership, listLeagueMembers } from './leagues';
 import { getUserById } from './users';
 
 export type MatchStatus = 'PENDING' | 'CONFIRMED' | 'DISPUTED';
@@ -94,17 +94,6 @@ async function listResults(db: D1Database, leagueId: string, status?: MatchStatu
       ORDER BY matches.created_at DESC`,
   ).bind(...values).all<ResultRecord>();
   return result.results.map(normalizeResult);
-}
-
-async function countPairResults(db: D1Database, leagueId: string, playerAId: string, playerBId: string): Promise<number> {
-  const [a, b] = canonicalPair(playerAId, playerBId);
-  const row = await db.prepare(
-    `SELECT COUNT(*) AS count FROM matches
-      WHERE league_id = ?
-        AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
-        AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')`,
-  ).bind(leagueId, a, b, b, a).first<{ count: number }>();
-  return Number(row?.count ?? 0);
 }
 
 function pairLimitReached(): AppError {
@@ -240,19 +229,38 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
   await requireActiveMember(db, league.id, result.playerBId);
   const [existingA, existingB] = canonicalPair(existing.player_a_id, existing.player_b_id);
   const [nextA, nextB] = canonicalPair(result.playerAId, result.playerBId);
-  if (existingA !== nextA || existingB !== nextB) {
-    if (await countPairResults(db, league.id, result.playerAId, result.playerBId) >= league.matches_per_pair) throw pairLimitReached();
-  }
+  const pairChanged = existingA !== nextA || existingB !== nextB;
   const status = (input as { status?: unknown })?.status;
   const nextStatus: MatchStatus = status === 'PENDING' || status === 'DISPUTED' || status === 'CONFIRMED' ? status : existing.status;
   const timestamp = now.toISOString();
-  await db.prepare(
+  const updated = await db.prepare(
     `UPDATE matches SET player_a_id = ?, player_b_id = ?, player_a_legs = ?, player_b_legs = ?,
             player_a_average = ?, player_b_average = ?, status = ?, dispute_note = ?, updated_at = ?,
             confirmed_by = CASE WHEN ? = 'CONFIRMED' THEN ? ELSE NULL END,
             confirmed_at = CASE WHEN ? = 'CONFIRMED' THEN ? ELSE NULL END
-      WHERE id = ?`,
-  ).bind(result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, nextStatus, (input as { disputeNote?: string }).disputeNote ?? null, timestamp, nextStatus, adminUserId, nextStatus, timestamp, resultId).run();
+      WHERE id = ?${pairChanged ? `
+        AND (SELECT COUNT(*) FROM matches
+              WHERE league_id = ?
+                AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
+                AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')) < ?` : ''}`,
+  ).bind(
+    result.playerAId,
+    result.playerBId,
+    result.playerALegs,
+    result.playerBLegs,
+    result.playerAAverage,
+    result.playerBAverage,
+    nextStatus,
+    (input as { disputeNote?: string }).disputeNote ?? null,
+    timestamp,
+    nextStatus,
+    adminUserId,
+    nextStatus,
+    timestamp,
+    resultId,
+    ...(pairChanged ? [league.id, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair] : []),
+  ).run();
+  if (pairChanged && updated.meta.changes !== 1) throw pairLimitReached();
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'RESULT_UPDATED_BY_ADMIN', 'MATCH', ?, ?, ?, ?)`,

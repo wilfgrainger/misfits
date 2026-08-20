@@ -50,6 +50,7 @@ class MemoryD1 {
   memberships = new Set<string>();
   inactiveMemberships = new Set<string>();
   forceMembershipInsertRace = false;
+  forceMembershipReactivationRace = false;
   sessions = new Map<string, Session>();
   audits: Array<{ action: string; entityId: string }> = [];
 
@@ -74,6 +75,10 @@ class MemoryD1 {
       this.leagues.set(id, { id, name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC' });
     } else if (sql.includes('UPDATE leagues')) {
       const [name, slug, seasonName, status, pointsPerWin, targetLegs, maxPlayers, matchesPerPair, visibility, updatedAt, id] = values as [string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, 'PUBLIC' | 'PRIVATE', string, string];
+      if (sql.includes('SELECT COUNT(*) FROM league_players')) {
+        const activeCount = [...this.memberships].filter((key) => key.startsWith(`${String(values[11])}:`)).length;
+        if (activeCount > Number(values[6])) return { success: true, meta: { changes: 0 } };
+      }
       const league = this.leagues.get(id)!;
       Object.assign(league, { name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC', updated_at: updatedAt });
     } else if (sql.includes('INSERT INTO league_invites')) {
@@ -105,6 +110,12 @@ class MemoryD1 {
       this.invites.get(String(values[1]))!.revoked_at = String(values[0]);
     } else if (sql.includes('UPDATE league_players SET active = 1')) {
       const [leagueId, userId, countLeagueId, maxPlayers] = values as [string, string, string, number];
+      if (this.forceMembershipReactivationRace) {
+        this.forceMembershipReactivationRace = false;
+        this.memberships.add(`${leagueId}:${userId}`);
+        this.inactiveMemberships.delete(`${leagueId}:${userId}`);
+        return { success: true, meta: { changes: 0 } };
+      }
       const activeCount = [...this.memberships].filter((key) => key.startsWith(`${countLeagueId}:`)).length;
       if (activeCount >= maxPlayers) return { success: true, meta: { changes: 0 } };
       this.memberships.add(`${leagueId}:${userId}`);
@@ -234,6 +245,34 @@ describe('league and invite routes', () => {
       method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
     }), env, {} as never);
     expect(otherOwnerInvite.status).toBe(403);
+  });
+
+  it('does not reduce a league below its active member count', async () => {
+    const { db, env, adminRoutes } = setup();
+    db.memberships.add('league-1:player-1');
+    db.memberships.add('league-1:player-2');
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const response = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1', {
+      method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ maxPlayers: 2 }),
+    }), env, {} as never);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'LEAGUE_FULL' } });
+  });
+
+  it('treats member reactivation that loses a concurrent race as idempotent', async () => {
+    const { db, env, adminRoutes } = setup();
+    db.inactiveMemberships.add('league-1:player-1');
+    db.forceMembershipReactivationRace = true;
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const response = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/members/player-1', {
+      method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true }),
+    }), env, {} as never);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ member: { userId: 'player-1', active: true } });
+    expect(db.audits.filter((audit) => audit.action === 'LEAGUE_MEMBER_UPDATED')).toHaveLength(0);
   });
 
   it('creates a hashed invite, joins idempotently, enforces capacity and supports revocation', async () => {
@@ -366,6 +405,7 @@ describe('league and invite routes', () => {
     const { db, env, publicRoutes } = setup();
     const anonymous = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/private-tuesday'), env, {} as never);
     expect(anonymous.status).toBe(404);
+    expect(anonymous.headers.get('cache-control')).toBe('no-store');
 
     const ownerCookie = await cookieFor(db, 'player-2');
     const owner = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/private-tuesday', { headers: { Cookie: ownerCookie } }), env, {} as never);

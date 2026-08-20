@@ -149,14 +149,15 @@ export async function createLeague(db: D1Database, actorUserId: string, input: L
 export async function updateLeague(db: D1Database, actorUserId: string, leagueId: string, input: LeagueInput, now = new Date()): Promise<LeagueRecord> {
   const before = await getLeagueById(db, leagueId);
   if (!before) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
-  if (input.maxPlayers < await countActiveMembers(db, leagueId)) throw new AppError('LEAGUE_FULL', 'Capacity cannot be lower than the active member count', 409);
   const timestamp = now.toISOString();
-  await db.prepare(
+  const updated = await db.prepare(
     `UPDATE leagues
         SET name = ?, slug = ?, season_name = ?, status = ?, points_per_win = ?, target_legs = ?,
             max_players = ?, matches_per_pair = ?, visibility = ?, updated_at = ?
-      WHERE id = ?`,
-  ).bind(input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, input.maxPlayers, input.matchesPerPair, input.visibility, timestamp, leagueId).run();
+      WHERE id = ?
+        AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) <= ?`,
+  ).bind(input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, input.maxPlayers, input.matchesPerPair, input.visibility, timestamp, leagueId, leagueId, input.maxPlayers).run();
+  if (updated.meta.changes !== 1) throw new AppError('LEAGUE_FULL', 'Capacity cannot be lower than the active member count', 409);
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'LEAGUE_UPDATED', 'LEAGUE', ?, ?, ?, ?)`,
@@ -177,7 +178,11 @@ export async function setMembershipActive(db: D1Database, actorUserId: string, l
         WHERE league_id = ? AND user_id = ? AND active = 0
           AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
     ).bind(leagueId, userId, leagueId, league.max_players).run();
-    if (reactivated.meta.changes !== 1) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+    if (reactivated.meta.changes !== 1) {
+      const current = await getMembership(db, leagueId, userId);
+      if (current?.active === 1) return current;
+      throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+    }
   } else {
     await db.prepare('UPDATE league_players SET active = ? WHERE league_id = ? AND user_id = ?')
       .bind(active ? 1 : 0, leagueId, userId).run();

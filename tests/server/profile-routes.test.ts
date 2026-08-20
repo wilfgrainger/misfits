@@ -82,11 +82,11 @@ describe('profile routes', () => {
     const update = await routes.fetch(new Request('https://misfits.test/api/me/profile', {
       method: 'PATCH',
       headers: { Cookie: cookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: '  Player   One ', dartsCounterUrl: 'https://darts.example/wilf' }),
+      body: JSON.stringify({ username: '  Player   One ', dartsCounterUrl: 'https://dartcounter.net/wilf' }),
     }), env, {} as never);
     expect(update.status).toBe(200);
-    expect(await update.json()).toMatchObject({ profile: { username: 'Player One', dartsCounterUrl: 'https://darts.example/wilf' } });
-    expect(db.users.get('player-1')).toMatchObject({ username: 'Player One', darts_counter_url: 'https://darts.example/wilf' });
+    expect(await update.json()).toMatchObject({ profile: { username: 'Player One', dartsCounterUrl: 'https://dartcounter.net/wilf' } });
+    expect(db.users.get('player-1')).toMatchObject({ username: 'Player One', darts_counter_url: 'https://dartcounter.net/wilf' });
   });
 
   it('rejects an unsafe profile link', async () => {

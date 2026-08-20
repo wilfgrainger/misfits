@@ -68,6 +68,14 @@ class MemoryD1 {
       Object.assign(this.matches.get(id)!, { status: 'DISPUTED', dispute_note: note, updated_at: timestamp });
     } else if (sql.includes('SET player_a_id = ?')) {
       const [playerAId, playerBId, playerALegs, playerBLegs, playerAAverage, playerBAverage, status, note, updatedAt, _statusForConfirmed, confirmedBy, _statusForConfirmedAt, confirmedAt, id] = values as [string, string, number, number, number, number, Match['status'], string | null, string, string, string, string, string, string];
+      if (sql.includes('SELECT COUNT(*) FROM matches')) {
+        const pairLeagueId = String(values[14]);
+        const pairPlayerAId = String(values[15]);
+        const pairPlayerBId = String(values[16]);
+        const pairLimit = Number(values[19]);
+        const pairCount = [...this.matches.values()].filter((match) => match.league_id === pairLeagueId && ((match.player_a_id === pairPlayerAId && match.player_b_id === pairPlayerBId) || (match.player_a_id === pairPlayerBId && match.player_b_id === pairPlayerAId)) && !match.deleted_at && ['PENDING', 'CONFIRMED', 'DISPUTED'].includes(match.status)).length;
+        if (pairCount >= pairLimit) return { success: true, meta: { changes: 0 } };
+      }
       const keepConfirmation = sql.includes('ELSE confirmed_by');
       Object.assign(this.matches.get(id)!, {
         player_a_id: playerAId,
@@ -301,6 +309,30 @@ describe('result routes', () => {
     expect(deleted.status).toBe(200);
     expect(db.matches.get(resultId)?.deleted_at).toBe(now.toISOString());
     expect(db.audits.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('rejects an administrator correction into a full player pair', async () => {
+    const { db, env, adminRoutes } = setup();
+    db.matches.set('occupied-pair', {
+      id: 'occupied-pair', league_id: 'league-1', player_a_id: 'player-b', player_b_id: 'player-c',
+      player_a_legs: 3, player_b_legs: 1, player_a_average: 45, player_b_average: 42,
+      submitted_by: 'admin-1', status: 'CONFIRMED', confirmed_by: 'admin-1', dispute_note: null,
+      created_at: now.toISOString(), updated_at: now.toISOString(), confirmed_at: now.toISOString(), deleted_at: null,
+    });
+    db.matches.set('movable-result', {
+      id: 'movable-result', league_id: 'league-1', player_a_id: 'player-a', player_b_id: 'player-c',
+      player_a_legs: 3, player_b_legs: 2, player_a_average: 51.24, player_b_average: 47.1,
+      submitted_by: 'admin-1', status: 'CONFIRMED', confirmed_by: 'admin-1', dispute_note: null,
+      created_at: now.toISOString(), updated_at: now.toISOString(), confirmed_at: now.toISOString(), deleted_at: null,
+    });
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const response = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/results/movable-result', {
+      method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: resultBody('player-b', 'player-c'),
+    }), env, {} as never);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'PAIR_LIMIT_REACHED' } });
+    expect(db.matches.get('movable-result')).toMatchObject({ player_a_id: 'player-a', player_b_id: 'player-c' });
   });
 
   it('does not expose deleted results through the private player history', async () => {

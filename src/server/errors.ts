@@ -33,5 +33,5 @@ export class AppError extends Error {
 }
 
 export function jsonError(c: Context, error: AppError): Response {
-  return c.json({ error: { code: error.code, message: error.message } }, error.status as never);
+  return c.json({ error: { code: error.code, message: error.message } }, error.status as never, { 'Cache-Control': 'no-store' });
 }

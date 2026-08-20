@@ -30,12 +30,12 @@ describe('ApiClient admin workspace calls', () => {
 
   it('updates a profile and loads the signed-in player leagues', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
-      profile: { username: 'Wilf', profileImageUrl: 'https://lh3.googleusercontent.com/avatar', dartsCounterUrl: 'https://darts.example/wilf' },
+      profile: { username: 'Wilf', profileImageUrl: 'https://lh3.googleusercontent.com/avatar', dartsCounterUrl: 'https://dartcounter.net/wilf' },
     }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({
       leagues: [{ id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', seasonName: '2026', status: 'OPEN', pointsPerWin: 2, targetLegs: 3, maxPlayers: 16, matchesPerPair: 1, visibility: 'PUBLIC' }],
     }), { status: 200 }));
 
-    await expect(new ApiClient().updateProfile({ username: 'Wilf', dartsCounterUrl: 'https://darts.example/wilf' })).resolves.toMatchObject({ profile: { username: 'Wilf' } });
+    await expect(new ApiClient().updateProfile({ username: 'Wilf', dartsCounterUrl: 'https://dartcounter.net/wilf' })).resolves.toMatchObject({ profile: { username: 'Wilf' } });
     await expect(new ApiClient().myLeagues()).resolves.toMatchObject({ leagues: [{ id: 'league-1', maxPlayers: 16 }] });
     expect(fetchMock.mock.calls[0][0]).toBe('/api/me/profile');
     expect(fetchMock.mock.calls[1][0]).toBe('/api/me/leagues');

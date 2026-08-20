@@ -3,9 +3,9 @@ import { validateProfileInput } from '../../src/server/domain/profile';
 
 describe('profile rules', () => {
   it('normalizes a nickname and optional HTTPS profile link', () => {
-    expect(validateProfileInput({ username: '  Wilf   501  ', dartsCounterUrl: 'https://darts.example/player/wilf' })).toEqual({
+    expect(validateProfileInput({ username: '  Wilf   501  ', dartsCounterUrl: 'https://dartcounter.net/player/wilf' })).toEqual({
       ok: true,
-      value: { username: 'Wilf 501', dartsCounterUrl: 'https://darts.example/player/wilf' },
+      value: { username: 'Wilf 501', dartsCounterUrl: 'https://dartcounter.net/player/wilf' },
     });
   });
 
@@ -16,7 +16,13 @@ describe('profile rules', () => {
     });
   });
 
-  it.each(['http://darts.example/player/wilf', 'javascript:alert(1)', 'not a url'])('rejects unsafe profile links: %s', (dartsCounterUrl) => {
+  it.each([
+    'http://dartcounter.net/player/wilf',
+    'https://darts.example/player/wilf',
+    'https://dartcounter.net.evil.example/player/wilf',
+    'javascript:alert(1)',
+    'not a url',
+  ])('rejects unsafe profile links: %s', (dartsCounterUrl) => {
     expect(validateProfileInput({ username: 'Wilf 501', dartsCounterUrl })).toEqual({ ok: false, reason: 'DARTS_COUNTER_URL' });
   });
 });

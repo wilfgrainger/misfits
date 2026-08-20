@@ -1,5 +1,7 @@
 import { validateUsername } from './username';
 
+const DARTS_COUNTER_HOSTS = new Set(['dartcounter.net', 'www.dartcounter.net']);
+
 export interface ProfileUpdate {
   username?: string;
   dartsCounterUrl?: string | null;
@@ -29,7 +31,7 @@ export function validateProfileInput(input: unknown): ProfileValidation {
     } else {
       try {
         const url = new URL(value.dartsCounterUrl.trim());
-        if (url.protocol !== 'https:' || !url.hostname || url.username || url.password) {
+        if (url.protocol !== 'https:' || !DARTS_COUNTER_HOSTS.has(url.hostname.toLowerCase()) || url.port || url.username || url.password) {
           return { ok: false, reason: 'DARTS_COUNTER_URL' };
         }
         result.dartsCounterUrl = url.toString();
