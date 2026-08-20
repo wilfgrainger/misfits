@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono';
 import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { readCookie, resolveSession } from '../auth/session';
 import { AppError, jsonError } from '../errors';
-import { getLeagueById, canViewLeague } from '../db/leagues';
+import { getLeagueByIdOrSlug, canViewLeague } from '../db/leagues';
 import { getPlayerResults, getPublicResults, getLeagueStandings, serializeResult, submitPlayerResult, confirmResult, disputeResult } from '../db/results';
 
 interface ResultRouteDependencies {
@@ -10,7 +10,7 @@ interface ResultRouteDependencies {
 }
 
 async function findViewableLeague(c: Context<AuthAppEnv>, leagueId: string) {
-  const league = await getLeagueById(c.env.DB, leagueId);
+  const league = await getLeagueByIdOrSlug(c.env.DB, leagueId);
   if (!league) return null;
   const user = await resolveSession(c.env.DB, readCookie(c.req.raw, 'misfits_session'));
   return await canViewLeague(c.env.DB, league, user ?? undefined) ? league : null;
@@ -24,7 +24,7 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
     const league = await findViewableLeague(c, c.req.param('leagueId'));
     if (!league) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404));
     try {
-      return c.json({ standings: await getLeagueStandings(c.env.DB, c.req.param('leagueId')) }, 200, { 'Cache-Control': league.visibility === 'PUBLIC' ? 'public, max-age=15' : 'private, no-store' });
+      return c.json({ standings: await getLeagueStandings(c.env.DB, league.id) }, 200, { 'Cache-Control': league.visibility === 'PUBLIC' ? 'public, max-age=15' : 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('VALIDATION_ERROR', 'Standings could not be loaded', 400));
@@ -34,7 +34,7 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
   routes.get('/api/public/leagues/:leagueId/results', async (c) => {
     const league = await findViewableLeague(c, c.req.param('leagueId'));
     if (!league) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404));
-    const results = await getPublicResults(c.env.DB, c.req.param('leagueId'));
+    const results = await getPublicResults(c.env.DB, league.id);
     return c.json({ results: results.map(serializeResult) }, 200, { 'Cache-Control': league.visibility === 'PUBLIC' ? 'public, max-age=15' : 'private, no-store' });
   });
 

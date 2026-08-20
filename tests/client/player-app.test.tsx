@@ -80,4 +80,46 @@ describe('mobile league workspaces', () => {
     expect(screen.getByLabelText('Visibility')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'People' })).toBeNull();
   });
+
+  it('resets the result form when switching to another league', async () => {
+    const secondLeague: LeagueSummary = { ...league, id: 'league-2', name: 'Thursday Club', slug: 'thursday-club', targetLegs: 5 };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input);
+      const current = path.includes('league-2') ? secondLeague : league;
+      if (path.includes('/standings')) return new Response(JSON.stringify({ standings: [] }), { status: 200 });
+      if (path.includes('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.includes('/api/public/leagues/')) return new Response(JSON.stringify({ league: current, players: [{ id: user.id, username: 'Alpha', profileImageUrl: null }, { id: current.id === 'league-2' ? 'player-c' : 'player-b', username: current.id === 'league-2' ? 'Charlie' : 'Bravo', profileImageUrl: null }] }), { status: 200 });
+      if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+
+    const { rerender } = render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
+    await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-b'));
+
+    rerender(<PlayerLeague user={user} league={secondLeague} onUserSaved={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Thursday Club' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
+    await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-c'));
+    expect((screen.getByLabelText('Your legs') as HTMLInputElement).value).toBe('5');
+  });
+
+  it('makes result entry unavailable when the league is closed', async () => {
+    const closedLeague: LeagueSummary = { ...league, status: 'CLOSED' };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input);
+      if (path.includes('/standings')) return new Response(JSON.stringify({ standings: [] }), { status: 200 });
+      if (path.includes('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.includes('/api/public/leagues/')) return new Response(JSON.stringify({ league: closedLeague, players: [{ id: user.id, username: 'Alpha', profileImageUrl: null }, { id: 'player-b', username: 'Bravo', profileImageUrl: null }] }), { status: 200 });
+      if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+
+    render(<PlayerLeague user={user} league={closedLeague} onUserSaved={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
+    expect(screen.getByText('Result entry is unavailable while this league is closed.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'League closed' }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });

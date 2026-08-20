@@ -92,7 +92,7 @@ class MemoryD1 {
       if (!session || !user || session.expires_at <= String(values[1])) return null;
       return { ...user, ...session } as T;
     }
-    if (sql.includes('FROM leagues')) return (this.leagues.get(String(values[0])) ?? null) as T;
+    if (sql.includes('FROM leagues')) return ([...this.leagues.values()].find((league) => league.id === String(values[0]) || league.slug === String(values[0])) ?? null) as T;
     if (sql.includes('FROM league_players') && sql.includes('JOIN users')) {
       const key = `${String(values[0])}:${String(values[1])}`;
       if (!this.memberships.has(key)) return null;
@@ -167,6 +167,14 @@ describe('result routes', () => {
     expect(memberStandings.status).toBe(200);
     const memberResults = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/results', { headers: { Cookie: member } }), env, {} as never);
     expect(memberResults.status).toBe(200);
+  });
+
+  it('resolves public standings and results by league slug', async () => {
+    const { env, routes } = setup();
+    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/misfits-501/standings'), env, {} as never);
+    const results = await routes.fetch(new Request('https://misfits.test/api/public/leagues/misfits-501/results'), env, {} as never);
+    expect(standings.status).toBe(200);
+    expect(results.status).toBe(200);
   });
 
   it('allows only a self-involved player to submit, and only the opponent to confirm', async () => {

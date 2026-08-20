@@ -15,6 +15,7 @@ describe('result rules', () => {
 
   it.each([
     [{ playerAId: 'a', playerBId: 'b', playerALegs: 2, playerBLegs: 2, playerAAverage: 50, playerBAverage: 50 }, 'SCORE'],
+    [{ playerAId: 'a', playerBId: 'b', playerALegs: 3, playerBLegs: 3, playerAAverage: 50, playerBAverage: 50 }, 'SCORE'],
     [{ playerAId: 'a', playerBId: 'b', playerALegs: 3, playerBLegs: 0, playerAAverage: 201, playerBAverage: 50 }, 'AVERAGE'],
     [{ playerAId: 'a', playerBId: 'a', playerALegs: 3, playerBLegs: 0, playerAAverage: 50, playerBAverage: 50 }, 'PLAYERS'],
   ] as const)('rejects invalid result input', (input, reason) => {

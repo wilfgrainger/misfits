@@ -23,7 +23,9 @@ export function validatePlayerResult(input: unknown, targetLegs: number): Result
   if (!input || typeof input !== 'object') return { ok: false, reason: 'INPUT' };
   const value = input as Record<string, unknown>;
   if (typeof value.playerAId !== 'string' || typeof value.playerBId !== 'string' || value.playerAId === value.playerBId) return { ok: false, reason: 'PLAYERS' };
-  if (!Number.isInteger(value.playerALegs) || !Number.isInteger(value.playerBLegs) || Number(value.playerALegs) < 0 || Number(value.playerBLegs) < 0 || Number(value.playerALegs) > targetLegs || Number(value.playerBLegs) > targetLegs || (Number(value.playerALegs) !== targetLegs && Number(value.playerBLegs) !== targetLegs)) return { ok: false, reason: 'SCORE' };
+  const playerALegs = Number(value.playerALegs);
+  const playerBLegs = Number(value.playerBLegs);
+  if (!Number.isInteger(value.playerALegs) || !Number.isInteger(value.playerBLegs) || playerALegs < 0 || playerBLegs < 0 || playerALegs > targetLegs || playerBLegs > targetLegs || (playerALegs !== targetLegs && playerBLegs !== targetLegs) || (playerALegs === targetLegs && playerBLegs === targetLegs)) return { ok: false, reason: 'SCORE' };
   if (!validAverage(value.playerAAverage) || !validAverage(value.playerBAverage)) return { ok: false, reason: 'AVERAGE' };
   return {
     ok: true,
