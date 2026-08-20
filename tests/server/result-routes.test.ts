@@ -60,8 +60,21 @@ class MemoryD1 {
       const [note, timestamp, id] = values as [string, string, string];
       Object.assign(this.matches.get(id)!, { status: 'DISPUTED', dispute_note: note, updated_at: timestamp });
     } else if (sql.includes('SET player_a_id = ?')) {
-      const [playerAId, playerBId, playerALegs, playerBLegs, playerAAverage, playerBAverage, status, note, updatedAt, _statusForConfirmed, _confirmedBy, _statusForConfirmedAt, _confirmedAt, id] = values as [string, string, number, number, number, number, Match['status'], string | null, string, string, string, string, string, string];
-      Object.assign(this.matches.get(id)!, { player_a_id: playerAId, player_b_id: playerBId, player_a_legs: playerALegs, player_b_legs: playerBLegs, player_a_average: playerAAverage, player_b_average: playerBAverage, status, dispute_note: note, updated_at: updatedAt });
+      const [playerAId, playerBId, playerALegs, playerBLegs, playerAAverage, playerBAverage, status, note, updatedAt, _statusForConfirmed, confirmedBy, _statusForConfirmedAt, confirmedAt, id] = values as [string, string, number, number, number, number, Match['status'], string | null, string, string, string, string, string, string];
+      const keepConfirmation = sql.includes('ELSE confirmed_by');
+      Object.assign(this.matches.get(id)!, {
+        player_a_id: playerAId,
+        player_b_id: playerBId,
+        player_a_legs: playerALegs,
+        player_b_legs: playerBLegs,
+        player_a_average: playerAAverage,
+        player_b_average: playerBAverage,
+        status,
+        dispute_note: note,
+        updated_at: updatedAt,
+        confirmed_by: status === 'CONFIRMED' ? confirmedBy : (keepConfirmation ? this.matches.get(id)!.confirmed_by : null),
+        confirmed_at: status === 'CONFIRMED' ? confirmedAt : (keepConfirmation ? this.matches.get(id)!.confirmed_at : null),
+      });
     } else if (sql.includes('SET deleted_at = ?')) {
       const [deletedAt, updatedAt, id] = values as [string, string, string];
       Object.assign(this.matches.get(id)!, { deleted_at: deletedAt, updated_at: updatedAt });
@@ -104,8 +117,11 @@ class MemoryD1 {
       }) as T[] };
     }
     if (sql.includes('FROM matches')) {
-      const leagueId = String(values[0]);
-      return { results: [...this.matches.values()].filter((match) => match.league_id === leagueId && !match.deleted_at && (sql.includes("status = 'CONFIRMED'") ? match.status === 'CONFIRMED' : true)).map((match) => ({ ...match, player_a_username: this.users.get(match.player_a_id)?.username, player_b_username: this.users.get(match.player_b_id)?.username })) as T[] };
+      const privateHistory = sql.includes('WHERE matches.player_a_id = ?');
+      const leagueId = privateHistory ? null : String(values[0]);
+      const playerId = privateHistory ? String(values[0]) : null;
+      const includeDeleted = !sql.includes('matches.deleted_at IS NULL');
+      return { results: [...this.matches.values()].filter((match) => (privateHistory ? (match.player_a_id === playerId || match.player_b_id === playerId || match.submitted_by === playerId) : match.league_id === leagueId) && (includeDeleted || !match.deleted_at) && (sql.includes("status = 'CONFIRMED'") ? match.status === 'CONFIRMED' : true)).map((match) => ({ ...match, player_a_username: this.users.get(match.player_a_id)?.username, player_b_username: this.users.get(match.player_b_id)?.username })) as T[] };
     }
     return { results: [] };
   }
@@ -238,5 +254,41 @@ describe('result routes', () => {
     expect(deleted.status).toBe(200);
     expect(db.matches.get(resultId)?.deleted_at).toBe(now.toISOString());
     expect(db.audits.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('does not expose deleted results through the private player history', async () => {
+    const { db, env, routes, adminRoutes } = setup();
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const created = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/results', {
+      method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: resultBody('player-a', 'player-b'),
+    }), env, {} as never);
+    expect(created.status).toBe(201);
+    const resultId = [...db.matches.keys()][0];
+    const deleted = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/results/${resultId}`, {
+      method: 'DELETE', headers: { Cookie: adminCookie, Origin: 'https://misfits.test' },
+    }), env, {} as never);
+    expect(deleted.status).toBe(200);
+
+    const playerCookie = await cookieFor(db, 'player-a');
+    const response = await routes.fetch(new Request('https://misfits.test/api/me/results', {
+      headers: { Cookie: playerCookie },
+    }), env, {} as never);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ results: [] });
+  });
+
+  it('clears confirmation metadata when an administrator reopens a result', async () => {
+    const { db, env, adminRoutes } = setup();
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const created = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/results', {
+      method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: resultBody('player-a', 'player-c'),
+    }), env, {} as never);
+    expect(created.status).toBe(201);
+    const resultId = [...db.matches.keys()][0];
+    const reopened = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/results/${resultId}`, {
+      method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ ...JSON.parse(resultBody('player-a', 'player-c')), status: 'PENDING' }),
+    }), env, {} as never);
+    expect(reopened.status).toBe(200);
+    expect(await reopened.json()).toMatchObject({ result: { status: 'PENDING', confirmedBy: null, confirmedAt: null } });
   });
 });

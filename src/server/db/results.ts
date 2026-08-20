@@ -236,8 +236,8 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
   await db.prepare(
     `UPDATE matches SET player_a_id = ?, player_b_id = ?, player_a_legs = ?, player_b_legs = ?,
             player_a_average = ?, player_b_average = ?, status = ?, dispute_note = ?, updated_at = ?,
-            confirmed_by = CASE WHEN ? = 'CONFIRMED' THEN ? ELSE confirmed_by END,
-            confirmed_at = CASE WHEN ? = 'CONFIRMED' THEN ? ELSE confirmed_at END
+            confirmed_by = CASE WHEN ? = 'CONFIRMED' THEN ? ELSE NULL END,
+            confirmed_at = CASE WHEN ? = 'CONFIRMED' THEN ? ELSE NULL END
       WHERE id = ?`,
   ).bind(result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, nextStatus, (input as { disputeNote?: string }).disputeNote ?? null, timestamp, nextStatus, adminUserId, nextStatus, timestamp, resultId).run();
   await db.prepare(
@@ -274,7 +274,8 @@ export async function getPlayerResults(db: D1Database, userId: string): Promise<
        FROM matches
        JOIN users a ON a.id = matches.player_a_id
        JOIN users b ON b.id = matches.player_b_id
-      WHERE matches.player_a_id = ? OR matches.player_b_id = ? OR matches.submitted_by = ?
+      WHERE matches.deleted_at IS NULL
+        AND (matches.player_a_id = ? OR matches.player_b_id = ? OR matches.submitted_by = ?)
       ORDER BY matches.created_at DESC`,
   ).bind(userId, userId, userId).all<ResultRecord>();
   return result.results.map(normalizeResult);
