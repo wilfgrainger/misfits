@@ -74,6 +74,7 @@ describe('league switch request ordering', () => {
     const admin = { ...user, role: 'ADMIN' as const, isMasterAdmin: true };
     render(<AdminLeagueDesk user={admin} />);
     await waitFor(() => expect(screen.getByRole('button', { name: /Second Club/ })).toBeTruthy());
+    await waitFor(() => expect(state.calls).toContain(firstLeague.id));
 
     fireEvent.click(screen.getByRole('button', { name: /Second Club/ }));
     state.gates[secondLeague.id].resolve();
