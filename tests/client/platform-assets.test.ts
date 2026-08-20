@@ -4,15 +4,15 @@ import { describe, expect, it } from 'vitest';
 
 const publicRoot = resolve(process.cwd(), 'public');
 
-describe('white-label platform assets', () => {
-  it('ships a generic install icon instead of an empty manifest icon list', () => {
+describe('Misfits platform assets', () => {
+  it('ships the supplied club artwork as its install icon', () => {
     const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as {
       icons?: Array<{ src?: string; sizes?: string; type?: string }>;
     };
-    const icon = manifest.icons?.find((candidate) => candidate.src === '/brand/league-board.svg');
+    const icon = manifest.icons?.find((candidate) => candidate.src === '/brand/misfits-501.jpg');
 
-    expect(icon).toMatchObject({ src: '/brand/league-board.svg', sizes: 'any', type: 'image/svg+xml' });
-    expect(readFileSync(resolve(publicRoot, 'brand/league-board.svg'), 'utf8')).toContain('<svg');
+    expect(icon).toMatchObject({ src: '/brand/misfits-501.jpg', sizes: '1254x1254', type: 'image/jpeg' });
+    expect(readFileSync(resolve(publicRoot, 'brand/misfits-501.jpg')).length).toBeGreaterThan(1000);
   });
 
   it('allows Google button styles without allowing inline scripts', () => {

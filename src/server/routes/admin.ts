@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../env';
 import { AppError, jsonError } from '../errors';
-import { requireMasterAdmin, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
+import { requireAdmin, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { listAdminPlayers, updateAdminPlayer, type AdminPlayerChanges } from '../db/admin';
 import type { UserRole, UserStatus } from '../db/users';
 
@@ -24,12 +24,12 @@ export function createAdminRoutes(dependencies: AdminRouteDependencies = {}) {
   const routes = new Hono<AuthAppEnv & { Bindings: Env }>();
   const now = dependencies.now ?? (() => new Date());
 
-  routes.get('/api/admin/players', requireUser, requireMasterAdmin, async (c) => {
+  routes.get('/api/admin/players', requireUser, requireAdmin, async (c) => {
     const players = await listAdminPlayers(c.env.DB);
     return c.json({ players: players.map(publicPlayer) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
-  routes.patch('/api/admin/players/:id', requireSameOrigin, requireUser, requireMasterAdmin, async (c) => {
+  routes.patch('/api/admin/players/:id', requireSameOrigin, requireUser, requireAdmin, async (c) => {
     const body = await c.req.json().catch(() => null) as { role?: unknown; status?: unknown } | null;
     if (!body || (body.role === undefined && body.status === undefined)) {
       return jsonError(c, new AppError('VALIDATION_ERROR', 'A role or status is required', 400));

@@ -50,20 +50,12 @@ export async function listUserLeagues(db: D1Database, userId: string): Promise<L
   return result.results;
 }
 
-export async function listManagedLeagues(db: D1Database, userId: string, isMasterAdmin: boolean): Promise<LeagueRecord[]> {
-  const statement = isMasterAdmin
-    ? db.prepare(
-      `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
-              created_at, updated_at, created_by, max_players, matches_per_pair, visibility
-         FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
-    )
-    : db.prepare(
-      `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
-              created_at, updated_at, created_by, max_players, matches_per_pair, visibility
-         FROM leagues WHERE created_by = ?
-         ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
-    ).bind(userId);
-  const result = await statement.all<LeagueRecord>();
+export async function listManagedLeagues(db: D1Database): Promise<LeagueRecord[]> {
+  const result = await db.prepare(
+    `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+       FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
+  ).all<LeagueRecord>();
   return result.results;
 }
 
@@ -109,19 +101,17 @@ export async function countActiveMembers(db: D1Database, leagueId: string): Prom
   return Number(row?.count ?? 0);
 }
 
-export async function getManagedLeague(db: D1Database, user: Pick<AuthUser, 'id' | 'isMasterAdmin'>, leagueId: string): Promise<LeagueRecord> {
+export async function getManagedLeague(db: D1Database, user: Pick<AuthUser, 'role'>, leagueId: string): Promise<LeagueRecord> {
   const league = await getLeagueById(db, leagueId);
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
-  if (!user.isMasterAdmin && league.created_by !== user.id) {
-    throw new AppError('FORBIDDEN', 'You do not manage this league', 403);
-  }
+  if (user.role !== 'ADMIN') throw new AppError('FORBIDDEN', 'Administrator access is required', 403);
   return league;
 }
 
-export async function canViewLeague(db: D1Database, league: LeagueRecord, user?: Pick<AuthUser, 'id' | 'isMasterAdmin'>): Promise<boolean> {
+export async function canViewLeague(db: D1Database, league: LeagueRecord, user?: Pick<AuthUser, 'id' | 'role' | 'isMasterAdmin'>): Promise<boolean> {
   if (league.visibility !== 'PRIVATE') return true;
   if (!user) return false;
-  if (user.isMasterAdmin || league.created_by === user.id) return true;
+  if (user.role === 'ADMIN' || user.isMasterAdmin) return true;
   const membership = await getMembership(db, league.id, user.id);
   return membership?.active === 1;
 }

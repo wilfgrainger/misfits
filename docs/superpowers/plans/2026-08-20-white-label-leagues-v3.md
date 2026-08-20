@@ -1,5 +1,7 @@
 # White-Label Leagues v3 Implementation Plan
 
+> **Historical:** This completed white-label plan was superseded by [`2026-08-20-misfits-501-club-v4.md`](2026-08-20-misfits-501-club-v4.md).
+
 > **Status:** Implemented, deployed and post-release hardened. The only open acceptance item is a real signed-in Google browser run, which requires an available authenticated browser session.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans or superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox syntax for tracking.

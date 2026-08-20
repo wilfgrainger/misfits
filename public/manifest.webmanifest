@@ -1,17 +1,17 @@
 {
-  "name": "League Board",
-  "short_name": "League Board",
-  "description": "Darts leagues, properly settled.",
+  "name": "Misfits 501",
+  "short_name": "Misfits 501",
+  "description": "Weekly club darts, properly settled.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f1ead7",
-  "theme_color": "#0b0d0c",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "icons": [
     {
-      "src": "/brand/league-board.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/brand/misfits-501.jpg",
+      "sizes": "1254x1254",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
   ]
 }

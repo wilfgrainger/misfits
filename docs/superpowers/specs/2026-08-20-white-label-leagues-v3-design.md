@@ -1,5 +1,7 @@
 # White-Label Leagues v3 Design
 
+> **Historical:** This implemented white-label direction was superseded on 20 August 2026 by [`2026-08-20-misfits-501-club-v4-design.md`](2026-08-20-misfits-501-club-v4-design.md).
+
 > **Status:** Current v3 behavior contract. This supersedes the v2 assumption that only global administrators can create leagues and that the shared shell is Misfits-branded.
 
 **Date:** 20 August 2026  

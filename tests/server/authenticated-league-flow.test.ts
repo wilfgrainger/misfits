@@ -75,6 +75,10 @@ class FlowD1 {
       user.last_login_at = lastLoginAt;
     } else if (sql.startsWith('UPDATE users SET profile_image_url')) {
       this.users.get(String(values[1]))!.profile_image_url = String(values[0]);
+    } else if (sql.includes("UPDATE users SET role = 'ADMIN', is_master_admin = 1")) {
+      const user = this.users.get(String(values[0]))!;
+      user.role = 'ADMIN';
+      user.is_master_admin = 1;
     } else if (sql.startsWith('UPDATE users SET username = ?, darts_counter_url')) {
       const [username, dartsCounterUrl, id] = values as [string, string | null, string];
       const user = this.users.get(id)!;
@@ -205,7 +209,7 @@ describe('authenticated league lifecycle', () => {
   it('runs Google sign-in through onboarding, ownership, invite join and result confirmation', async () => {
     const db = new FlowD1();
     const identities = new Map<string, GoogleIdentity>([
-      ['owner-token-credential-123456789', { sub: 'google-owner', email: 'owner@example.com', emailVerified: true, picture: 'https://lh3.googleusercontent.com/owner' }],
+      ['owner-token-credential-123456789', { sub: 'google-owner', email: 'master@example.com', emailVerified: true, picture: 'https://lh3.googleusercontent.com/owner' }],
       ['player-token-credential-123456789', { sub: 'google-player', email: 'player@example.com', emailVerified: true, picture: 'https://lh3.googleusercontent.com/player' }],
     ]);
     const env = { DB: db as never, ASSETS: {} as never, GOOGLE_CLIENT_ID: 'client-id', APP_ORIGIN: 'https://misfits.test', MASTER_ADMIN_EMAIL: 'master@example.com' };

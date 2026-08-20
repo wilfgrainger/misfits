@@ -1,25 +1,35 @@
-# League Board
+# Misfits 501
 
-League Board is a white-label, mobile-first darts league application. A league such as Misfits 501 is data managed inside the product, not the product identity. The backend is a Cloudflare Worker with a D1 database; the frontend is built by Vite and served as Worker static assets.
+Misfits 501 is a private-club-first, mobile darts league application for one club. It gives members a polished home for weekly leagues, standings, results and player profiles while DartCounter remains the exclusive scoring surface and WhatsApp remains the club conversation. It is not a white-label league product.
 
-The current release supports multiple leagues, league-owner invite links, public/private visibility, simple Google-backed player profiles, player-only result entry, per-player three-dart averages and confirmed-result standings. Tournaments, teams and promotion/relegation are intentionally outside this release.
+The application runs entirely on Cloudflare's free-tier-capable stack: one Worker serves the Hono API and Vite/React static assets, and one D1 database stores club data. Google Identity Services is the only sign-in method.
+
+## Product contract
+
+The current direction is defined in [`docs/superpowers/specs/2026-08-20-misfits-501-club-v4-design.md`](docs/superpowers/specs/2026-08-20-misfits-501-club-v4-design.md). In summary:
+
+- Misfits 501 is the only club and the product identity.
+- People arrive through a shared club or league invite, sign in with Google, and access only their own account.
+- Administrators approve league participation, run weekly seasons, maintain results, and can promote additional administrators. The initial master administrator is configured out of band.
+- Members can view current and previous leagues, click player cards from tables, and maintain a photo, nickname, bio and DartCounter link.
+- Games are played and scored in DartCounter (camera scoring supported; Omni optional). This site records the resulting league data rather than recreating a darts scorer.
+- WhatsApp and configured social links connect members to club conversation.
+- The service must remain within Cloudflare's no-cost allowances for normal club usage; no paid dependency is part of the core path.
+
+The existing code already provides Google sign-in, invite joins, league membership, public league views, configurable league rules, player result submission, confirmation/dispute, averages, standings, profiles, administrative result correction, and role controls. Join requests, bios, clickable public player cards, configured socials, scheduling/fixtures, richer statistics and a dedicated archive presentation are the next product increments recorded in the v4 plan.
 
 ## Local development
 
-```powershell
+```bash
 npm install
-Copy-Item .dev.vars.example .dev.vars
+cp .dev.vars.example .dev.vars
 npm run db:migrate:local
 npm run dev:worker
 ```
 
-The local Worker runs at `http://localhost:8787`. The browser uses Google Identity Services, so add the exact local browser origin you use to the OAuth client's **Authorized JavaScript origins** if you need to exercise local Google sign-in:
+The local Worker runs at `http://localhost:8787`. Add that exact origin to the Google OAuth web client's **Authorized JavaScript origins**.
 
-```text
-http://localhost:8787
-```
-
-Set the local values in `.dev.vars`. That file is ignored and must never be committed:
+Set local-only values in `.dev.vars` (never commit it):
 
 ```text
 GOOGLE_CLIENT_ID=...
@@ -28,72 +38,42 @@ BOOTSTRAP_ADMIN_EMAIL=...
 MASTER_ADMIN_EMAIL=...
 ```
 
-The public browser client ID is configured in `VITE_GOOGLE_CLIENT_ID`. Google client IDs are identifiers, not secrets; the Worker still verifies the returned Google ID token server-side.
+`VITE_GOOGLE_CLIENT_ID` is a public browser identifier. The Worker still verifies every Google ID token server-side, requires a verified email, and associates accounts with Google's stable `sub` value.
 
-## Google sign-in setup
+## Production and Cloudflare
 
-In Google Cloud Console:
+The production Worker is configured in `wrangler.jsonc`. Apply D1 migrations before deploying code that depends on them:
 
-1. Create or select a project and configure the OAuth consent screen.
-2. Create or use an OAuth client with application type **Web application**.
-3. Add these exact **Authorized JavaScript origins**:
-   - Local: `http://localhost:8787` when using `npm run dev:worker`
-   - Production: `https://darts.graingers.agency`
-4. Put the public client ID in `VITE_GOOGLE_CLIENT_ID` and the Worker `GOOGLE_CLIENT_ID` secret. No client secret is required for this Google Identity Services flow.
-
-The browser loads the official Google Identity Services button, receives an ID-token credential, and posts it to `/api/auth/google`. The Worker verifies the token against Google's JWKS, requires a verified email, and keys the application account by Google's stable `sub` claim rather than email. The legacy `/auth/google/callback` path is retained only for compatibility with the earlier OAuth client configuration; the normal UI does not use it.
-
-## Cloudflare setup
-
-The production Worker is `darts-501` at `https://darts.graingers.agency`. Its `workers.dev` route is disabled; the Worker is exposed through the custom domain only. The production D1 database has been provisioned in the `WEUR` region as `misfits` with ID `9702b993-f0b7-479b-9679-7e32a1c35214`. That ID is committed in `wrangler.jsonc`; no application code depends on it.
-
-The migrations seed and extend the initial `Misfits 501` league without deleting existing users or results. Apply new migrations before deploying code that depends on them. To inspect the remote database:
-
-```powershell
-npx wrangler d1 execute misfits --remote --command "SELECT id,name,status,target_legs FROM leagues;"
-npx wrangler d1 migrations list misfits --remote
+```bash
 npm run db:migrate:remote
-```
-
-Before the first deployment, configure the production Worker values:
-
-```powershell
-npx wrangler secret put GOOGLE_CLIENT_ID
-npx wrangler secret put BOOTSTRAP_ADMIN_EMAIL
-npx wrangler secret put MASTER_ADMIN_EMAIL
-```
-
-`APP_ORIGIN` and the public browser client ID are committed in `wrangler.jsonc`. Keep externally managed variables when deploying:
-
-```powershell
 npm run build
 npx wrangler deploy --keep-vars
 ```
 
-The verified Google account whose email matches `MASTER_ADMIN_EMAIL` is the global master administrator. The implementation falls back to `BOOTSTRAP_ADMIN_EMAIL` when the new variable is not configured, so the current handover configuration remains compatible. Keep that value private.
+Configure production values with Wrangler secrets. `MASTER_ADMIN_EMAIL` identifies the first master administrator; `BOOTSTRAP_ADMIN_EMAIL` is retained as a compatibility fallback. Administrators may then enable other administrators from the People controls. Keep administrator email configuration private.
 
-## Product workflows
+The free-tier guardrails are architectural: no object storage is required for Google profile photos, no scheduled polling is required, public reads can be cached, writes are user-driven, and DartCounter/WhatsApp remain external links rather than replicated services. Usage must still be monitored against Cloudflare's current published limits before growth or new background work.
 
-- Any signed-in user can create a league and becomes its scoped league administrator/owner. Owners set capacity, games-per-pair, target legs, points per win and public/private visibility, issue or revoke invite links, manage members and manage administrative result records for their own league; this does not grant global People or role powers.
-- The master administrator can manage every league and the global People/role controls.
-- Public leagues have stable share links at `/league/<slug>`; private leagues are shared through generated invite links.
-- A player joins a league through an invite link after Google sign-in. Joining is checked again by the Worker for expiry, revocation, capacity and league state.
-- A player can submit only a game involving their own account. Both player averages are required. The other player confirms or disputes the result. Administrative result entry and correction are limited to the league owner or master administrator.
-- Only confirmed results affect standings. Averages are stored per game and shown on result rows and standings.
-- The player profile uses the verified Google picture, a unique nickname and an optional HTTPS link on the official `dartcounter.net` host.
+## Security and privacy
 
-Raw session tokens, invite tokens, Google subjects and email addresses are not public league data. Invite tokens are hashed before D1 storage.
+- Google sign-in is always required for member actions.
+- Session cookies are opaque, secure and HTTP-only; mutation routes enforce same-origin requests.
+- Raw session tokens, invite tokens, Google subjects and member emails are never returned by public league APIs.
+- Invite tokens are hashed in D1.
+- A player can submit only a game involving their own account; the opponent confirms or disputes it.
+- Only confirmed results affect standings.
+- Profile links accept HTTPS URLs on the official `dartcounter.net` host.
+- Administrative authority is enforced by the Worker, never only by hidden browser controls.
 
 ## Verification
 
-```powershell
+```bash
 npm run typecheck
 npm test
 npm run build
 npx wrangler types
 npm run db:migrate:local
-npx wrangler d1 execute misfits --local --command "SELECT id,name,status,target_legs FROM leagues;"
 npx wrangler deploy --dry-run
 ```
 
-`wrangler deploy --dry-run` validates the Worker bundle and bindings without publishing a deployment. A live sign-in test requires the production JavaScript origin above to be present in the Google OAuth client.
+A real Google sign-in smoke test still requires the deployed origin to be authorized in Google Cloud Console.

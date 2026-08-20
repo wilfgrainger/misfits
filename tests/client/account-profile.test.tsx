@@ -36,9 +36,9 @@ describe('account profile access', () => {
   it('keeps profile management available to a signed-in user without memberships', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
-    expect(screen.getByRole('heading', { name: 'Leagues, properly settled.' })).toBeTruthy();
-    expect(screen.getByText('DARTS / LEAGUES')).toBeTruthy();
-    expect(screen.queryByAltText('Misfits 501')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Club darts,properly settled.' })).toBeTruthy();
+    expect(screen.getByText('MISFITS 501')).toBeTruthy();
+    expect(screen.getByAltText('Misfits 501')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Player card' })).toBeTruthy();
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });

@@ -1,5 +1,5 @@
 import { Hono, type Context } from 'hono';
-import { requireNamedUser, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
+import { requireAdmin, requireNamedUser, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { validateLeagueInput } from '../domain/league';
 import { AppError, jsonError } from '../errors';
 import { createInvite, getInviteById, listLeagueInvites, revokeInvite } from '../db/invites';
@@ -40,12 +40,14 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
   const routes = new Hono<AuthAppEnv>();
   const now = dependencies.now ?? (() => new Date());
 
-  routes.get('/api/admin/leagues', requireUser, async (c) => {
-    const leagues = await listManagedLeagues(c.env.DB, c.get('user').id, c.get('user').isMasterAdmin);
+  routes.use('/api/admin/*', requireUser, requireAdmin);
+
+  routes.get('/api/admin/leagues', async (c) => {
+    const leagues = await listManagedLeagues(c.env.DB);
     return c.json({ leagues: leagues.map(adminLeague) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
-  routes.post('/api/admin/leagues', requireSameOrigin, requireUser, requireNamedUser, async (c) => {
+  routes.post('/api/admin/leagues', requireSameOrigin, requireNamedUser, async (c) => {
     const validation = validateLeagueInput(await c.req.json().catch(() => null), 'create');
     if (!validation.ok) return jsonError(c, new AppError('VALIDATION_ERROR', `League details are invalid: ${validation.reason}`, 400));
     try {
@@ -57,7 +59,7 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
     }
   });
 
-  routes.patch('/api/admin/leagues/:id', requireSameOrigin, requireUser, async (c) => {
+  routes.patch('/api/admin/leagues/:id', requireSameOrigin, async (c) => {
     const access = await managedLeagueOrResponse(c, c.req.param('id'));
     if (access instanceof Response) return access;
     const current = access;
