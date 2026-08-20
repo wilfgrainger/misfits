@@ -1,26 +1,27 @@
 # Misfits Leagues v2 Verification
 
 **Date:** 20 August 2026  
-**Release commit:** `42653357c6cdb20529ce1b339a84d088a8628ac3`
-**Cloudflare Worker version:** `99cf9d6f-615d-4c6d-9d0a-d37d2c52c55a`
+**Release commit:** `c5ceaa70ee1a7ac4bef53a3efa2310c1a66a6109`
+**Cloudflare Worker version:** `217e83f2-0f26-4d90-8942-011201d4d351`
 **Live origin:** `https://darts.graingers.agency`
 
 ## Source and automated verification
 
-- `npm test`: 17 test files, 58 tests passed.
+- `npm test`: 17 test files, 60 tests passed.
 - `npm run typecheck`: passed for client and Worker TypeScript projects.
 - `npm run build`: passed with Vite production assets generated.
 - `git diff --check`: passed.
 - `npm run db:migrate:local`: migrations `0001_initial.sql` and `0002_leagues_profiles_invites.sql` applied successfully.
 - Production D1 migration: `0002_leagues_profiles_invites.sql` applied successfully.
 
-Focused coverage includes Google picture persistence, profile ownership/validation, league create/edit authorization, invite hashing/join/capacity/revocation, player-only result submission, average rounding, legacy result average normalization, pair limits, confirmation/dispute transitions, confirmed-only standings, admin result correction/deletion/audit records, clipboard-independent invite creation, client API paths and mobile player/admin rendering.
+Focused coverage includes Google picture persistence, profile ownership/validation, league create/edit authorization, invite hashing/join/capacity/revocation, player-only result submission, average rounding, legacy result average normalization, pair limits, confirmation/dispute transitions, confirmed-only standings, admin result correction/deletion/audit records, clipboard-independent invite creation, public league-player redaction, admin historical-result controls, client API paths and mobile player/admin rendering.
 
 ## Production observations
 
 - `GET https://darts.graingers.agency/`: `200`, title `Misfits 501`.
 - `GET /api/health`: `200`, `{"ok":true}`.
 - `GET /api/public/leagues`: `200`, seeded `Misfits 501`, open, capacity `32`, games per pair `1`.
+- `GET /api/public/leagues/misfits-501/players`: `200`, active player list returned without email addresses or other private fields.
 - `GET /api/public/leagues/misfits-501/standings`: `200`, current active player is visible with zero games.
 - `GET /api/public/leagues/misfits-501/results`: `200`, empty result list.
 - Unauthenticated `GET /api/admin/leagues`: `401`.
