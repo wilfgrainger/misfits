@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { ApiClient, type AdminInvite, type AdminPlayer, type AdminPlayerChanges, type LeagueSummary, type ResultInput, type ResultSummary, type UserSummary } from '../api';
 import { shareLeague } from '../share';
 
@@ -78,6 +78,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
   const [resultPlayerAAverage, setResultPlayerAAverage] = useState('');
   const [resultPlayerBAverage, setResultPlayerBAverage] = useState('');
   const [editingResult, setEditingResult] = useState<ResultEditorState | null>(null);
+  const workspaceRequest = useRef(0);
 
   const activeSelectedId = selectedLeagueId ?? selectedId;
   const selectedLeague = leagues.find((league) => league.id === activeSelectedId) ?? null;
@@ -103,6 +104,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
   useEffect(() => { void load(); }, []);
 
   useEffect(() => {
+    const request = ++workspaceRequest.current;
     if (!selectedLeague) { onLeagueSelected?.(null); return; }
     setEditName(selectedLeague.name);
     setEditSeason(selectedLeague.seasonName);
@@ -113,12 +115,16 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
     setEditStatus(selectedLeague.status);
     setEditVisibility(selectedLeague.visibility);
     setEditingResult(null);
+    setMembers([]);
+    setInvites([]);
+    setResults([]);
     onLeagueSelected?.(selectedLeague);
     Promise.all([api.adminMembers(selectedLeague.id), api.adminInvites(selectedLeague.id), api.adminResults(selectedLeague.id)]).then(([memberPayload, invitePayload, resultPayload]) => {
+      if (request !== workspaceRequest.current) return;
       setMembers(memberPayload.members);
       setInvites(invitePayload.invites);
       setResults(resultPayload.results);
-    }).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'League workspace could not be loaded.'));
+    }).catch((cause: unknown) => { if (request === workspaceRequest.current) setError(cause instanceof Error ? cause.message : 'League workspace could not be loaded.'); });
   }, [activeSelectedId, selectedLeague?.id]);
 
   const createLeague = async (event: FormEvent<HTMLFormElement>) => {

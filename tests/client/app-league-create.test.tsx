@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
@@ -83,7 +83,9 @@ describe('integrated league creation', () => {
     render(<App />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
 
-    fireEvent.click(screen.getAllByRole('button', { name: /Thursday Club/ })[0]);
+    const adminRegion = screen.getByRole('region', { name: 'League desk' });
+    await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
+    fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Thursday Club' })).toBeTruthy());
     expect(screen.getByLabelText('Thursday Club table')).toBeTruthy();

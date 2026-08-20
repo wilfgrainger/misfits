@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, type LeagueDetail, type LeagueSummary, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
 import { ProfilePanel } from './ProfilePanel';
 
@@ -54,8 +54,10 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
   const [busyResult, setBusyResult] = useState<string | null>(null);
   const [disputeId, setDisputeId] = useState<string | null>(null);
   const [disputeNote, setDisputeNote] = useState('');
+  const loadRequest = useRef(0);
 
   const load = async () => {
+    const request = ++loadRequest.current;
     setLoading(true);
     setError('');
     try {
@@ -65,15 +67,16 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         api.publicLeague(league.id),
         api.myResults(),
       ]);
+      if (request !== loadRequest.current) return;
       setStandings(standingPayload.standings);
       setResults(resultPayload.results);
       setDetail(detailPayload.league);
       setMyResults(mine.results.filter((result) => result.leagueId === league.id));
       setOpponentId((current) => current || detailPayload.players.find((player) => player.id !== user.id)?.id || '');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'League data could not be loaded.');
+      if (request === loadRequest.current) setError(cause instanceof Error ? cause.message : 'League data could not be loaded.');
     } finally {
-      setLoading(false);
+      if (request === loadRequest.current) setLoading(false);
     }
   };
 
