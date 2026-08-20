@@ -13,6 +13,10 @@ export interface InviteRecord {
   created_at: string;
 }
 
+function leagueFull(): AppError {
+  return new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+}
+
 function encodeBase64Url(bytes: Uint8Array): string {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -100,14 +104,22 @@ export async function joinLeagueByInvite(db: D1Database, userId: string, token: 
         WHERE league_id = ? AND user_id = ? AND active = 0
           AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
     ).bind(league.id, userId, league.id, league.max_players).run();
-    if (reactivated.meta.changes !== 1) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+    if (reactivated.meta.changes !== 1) {
+      const current = await getMembership(db, league.id, userId);
+      if (current?.active === 1) return current;
+      throw leagueFull();
+    }
   } else {
     const joined = await db.prepare(
-      `INSERT INTO league_players (league_id, user_id, active, joined_at)
+      `INSERT OR IGNORE INTO league_players (league_id, user_id, active, joined_at)
        SELECT ?, ?, 1, ?
         WHERE (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
     ).bind(league.id, userId, timestamp, league.id, league.max_players).run();
-    if (joined.meta.changes !== 1) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+    if (joined.meta.changes !== 1) {
+      const current = await getMembership(db, league.id, userId);
+      if (current?.active === 1) return current;
+      throw leagueFull();
+    }
   }
   await db.prepare('UPDATE league_invites SET uses = uses + 1 WHERE id = ?').bind(invite.id).run();
   await db.prepare(

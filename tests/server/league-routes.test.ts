@@ -49,7 +49,7 @@ class MemoryD1 {
   invites = new Map<string, Invite>();
   memberships = new Set<string>();
   inactiveMemberships = new Set<string>();
-  delayMembershipInsert = false;
+  forceMembershipInsertRace = false;
   sessions = new Map<string, Session>();
   audits: Array<{ action: string; entityId: string }> = [];
 
@@ -87,8 +87,12 @@ class MemoryD1 {
         const activeCount = [...this.memberships].filter((key) => key.startsWith(`${String(values[3])}:`)).length;
         if (activeCount >= maxPlayers) return { success: true, meta: { changes: 0 } };
       }
-      if (this.delayMembershipInsert) await new Promise((resolve) => setTimeout(resolve, 0));
       const key = `${leagueId}:${userId}`;
+      if (this.forceMembershipInsertRace) {
+        this.forceMembershipInsertRace = false;
+        this.memberships.add(key);
+        return { success: true, meta: { changes: 0 } };
+      }
       if (this.memberships.has(key)) {
         if (sql.includes('INSERT OR IGNORE INTO league_players')) return { success: true, meta: { changes: 0 } };
         throw new Error('UNIQUE constraint failed: league_players.league_id, league_players.user_id');
@@ -116,7 +120,8 @@ class MemoryD1 {
         this.inactiveMemberships.add(key);
       }
     } else if (sql.includes('INSERT INTO audit_log')) {
-      this.audits.push({ action: String(values[1]), entityId: String(values[3]) });
+      const action = sql.match(/VALUES \(\?, '([^']+)'/)?.[1] ?? String(values[1]);
+      this.audits.push({ action, entityId: String(values[1]) });
     }
     return { success: true, meta: { changes: 1 } };
   }
@@ -290,21 +295,24 @@ describe('league and invite routes', () => {
     expect(db.memberships.has('league-1:player-1')).toBe(false);
   });
 
-  it('treats concurrent joins by the same user as one idempotent membership', async () => {
+  it('treats a membership insert that loses a concurrent race as idempotent', async () => {
     const { db, env, adminRoutes, publicRoutes } = setup();
-    db.delayMembershipInsert = true;
     const adminCookie = await cookieFor(db, 'admin-1');
     const inviteResponse = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/invites', {
       method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
     }), env, {} as never);
     const token = ((await inviteResponse.json()) as { invite: { url: string } }).invite.url.split('/').at(-1)!;
+    const invite = [...db.invites.values()][0];
+    invite.uses = 1;
+    db.audits.push({ action: 'LEAGUE_JOINED', entityId: 'league-1:player-1' });
+    db.forceMembershipInsertRace = true;
     const playerCookie = await cookieFor(db, 'player-1');
-    const responses = await Promise.all([1, 2].map(() => publicRoutes.fetch(new Request(`https://misfits.test/api/invites/${token}/join`, {
+    const response = await publicRoutes.fetch(new Request(`https://misfits.test/api/invites/${token}/join`, {
       method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test' },
-    }), env, {} as never)));
+    }), env, {} as never);
 
-    expect(responses.map((response) => response.status).sort()).toEqual([200, 200]);
-    expect([...db.invites.values()][0].uses).toBe(1);
+    expect(response.status).toBe(200);
+    expect(invite.uses).toBe(1);
     expect(db.audits.filter((audit) => audit.action === 'LEAGUE_JOINED')).toHaveLength(1);
   });
 
