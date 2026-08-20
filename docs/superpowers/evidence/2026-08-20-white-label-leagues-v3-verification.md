@@ -2,7 +2,7 @@
 
 **Date:** 20 August 2026  
 **Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`), `b335c61` (`fix: harden league result workflows`), `b5762b7` (`fix: enforce pair limits across legacy match ordering`), `7df995d` (`fix: keep league workspace state synchronized`), `60b7504` (`fix: clear stale master access on sign-in`), `6c69679` (`fix: make league capacity limits atomic`), `b153c59` (`fix: make invite joins idempotent under races`), `e22ae06` (`fix: harden league capacity and profile safety`), `9a411b6` (`docs: record profile safety contract`), `ad223b9` (`refactor: remove legacy misfits auth naming`), `9be431e` (`docs: reconcile latest browser auth evidence`), `2ea7daa` (`fix: revoke legacy sessions during auth transition`), `34cb130` (`test: add authenticated league lifecycle coverage`), `51b65f9` (`fix: enforce nickname onboarding at write boundaries`), `9431691` (`docs: reconcile current browser evidence`), `1bc45d2` (`fix: select league after invite join`), `dad1afd` (`fix: make result resolution race safe`), `c68c7a5` (`docs: reconcile white-label verification plan`), `cf7b031` (`fix: report invite copy status accurately`), `ff75d4e` (`fix: synchronize multi-league workspace selection`), `4727902` (`fix: hydrate selected league settings`), `1e324f5` (`fix: prevent stale league workspace responses`), `ca4ebea` (`test: stabilize league switch race fixture`)<br>
-**Cloudflare Worker version:** `af26ff42-c2e3-4102-8f1a-db713cefd654`<br>
+**Cloudflare Worker version:** `4447cefa-851f-4b2d-832e-77c03ac2fdd3`<br>
 **Live origin:** `https://darts.graingers.agency`
 
 ## Design and source reconciliation
@@ -49,7 +49,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 - Unauthenticated `GET /api/admin/players`: `401`.
 - `POST /api/auth/google` with a deliberately invalid credential: `401`; this verifies the rejection boundary, not a successful Google session.
 - `GET https://darts-501.zerobytemode.workers.dev/`: `404`; the workers.dev hostname remains inactive.
-- The checks above were rerun after deployment of Worker version `af26ff42-c2e3-4102-8f1a-db713cefd654`; the custom domain served the generic app, health endpoint, manifest/icon and public slug resources with `200`, while the unauthenticated admin route and invalid Google credential returned `401`.
+- The checks above were rerun after deployment of Worker version `4447cefa-851f-4b2d-832e-77c03ac2fdd3`; the custom domain served the generic app, health endpoint, manifest/icon and public slug resources with `200`, while the unauthenticated admin route and invalid Google credential returned `401`.
 - The deployed bundle `index-uKqaSbbZ.js` contains the current `Your leagues` admin workspace copy and race-safe workspace build; the live custom domain also returned `no-store` for the home document and authenticated admin rejection.
 - The compatibility-only `/auth/google` authorization-code entrypoint returned `503` because no client secret is configured; the normal official GIS button path remains the supported login flow and requires only the public client ID plus server-side GIS credential verification.
 - Live unauthenticated admin/profile errors, hidden private-league reads and invalid Google credentials returned `Cache-Control: no-store`.
@@ -57,7 +57,7 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 
 ## Browser observation
 
-- Playwright at a current `390x844` viewport on Worker `af26ff42-c2e3-4102-8f1a-db713cefd654` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping. The fresh mobile screenshot was `.playwright-cli/white-label-mobile-20260820-race-fix.png`; that artifact is local and intentionally untracked.
+- Playwright at a current `390x844` viewport on Worker `4447cefa-851f-4b2d-832e-77c03ac2fdd3` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping. The fresh mobile screenshot was `output/playwright/live-390-v2-signed-out.png`; that artifact is local and intentionally untracked.
 - The mocked signed-in admin mobile render showed the new `Your leagues`, `Create a league` and `Manage Misfits 501` headings, visible labels for all create/settings fields and populated selected-league settings after the league list loaded. The full-page `390px` capture showed no horizontal overflow or overlapping sections; the focused regression and full suite both passed.
 - Clicking the official Google button on the latest deployment opened a Google Accounts tab with `origin=https://darts.graingers.agency`; the isolated browser then showed Google's email-or-phone sign-in screen and had no account session available to complete the credential step.
 - At `390x844`, the public deep link rendered without visible overlap or horizontal clipping; a local Playwright screenshot was captured for the check.
