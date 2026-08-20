@@ -107,6 +107,10 @@ async function countPairResults(db: D1Database, leagueId: string, playerAId: str
   return Number(row?.count ?? 0);
 }
 
+function pairLimitReached(): AppError {
+  return new AppError('PAIR_LIMIT_REACHED', 'These players have reached the game limit for this league', 409);
+}
+
 async function requireActiveMember(db: D1Database, leagueId: string, userId: string): Promise<void> {
   const member = await getMembership(db, leagueId, userId);
   if (!member || member.active !== 1) throw new AppError('FORBIDDEN', 'Both players must be active members of this league', 403);
@@ -138,14 +142,18 @@ export async function submitPlayerResult(db: D1Database, sessionUserId: string, 
   if (sessionUserId !== result.playerAId && sessionUserId !== result.playerBId) throw new AppError('FORBIDDEN', 'You can only record a result involving you', 403);
   await requireActiveMember(db, leagueId, result.playerAId);
   await requireActiveMember(db, leagueId, result.playerBId);
-  if (await countPairResults(db, leagueId, result.playerAId, result.playerBId) >= league.matches_per_pair) throw new AppError('PAIR_LIMIT_REACHED', 'These players have reached the game limit for this league', 409);
   const id = crypto.randomUUID();
   const timestamp = now.toISOString();
-  await db.prepare(
+  const inserted = await db.prepare(
     `INSERT INTO matches (id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
                           player_a_average, player_b_average, submitted_by, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)`,
-  ).bind(id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, sessionUserId, timestamp, timestamp).run();
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?
+      WHERE (SELECT COUNT(*) FROM matches
+              WHERE league_id = ?
+                AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
+                AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')) < ?`,
+  ).bind(id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, sessionUserId, timestamp, timestamp, leagueId, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair).run();
+  if (inserted.meta.changes !== 1) throw pairLimitReached();
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'RESULT_SUBMITTED', 'MATCH', ?, NULL, ?, ?)`,
@@ -201,14 +209,18 @@ export async function createAdminResult(db: D1Database, adminUserId: string, lea
   const result = await validateAndNormalize(input, league.target_legs);
   await requireActiveMember(db, leagueId, result.playerAId);
   await requireActiveMember(db, leagueId, result.playerBId);
-  if (await countPairResults(db, leagueId, result.playerAId, result.playerBId) >= league.matches_per_pair) throw new AppError('PAIR_LIMIT_REACHED', 'These players have reached the game limit for this league', 409);
   const id = crypto.randomUUID();
   const timestamp = now.toISOString();
-  await db.prepare(
+  const inserted = await db.prepare(
     `INSERT INTO matches (id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
                           player_a_average, player_b_average, submitted_by, status, confirmed_by, created_at, updated_at, confirmed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?)`,
-  ).bind(id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, adminUserId, adminUserId, timestamp, timestamp, timestamp).run();
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?
+      WHERE (SELECT COUNT(*) FROM matches
+              WHERE league_id = ?
+                AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
+                AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')) < ?`,
+  ).bind(id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, adminUserId, adminUserId, timestamp, timestamp, timestamp, leagueId, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair).run();
+  if (inserted.meta.changes !== 1) throw pairLimitReached();
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'RESULT_CREATED_BY_ADMIN', 'MATCH', ?, NULL, ?, ?)`,
@@ -229,7 +241,7 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
   const [existingA, existingB] = canonicalPair(existing.player_a_id, existing.player_b_id);
   const [nextA, nextB] = canonicalPair(result.playerAId, result.playerBId);
   if (existingA !== nextA || existingB !== nextB) {
-    if (await countPairResults(db, league.id, result.playerAId, result.playerBId) >= league.matches_per_pair) throw new AppError('PAIR_LIMIT_REACHED', 'These players have reached the game limit for this league', 409);
+    if (await countPairResults(db, league.id, result.playerAId, result.playerBId) >= league.matches_per_pair) throw pairLimitReached();
   }
   const status = (input as { status?: unknown })?.status;
   const nextStatus: MatchStatus = status === 'PENDING' || status === 'DISPUTED' || status === 'CONFIRMED' ? status : existing.status;

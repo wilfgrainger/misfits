@@ -47,7 +47,13 @@ class MemoryD1 {
       const [tokenHash, userId, createdAt, expiresAt] = values as string[];
       this.sessions.set(tokenHash, { token_hash: tokenHash, user_id: userId, created_at: createdAt, expires_at: expiresAt });
     } else if (sql.includes('INSERT INTO matches')) {
-      if (sql.includes("'CONFIRMED'")) {
+      const pairLeagueId = String(values[values.length - 6]);
+      const pairPlayerAId = String(values[values.length - 5]);
+      const pairPlayerBId = String(values[values.length - 4]);
+      const pairLimit = Number(values[values.length - 1]);
+      const pairCount = [...this.matches.values()].filter((match) => match.league_id === pairLeagueId && ((match.player_a_id === pairPlayerAId && match.player_b_id === pairPlayerBId) || (match.player_a_id === pairPlayerBId && match.player_b_id === pairPlayerAId)) && !match.deleted_at && ['PENDING', 'CONFIRMED', 'DISPUTED'].includes(match.status)).length;
+      if (pairCount >= pairLimit) return { success: true, meta: { changes: 0 } };
+      if (sql.includes('submitted_by, status, confirmed_by')) {
         const [id, leagueId, playerAId, playerBId, playerALegs, playerBLegs, playerAAverage, playerBAverage, submittedBy, confirmedBy, createdAt, updatedAt, confirmedAt] = values as [string, string, string, string, number, number, number, number, string, string, string, string, string];
         this.matches.set(id, { id, league_id: leagueId, player_a_id: playerAId, player_b_id: playerBId, player_a_legs: playerALegs, player_b_legs: playerBLegs, player_a_average: playerAAverage, player_b_average: playerBAverage, submitted_by: submittedBy, status: 'CONFIRMED', confirmed_by: confirmedBy, dispute_note: null, created_at: createdAt, updated_at: updatedAt, confirmed_at: confirmedAt, deleted_at: null });
       } else {

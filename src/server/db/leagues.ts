@@ -172,10 +172,16 @@ export async function setMembershipActive(db: D1Database, actorUserId: string, l
   if (active && before.active !== 1) {
     const league = await getLeagueById(db, leagueId);
     if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
-    if (await countActiveMembers(db, leagueId) >= league.max_players) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+    const reactivated = await db.prepare(
+      `UPDATE league_players SET active = 1
+        WHERE league_id = ? AND user_id = ? AND active = 0
+          AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
+    ).bind(leagueId, userId, leagueId, league.max_players).run();
+    if (reactivated.meta.changes !== 1) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+  } else {
+    await db.prepare('UPDATE league_players SET active = ? WHERE league_id = ? AND user_id = ?')
+      .bind(active ? 1 : 0, leagueId, userId).run();
   }
-  await db.prepare('UPDATE league_players SET active = ? WHERE league_id = ? AND user_id = ?')
-    .bind(active ? 1 : 0, leagueId, userId).run();
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'LEAGUE_MEMBER_UPDATED', 'LEAGUE_MEMBER', ?, ?, ?, ?)`,

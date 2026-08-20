@@ -48,6 +48,8 @@ class MemoryD1 {
   leagues = new Map<string, League>();
   invites = new Map<string, Invite>();
   memberships = new Set<string>();
+  inactiveMemberships = new Set<string>();
+  delayMembershipInsert = false;
   sessions = new Map<string, Session>();
   audits: Array<{ action: string; entityId: string }> = [];
 
@@ -78,16 +80,41 @@ class MemoryD1 {
       const [id, leagueId, tokenHash, createdBy, expiresAt, createdAt] = values as [string, string, string, string, string | null, string];
       this.invites.set(id, { id, league_id: leagueId, token_hash: tokenHash, created_by: createdBy, expires_at: expiresAt, uses: 0, revoked_at: null, created_at: createdAt });
     } else if (sql.includes('INSERT OR IGNORE INTO league_players') || sql.includes('INSERT INTO league_players')) {
-      this.memberships.add(`${String(values[0])}:${String(values[1])}`);
+      const leagueId = String(values[0]);
+      const userId = String(values[1]);
+      if (sql.includes('SELECT ?, ?, 1, ?')) {
+        const maxPlayers = Number(values[4]);
+        const activeCount = [...this.memberships].filter((key) => key.startsWith(`${String(values[3])}:`)).length;
+        if (activeCount >= maxPlayers) return { success: true, meta: { changes: 0 } };
+      }
+      if (this.delayMembershipInsert) await new Promise((resolve) => setTimeout(resolve, 0));
+      const key = `${leagueId}:${userId}`;
+      if (this.memberships.has(key)) {
+        if (sql.includes('INSERT OR IGNORE INTO league_players')) return { success: true, meta: { changes: 0 } };
+        throw new Error('UNIQUE constraint failed: league_players.league_id, league_players.user_id');
+      }
+      this.memberships.add(key);
+      this.inactiveMemberships.delete(key);
     } else if (sql.includes('UPDATE league_invites SET uses')) {
       this.invites.get(String(values[0]))!.uses += 1;
     } else if (sql.includes('UPDATE league_invites SET revoked_at')) {
       this.invites.get(String(values[1]))!.revoked_at = String(values[0]);
+    } else if (sql.includes('UPDATE league_players SET active = 1')) {
+      const [leagueId, userId, countLeagueId, maxPlayers] = values as [string, string, string, number];
+      const activeCount = [...this.memberships].filter((key) => key.startsWith(`${countLeagueId}:`)).length;
+      if (activeCount >= maxPlayers) return { success: true, meta: { changes: 0 } };
+      this.memberships.add(`${leagueId}:${userId}`);
+      this.inactiveMemberships.delete(`${leagueId}:${userId}`);
     } else if (sql.includes('UPDATE league_players SET active')) {
       const [active, leagueId, userId] = values as [number, string, string];
       const key = `${leagueId}:${userId}`;
-      if (active === 1) this.memberships.add(key);
-      else this.memberships.delete(key);
+      if (active === 1) {
+        this.memberships.add(key);
+        this.inactiveMemberships.delete(key);
+      } else {
+        this.memberships.delete(key);
+        this.inactiveMemberships.add(key);
+      }
     } else if (sql.includes('INSERT INTO audit_log')) {
       this.audits.push({ action: String(values[1]), entityId: String(values[3]) });
     }
@@ -108,10 +135,10 @@ class MemoryD1 {
     if (sql.includes('FROM league_invites')) return ([...this.invites.values()].find((invite) => invite.token_hash === String(values[0]) || invite.id === String(values[0])) ?? null) as T;
     if (sql.includes('FROM league_players') && sql.includes('JOIN users')) {
       const key = `${String(values[0])}:${String(values[1])}`;
-      if (!this.memberships.has(key)) return null;
+      if (!this.memberships.has(key) && !this.inactiveMemberships.has(key)) return null;
       const [leagueId, userId] = key.split(':');
       const user = this.users.get(userId)!;
-      return { league_id: leagueId, user_id: userId, active: 1, joined_at: now.toISOString(), username: user.username, profile_image_url: user.profile_image_url } as T;
+      return { league_id: leagueId, user_id: userId, active: this.memberships.has(key) ? 1 : 0, joined_at: now.toISOString(), username: user.username, profile_image_url: user.profile_image_url } as T;
     }
     if (sql.includes('COUNT(*)') && sql.includes('league_players')) {
       return { count: [...this.memberships].filter((key) => key.startsWith(`${String(values[0])}:`)).length } as T;
@@ -227,6 +254,12 @@ describe('league and invite routes', () => {
     }), env, {} as never);
     expect(joinedAgain.status).toBe(200);
 
+    const deactivated = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/members/player-1', {
+      method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ active: false }),
+    }), env, {} as never);
+    expect(deactivated.status).toBe(200);
+    expect(db.memberships.has('league-1:player-1')).toBe(false);
+
     const inviteId = [...db.invites.values()][0].id;
     const revoked = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/invites/${inviteId}/revoke`, {
       method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test' },
@@ -244,11 +277,35 @@ describe('league and invite routes', () => {
     }), env, {} as never);
     const secondToken = ((await secondInviteResponse.json()) as { invite: { url: string } }).invite.url.split('/').at(-1)!;
     const playerTwoCookie = await cookieFor(db, 'player-2');
-    const full = await publicRoutes.fetch(new Request(`https://misfits.test/api/invites/${secondToken}/join`, {
+    const joinedAtCapacity = await publicRoutes.fetch(new Request(`https://misfits.test/api/invites/${secondToken}/join`, {
       method: 'POST', headers: { Cookie: playerTwoCookie, Origin: 'https://misfits.test' },
     }), env, {} as never);
-    expect(full.status).toBe(409);
-    expect(await full.json()).toMatchObject({ error: { code: 'LEAGUE_FULL' } });
+    expect(joinedAtCapacity.status).toBe(200);
+
+    const reactivatedAtCapacity = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/members/player-1', {
+      method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ active: true }),
+    }), env, {} as never);
+    expect(reactivatedAtCapacity.status).toBe(409);
+    expect(await reactivatedAtCapacity.json()).toMatchObject({ error: { code: 'LEAGUE_FULL' } });
+    expect(db.memberships.has('league-1:player-1')).toBe(false);
+  });
+
+  it('treats concurrent joins by the same user as one idempotent membership', async () => {
+    const { db, env, adminRoutes, publicRoutes } = setup();
+    db.delayMembershipInsert = true;
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const inviteResponse = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-1/invites', {
+      method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
+    }), env, {} as never);
+    const token = ((await inviteResponse.json()) as { invite: { url: string } }).invite.url.split('/').at(-1)!;
+    const playerCookie = await cookieFor(db, 'player-1');
+    const responses = await Promise.all([1, 2].map(() => publicRoutes.fetch(new Request(`https://misfits.test/api/invites/${token}/join`, {
+      method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test' },
+    }), env, {} as never)));
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 200]);
+    expect([...db.invites.values()][0].uses).toBe(1);
+    expect(db.audits.filter((audit) => audit.action === 'LEAGUE_JOINED')).toHaveLength(1);
   });
 
   it('lists invite status and usage without exposing token hashes', async () => {

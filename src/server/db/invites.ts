@@ -1,5 +1,5 @@
 import { AppError } from '../errors';
-import { countActiveMembers, getLeagueById, getMembership, type LeagueMemberRecord } from './leagues';
+import { getLeagueById, getMembership, type LeagueMemberRecord } from './leagues';
 import { getUserById } from './users';
 
 export interface InviteRecord {
@@ -93,15 +93,21 @@ export async function joinLeagueByInvite(db: D1Database, userId: string, token: 
 
   const existing = await getMembership(db, league.id, userId);
   if (existing?.active === 1) return existing;
-  if (await countActiveMembers(db, league.id) >= league.max_players) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
-
   const timestamp = now.toISOString();
   if (existing) {
-    await db.prepare('UPDATE league_players SET active = 1 WHERE league_id = ? AND user_id = ?').bind(league.id, userId).run();
+    const reactivated = await db.prepare(
+      `UPDATE league_players SET active = 1
+        WHERE league_id = ? AND user_id = ? AND active = 0
+          AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
+    ).bind(league.id, userId, league.id, league.max_players).run();
+    if (reactivated.meta.changes !== 1) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
   } else {
-    await db.prepare(
-      `INSERT INTO league_players (league_id, user_id, active, joined_at) VALUES (?, ?, 1, ?)`,
-    ).bind(league.id, userId, timestamp).run();
+    const joined = await db.prepare(
+      `INSERT INTO league_players (league_id, user_id, active, joined_at)
+       SELECT ?, ?, 1, ?
+        WHERE (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
+    ).bind(league.id, userId, timestamp, league.id, league.max_players).run();
+    if (joined.meta.changes !== 1) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
   }
   await db.prepare('UPDATE league_invites SET uses = uses + 1 WHERE id = ?').bind(invite.id).run();
   await db.prepare(
