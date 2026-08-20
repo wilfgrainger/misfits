@@ -2,15 +2,20 @@ import { Hono } from 'hono';
 import type { Env } from '../env';
 import { AppError, jsonError } from '../errors';
 import { validateUsername } from '../domain/username';
-import { getUserById, publicUser, setUsernameAndJoinLeague, upsertGoogleUser } from '../db/users';
+import { getUserById, publicUser, setUsername, upsertGoogleUser } from '../db/users';
 import { buildGoogleAuthorizationUrl, exchangeGoogleCode, verifyGoogleCredential, type GoogleIdentity } from '../auth/google';
 import {
   expiredCookie,
   issueSession,
+  LEGACY_OAUTH_STATE_COOKIE,
+  LEGACY_SESSION_COOKIE,
+  OAUTH_STATE_COOKIE,
   oauthStateCookie,
-  readCookie,
+  readOAuthState,
+  readSessionToken,
   revokeSession,
   sessionCookie,
+  SESSION_COOKIE,
 } from '../auth/session';
 import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 
@@ -85,7 +90,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     if (!c.env.GOOGLE_CLIENT_ID || !c.env.GOOGLE_CLIENT_SECRET || !c.env.APP_ORIGIN) {
       return jsonError(c, new AppError('CONFIGURATION_ERROR', 'Google sign-in is not configured', 503));
     }
-    const expectedState = readCookie(c.req.raw, 'misfits_oauth_state');
+    const expectedState = readOAuthState(c.req.raw);
     const receivedState = c.req.query('state');
     if (!expectedState || !receivedState || expectedState !== receivedState) {
       return authFailure(c, 'Invalid OAuth state');
@@ -109,7 +114,8 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
       const user = await upsertGoogleUser(c.env.DB, identity, now(), c.env.BOOTSTRAP_ADMIN_EMAIL, c.env.MASTER_ADMIN_EMAIL);
       const session = await issueSession(c.env.DB, user.id, now());
       c.header('Set-Cookie', sessionCookie(session.token));
-      c.header('Set-Cookie', expiredCookie('misfits_oauth_state'), { append: true });
+      c.header('Set-Cookie', expiredCookie(OAUTH_STATE_COOKIE), { append: true });
+      c.header('Set-Cookie', expiredCookie(LEGACY_OAUTH_STATE_COOKIE), { append: true });
       return c.redirect(user.username ? '/' : '/onboarding', 302);
     } catch {
       return authFailure(c, 'Account setup could not be completed');
@@ -136,7 +142,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     }
 
     try {
-      const user = await setUsernameAndJoinLeague(c.env.DB, c.get('user').id, validation.value, now());
+      const user = await setUsername(c.env.DB, c.get('user').id, validation.value, now());
       return c.json({
         user: publicUser(user),
         requiresOnboarding: false,
@@ -150,8 +156,9 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
   });
 
   routes.post('/auth/logout', requireSameOrigin, async (c) => {
-    await revokeSession(c.env.DB, readCookie(c.req.raw, 'misfits_session'));
-    c.header('Set-Cookie', expiredCookie('misfits_session'));
+    await revokeSession(c.env.DB, readSessionToken(c.req.raw));
+    c.header('Set-Cookie', expiredCookie(SESSION_COOKIE));
+    c.header('Set-Cookie', expiredCookie(LEGACY_SESSION_COOKIE), { append: true });
     return c.json({ ok: true }, 200, { 'Cache-Control': 'no-store' });
   });
 

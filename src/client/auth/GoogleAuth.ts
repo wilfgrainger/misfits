@@ -27,7 +27,7 @@ function loadGoogleScript(): Promise<void> {
   if (window.google?.accounts?.id) return Promise.resolve();
   if (loader) return loader;
   loader = new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>('script[data-misfits-google]');
+    const existing = document.querySelector<HTMLScriptElement>('script[data-league-board-google], script[data-misfits-google]');
     if (existing) {
       existing.addEventListener('load', () => resolve(), { once: true });
       existing.addEventListener('error', () => reject(new Error('Could not load Google sign-in')), { once: true });
@@ -37,7 +37,7 @@ function loadGoogleScript(): Promise<void> {
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
-    script.dataset.misfitsGoogle = 'true';
+    script.dataset.leagueBoardGoogle = 'true';
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Could not load Google sign-in'));
     document.head.append(script);

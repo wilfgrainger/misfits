@@ -115,7 +115,7 @@ function setup() {
 
 function sessionFrom(response: Response): string {
   const cookie = response.headers.get('set-cookie') ?? '';
-  return cookie.match(/misfits_session=([^;]+)/)?.[1] ?? '';
+  return cookie.match(/league_board_session=([^;]+)/)?.[1] ?? '';
 }
 
 describe('Google auth routes', () => {
@@ -130,7 +130,7 @@ describe('Google auth routes', () => {
     expect(verifyCredential).toHaveBeenCalledWith('google-id-token-123456', 'client-id');
     expect([...db.users.values()][0].role).toBe('ADMIN');
     expect([...db.users.values()][0].is_master_admin).toBe(1);
-    expect(response.headers.get('set-cookie')).toContain('misfits_session=');
+    expect(response.headers.get('set-cookie')).toContain('league_board_session=');
     expect(await response.json()).toMatchObject({ requiresOnboarding: true, user: { role: 'ADMIN', isMasterAdmin: true } });
   });
 
@@ -193,6 +193,7 @@ describe('Google auth routes', () => {
     const start = await routes.fetch(new Request('https://misfits.test/auth/google'), env, {} as never);
     expect(start.status).toBe(302);
     expect(start.headers.get('location')).toContain('response_type=code');
+    expect(start.headers.get('set-cookie')).toContain('league_board_oauth_state=');
     const stateCookie = start.headers.get('set-cookie')!;
 
     const callback = await routes.fetch(new Request(`https://misfits.test/auth/google/callback?state=wrong&code=code`, {

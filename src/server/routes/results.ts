@@ -1,6 +1,6 @@
 import { Hono, type Context } from 'hono';
 import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
-import { readCookie, resolveSession } from '../auth/session';
+import { readSessionToken, resolveSession } from '../auth/session';
 import { AppError, jsonError } from '../errors';
 import { getLeagueByIdOrSlug, canViewLeague } from '../db/leagues';
 import { getPlayerResults, getPublicResults, getLeagueStandings, serializeResult, submitPlayerResult, confirmResult, disputeResult } from '../db/results';
@@ -12,7 +12,7 @@ interface ResultRouteDependencies {
 async function findViewableLeague(c: Context<AuthAppEnv>, leagueId: string) {
   const league = await getLeagueByIdOrSlug(c.env.DB, leagueId);
   if (!league) return null;
-  const user = await resolveSession(c.env.DB, readCookie(c.req.raw, 'misfits_session'));
+  const user = await resolveSession(c.env.DB, readSessionToken(c.req.raw));
   return await canViewLeague(c.env.DB, league, user ?? undefined) ? league : null;
 }
 

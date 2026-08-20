@@ -1,6 +1,9 @@
 import type { Env } from '../env';
 
-export const SESSION_COOKIE = 'misfits_session';
+export const SESSION_COOKIE = 'league_board_session';
+export const LEGACY_SESSION_COOKIE = 'misfits_session';
+export const OAUTH_STATE_COOKIE = 'league_board_oauth_state';
+export const LEGACY_OAUTH_STATE_COOKIE = 'misfits_oauth_state';
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 export interface AuthUser {
@@ -82,6 +85,14 @@ export function readCookie(request: Request, name: string): string | null {
   return null;
 }
 
+export function readSessionToken(request: Request): string | null {
+  return readCookie(request, SESSION_COOKIE) ?? readCookie(request, LEGACY_SESSION_COOKIE);
+}
+
+export function readOAuthState(request: Request): string | null {
+  return readCookie(request, OAUTH_STATE_COOKIE) ?? readCookie(request, LEGACY_OAUTH_STATE_COOKIE);
+}
+
 export function sessionCookie(token: string): string {
   return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SECONDS}`;
 }
@@ -91,7 +102,7 @@ export function expiredCookie(name: string): string {
 }
 
 export function oauthStateCookie(state: string): string {
-  return `misfits_oauth_state=${encodeURIComponent(state)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`;
+  return `${OAUTH_STATE_COOKIE}=${encodeURIComponent(state)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`;
 }
 
 export function envForSession(env: Env): Pick<Env, 'DB'> {

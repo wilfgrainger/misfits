@@ -98,7 +98,7 @@ export async function upsertGoogleUser(
   return (await getUserById(db, user.id))!;
 }
 
-export async function setUsernameAndJoinLeague(
+export async function setUsername(
   db: D1Database,
   userId: string,
   username: string,
