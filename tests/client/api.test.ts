@@ -48,4 +48,10 @@ describe('ApiClient admin workspace calls', () => {
     })).resolves.toMatchObject({ result: { status: 'PENDING' } });
     expect(fetchMock).toHaveBeenCalledWith('/api/leagues/league-1/results', expect.objectContaining({ method: 'POST', body: expect.stringContaining('playerAAverage') }));
   });
+
+  it('loads a league-scoped public player list', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ players: [{ id: 'player-1', username: 'Player', profileImageUrl: null }] }), { status: 200 }));
+    await expect(new ApiClient().publicPlayers('league-1')).resolves.toMatchObject({ players: [{ id: 'player-1', username: 'Player' }] });
+    expect(fetchMock).toHaveBeenCalledWith('/api/public/leagues/league-1/players', expect.objectContaining({ credentials: 'include' }));
+  });
 });

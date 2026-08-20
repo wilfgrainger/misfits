@@ -233,4 +233,13 @@ describe('league and invite routes', () => {
     expect(body.leagues[0]).toMatchObject({ slug: 'misfits-501', maxPlayers: 2 });
     expect(body.leagues[0]).not.toHaveProperty('email');
   });
+
+  it('lists active public league players without private fields', async () => {
+    const { env, publicRoutes } = setup();
+    const response = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/players'), env, {} as never);
+    expect(response.status).toBe(200);
+    const body = await response.json() as { players: Array<Record<string, unknown>> };
+    expect(body.players).toEqual([{ id: 'admin-1', username: 'Admin', profileImageUrl: null }]);
+    expect(body.players[0]).not.toHaveProperty('email');
+  });
 });

@@ -37,8 +37,15 @@ export function AdminLeagueDesk({ user, onLeagueSelected }: AdminLeagueDeskProps
   const [editCapacity, setEditCapacity] = useState('');
   const [editRepeats, setEditRepeats] = useState('');
   const [editStatus, setEditStatus] = useState<'OPEN' | 'CLOSED'>('OPEN');
+  const [resultPlayerA, setResultPlayerA] = useState('');
+  const [resultPlayerB, setResultPlayerB] = useState('');
+  const [resultPlayerALegs, setResultPlayerALegs] = useState('');
+  const [resultPlayerBLegs, setResultPlayerBLegs] = useState('');
+  const [resultPlayerAAverage, setResultPlayerAAverage] = useState('');
+  const [resultPlayerBAverage, setResultPlayerBAverage] = useState('');
 
   const selectedLeague = leagues.find((league) => league.id === selectedId) ?? null;
+  const activeMembers = members.filter((member) => member.active);
 
   const load = async () => {
     setError('');
@@ -106,6 +113,32 @@ export function AdminLeagueDesk({ user, onLeagueSelected }: AdminLeagueDeskProps
     finally { setBusy(null); }
   };
 
+  const createResult = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedLeague) return;
+    setBusy('create-result');
+    setError('');
+    try {
+      const saved = await api.createAdminResult(selectedLeague.id, {
+        playerAId: resultPlayerA,
+        playerBId: resultPlayerB,
+        playerALegs: Number(resultPlayerALegs),
+        playerBLegs: Number(resultPlayerBLegs),
+        playerAAverage: Number(resultPlayerAAverage),
+        playerBAverage: Number(resultPlayerBAverage),
+      });
+      setResults((current) => [saved.result, ...current]);
+      setResultPlayerA('');
+      setResultPlayerB('');
+      setResultPlayerALegs('');
+      setResultPlayerBLegs('');
+      setResultPlayerAAverage('');
+      setResultPlayerBAverage('');
+      setMessage('Confirmed result entered.');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Result could not be entered.'); }
+    finally { setBusy(null); }
+  };
+
   const updateMember = async (userId: string, active: boolean) => {
     if (!selectedLeague) return;
     setBusy(`member-${userId}`);
@@ -143,7 +176,8 @@ export function AdminLeagueDesk({ user, onLeagueSelected }: AdminLeagueDeskProps
       <div className="admin-block"><div className="section-heading"><h3>Leagues</h3><span className="count-label">{leagues.length}</span></div><div className="league-picker">{leagues.map((league) => <button type="button" key={league.id} className={league.id === selectedId ? 'picker-item picker-item-active' : 'picker-item'} onClick={() => setSelectedId(league.id)}><strong>{league.name}</strong><span>{league.seasonName} / {league.status}</span></button>)}</div><form className="compact-form" onSubmit={createLeague}><input aria-label="New league name" placeholder="New league name" value={newName} onChange={(event) => setNewName(event.target.value)} required /><input aria-label="New season" value={newSeason} onChange={(event) => setNewSeason(event.target.value)} required /><input aria-label="Player capacity" type="number" min="2" value={newCapacity} onChange={(event) => setNewCapacity(event.target.value)} required /><input aria-label="Games per pair" type="number" min="1" value={newRepeats} onChange={(event) => setNewRepeats(event.target.value)} required /><button className="primary-button" type="submit" disabled={busy === 'create'}>{busy === 'create' ? 'Creating' : 'Create league'}</button></form></div>
       {selectedLeague && <>
         <form className="admin-block stack-form" onSubmit={saveLeague}><div className="section-heading"><h3>Settings</h3><span className={`status-label status-${selectedLeague.status.toLowerCase()}`}>{selectedLeague.status}</span></div><label htmlFor="edit-league-name">League name</label><input id="edit-league-name" value={editName} onChange={(event) => setEditName(event.target.value)} required /><label htmlFor="edit-season">Season</label><input id="edit-season" value={editSeason} onChange={(event) => setEditSeason(event.target.value)} required /><div className="form-grid"><label htmlFor="edit-capacity">Players<input id="edit-capacity" type="number" min="2" value={editCapacity} onChange={(event) => setEditCapacity(event.target.value)} required /></label><label htmlFor="edit-repeats">Games per pair<input id="edit-repeats" type="number" min="1" value={editRepeats} onChange={(event) => setEditRepeats(event.target.value)} required /></label></div><label htmlFor="edit-status">League state<select id="edit-status" value={editStatus} onChange={(event) => setEditStatus(event.target.value as 'OPEN' | 'CLOSED')}><option value="OPEN">Open</option><option value="CLOSED">Closed</option></select></label><button className="primary-button" type="submit" disabled={busy === 'save-league'}>{busy === 'save-league' ? 'Saving' : 'Save settings'}</button><button className="secondary-button" type="button" onClick={() => void createInvite()} disabled={busy === 'invite'}>{busy === 'invite' ? 'Creating link' : 'Create invite link'}</button>{inviteUrl && <div className="invite-box"><code>{inviteUrl}</code><button className="action-button" type="button" onClick={() => void copyText(inviteUrl)}>Copy link</button></div>}</form>
-        <div className="admin-block"><div className="section-heading"><h3>Members</h3><span className="count-label">{members.filter((member) => member.active).length}/{selectedLeague.maxPlayers}</span></div><ul className="admin-list">{members.map((member) => <li key={member.userId}><div><strong>{member.username ?? 'Name pending'}</strong><small>{member.active ? 'Active' : 'Inactive'}</small></div><button className="action-button" type="button" disabled={busy === `member-${member.userId}`} onClick={() => void updateMember(member.userId, !member.active)}>{member.active ? 'Deactivate' : 'Activate'}</button></li>)}</ul>{members.length === 0 && <p className="empty-message">No members yet.</p>}</div>
+        <div className="admin-block"><div className="section-heading"><h3>Members</h3><span className="count-label">{activeMembers.length}/{selectedLeague.maxPlayers}</span></div><ul className="admin-list">{members.map((member) => <li key={member.userId}><div><strong>{member.username ?? 'Name pending'}</strong><small>{member.active ? 'Active' : 'Inactive'}</small></div><button className="action-button" type="button" disabled={busy === `member-${member.userId}`} onClick={() => void updateMember(member.userId, !member.active)}>{member.active ? 'Deactivate' : 'Activate'}</button></li>)}</ul>{members.length === 0 && <p className="empty-message">No members yet.</p>}</div>
+        <form className="admin-block stack-form" onSubmit={createResult}><div className="section-heading"><h3>Enter historical result</h3><span className="count-label">Confirmed</span></div><label htmlFor="admin-result-player-a">Player A</label><select id="admin-result-player-a" value={resultPlayerA} onChange={(event) => setResultPlayerA(event.target.value)} required><option value="">Choose player</option>{activeMembers.map((member) => <option key={member.userId} value={member.userId}>{member.username ?? 'Name pending'}</option>)}</select><label htmlFor="admin-result-player-b">Player B</label><select id="admin-result-player-b" value={resultPlayerB} onChange={(event) => setResultPlayerB(event.target.value)} required><option value="">Choose player</option>{activeMembers.filter((member) => member.userId !== resultPlayerA).map((member) => <option key={member.userId} value={member.userId}>{member.username ?? 'Name pending'}</option>)}</select><div className="form-grid"><label htmlFor="admin-result-player-a-legs">Player A legs<input id="admin-result-player-a-legs" type="number" min="0" max={selectedLeague.targetLegs} value={resultPlayerALegs} onChange={(event) => setResultPlayerALegs(event.target.value)} required /></label><label htmlFor="admin-result-player-b-legs">Player B legs<input id="admin-result-player-b-legs" type="number" min="0" max={selectedLeague.targetLegs} value={resultPlayerBLegs} onChange={(event) => setResultPlayerBLegs(event.target.value)} required /></label><label htmlFor="admin-result-player-a-average">Player A average<input id="admin-result-player-a-average" type="number" min="0" max="200" step="0.01" value={resultPlayerAAverage} onChange={(event) => setResultPlayerAAverage(event.target.value)} required /></label><label htmlFor="admin-result-player-b-average">Player B average<input id="admin-result-player-b-average" type="number" min="0" max="200" step="0.01" value={resultPlayerBAverage} onChange={(event) => setResultPlayerBAverage(event.target.value)} required /></label></div><button className="primary-button" type="submit" disabled={busy === 'create-result' || activeMembers.length < 2}>{busy === 'create-result' ? 'Recording' : 'Record confirmed result'}</button></form>
         <div className="admin-block"><div className="section-heading"><h3>Result queue</h3><span className="count-label">{results.length}</span></div><ul className="admin-list">{results.map((result) => <li key={result.id}><div><strong>{result.playerAUsername} {result.playerALegs} - {result.playerBLegs} {result.playerBUsername}</strong><small>{result.status} / {result.playerAAverage.toFixed(2)} - {result.playerBAverage.toFixed(2)}</small></div><div className="inline-actions">{result.status !== 'CONFIRMED' && <button className="action-button" type="button" disabled={busy === `result-${result.id}`} onClick={() => void updateResult(result, 'CONFIRMED')}>Confirm</button>}<button className="action-button" type="button" disabled={busy === `result-${result.id}`} onClick={() => void deleteResult(result)}>Delete</button></div></li>)}</ul>{results.length === 0 && <p className="empty-message">No results in this league.</p>}</div>
       </>}
       <div className="admin-block"><div className="section-heading"><h3>People</h3><span className="count-label">{players.length}</span></div><ul className="admin-list">{players.map((player) => <li key={player.id}><div><strong>{player.username ?? 'Name pending'}</strong><small>{player.email} / {player.role} / {player.status}</small></div>{player.id !== user.id && <div className="inline-actions"><button className="action-button" type="button" disabled={busy === `player-${player.id}`} onClick={() => void updatePlayer(player.id, { role: player.role === 'ADMIN' ? 'PLAYER' : 'ADMIN' })}>{player.role === 'ADMIN' ? 'Remove admin' : 'Make admin'}</button><button className="action-button" type="button" disabled={busy === `player-${player.id}`} onClick={() => void updatePlayer(player.id, { status: player.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' })}>{player.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}</button></div>}</li>)}</ul></div>

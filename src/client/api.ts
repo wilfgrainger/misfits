@@ -125,6 +125,7 @@ export class ApiClient {
   leagues() { return this.call<{ leagues: LeagueSummary[] }>('/api/public/leagues'); }
   myLeagues() { return this.call<{ leagues: LeagueSummary[] }>('/api/me/leagues'); }
   publicLeague(key: string) { return this.call<{ league: LeagueSummary; players: LeaguePlayer[] }>(`/api/public/leagues/${encodeURIComponent(key)}`).then((payload) => ({ ...payload, league: { ...payload.league, players: payload.players } as LeagueDetail })); }
+  publicPlayers(key: string) { return this.call<{ players: LeaguePlayer[] }>(`/api/public/leagues/${encodeURIComponent(key)}/players`); }
   standings(leagueId: string) { return this.call<{ standings: StandingRow[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/standings`); }
   results(leagueId: string) { return this.call<{ results: ResultSummary[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/results`); }
   myResults() { return this.call<{ results: ResultSummary[] }>('/api/me/results'); }

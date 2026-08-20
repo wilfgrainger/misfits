@@ -23,6 +23,12 @@ function publicLeague(league: Awaited<ReturnType<typeof getLeagueByIdOrSlug>>) {
   };
 }
 
+function publicPlayers(members: Awaited<ReturnType<typeof listLeagueMembers>>) {
+  return members
+    .filter((member) => member.active === 1)
+    .map((member) => ({ id: member.user_id, username: member.username, profileImageUrl: member.profile_image_url }));
+}
+
 export function createLeagueRoutes(dependencies: LeagueRouteDependencies = {}) {
   const routes = new Hono<AuthAppEnv>();
   const now = dependencies.now ?? (() => new Date());
@@ -36,7 +42,14 @@ export function createLeagueRoutes(dependencies: LeagueRouteDependencies = {}) {
     const league = await getLeagueByIdOrSlug(c.env.DB, c.req.param('key'));
     if (!league) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404));
     const members = await listLeagueMembers(c.env.DB, league.id);
-    return c.json({ league: publicLeague(league), players: members.filter((member) => member.active === 1).map((member) => ({ id: member.user_id, username: member.username, profileImageUrl: member.profile_image_url })) }, 200, { 'Cache-Control': 'public, max-age=30' });
+    return c.json({ league: publicLeague(league), players: publicPlayers(members) }, 200, { 'Cache-Control': 'public, max-age=30' });
+  });
+
+  routes.get('/api/public/leagues/:key/players', async (c) => {
+    const league = await getLeagueByIdOrSlug(c.env.DB, c.req.param('key'));
+    if (!league) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404));
+    const members = await listLeagueMembers(c.env.DB, league.id);
+    return c.json({ players: publicPlayers(members) }, 200, { 'Cache-Control': 'public, max-age=30' });
   });
 
   routes.get('/api/me/leagues', requireUser, async (c) => {

@@ -29,7 +29,10 @@ describe('mobile league workspaces', () => {
       const path = String(input);
       if (path.endsWith('/api/admin/leagues')) return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
       if (path.endsWith('/api/admin/players')) return new Response(JSON.stringify({ players: [] }), { status: 200 });
-      if (path.endsWith('/members')) return new Response(JSON.stringify({ members: [] }), { status: 200 });
+      if (path.endsWith('/members')) return new Response(JSON.stringify({ members: [
+        { userId: 'player-a', username: 'Alpha', profileImageUrl: null, active: true, joinedAt: '2026-08-20T12:00:00.000Z' },
+        { userId: 'player-b', username: 'Bravo', profileImageUrl: null, active: true, joinedAt: '2026-08-20T12:00:00.000Z' },
+      ] }), { status: 200 });
       if (path.endsWith('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
       if (path.includes('/invites')) return new Response(JSON.stringify({ invite: { url: 'https://misfits.test/join/token' } }), { status: 201 });
       throw new Error(`Unexpected fetch: ${path}`);
@@ -39,6 +42,8 @@ describe('mobile league workspaces', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Admin desk' })).toBeTruthy());
     expect(screen.getByRole('button', { name: 'Create league' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Create invite link' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Enter historical result' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Record confirmed result' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Create invite link' }));
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Invite link copied.'));
   });
