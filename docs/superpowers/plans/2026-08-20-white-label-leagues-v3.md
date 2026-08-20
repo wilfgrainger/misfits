@@ -80,6 +80,8 @@
 - [x] Keep the master People list unique across users with multiple active league memberships.
 - [x] Protect the configured master administrator from role/status removal and clear stale master flags after a non-master sign-in.
 - [x] Keep the signed-in league workspace synchronized immediately after creating or editing a league.
+- [x] Enforce pair limits and active-player capacity with guarded D1 writes, including capacity-safe membership reactivation.
+- [x] Keep invite joins idempotent when a membership insert loses a concurrent race, without double-counting invite usage or audit entries.
 - [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate

@@ -1,8 +1,8 @@
 # White-Label Leagues v3 Verification
 
 **Date:** 20 August 2026  
-**Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`), `b335c61` (`fix: harden league result workflows`), `b5762b7` (`fix: enforce pair limits across legacy match ordering`), `7df995d` (`fix: keep league workspace state synchronized`), `60b7504` (`fix: clear stale master access on sign-in`)<br>
-**Cloudflare Worker version:** `7bd9fc36-8197-4b2b-bfe8-06a6bd992f92`<br>
+**Release commits:** `4714cbe` (`feat: white-label leagues with owner access`), `6ebfc48` (`fix: polish white-label app shell assets`), `ad3789d` (`feat: add shareable public league links`), `36565f1` (`fix: make league sharing resilient on desktop`), `b335c61` (`fix: harden league result workflows`), `b5762b7` (`fix: enforce pair limits across legacy match ordering`), `7df995d` (`fix: keep league workspace state synchronized`), `60b7504` (`fix: clear stale master access on sign-in`), `6c69679` (`fix: make league capacity limits atomic`), `b153c59` (`fix: make invite joins idempotent under races`)<br>
+**Cloudflare Worker version:** `29e10646-04b9-4fa3-9087-aefbdef2c658`<br>
 **Live origin:** `https://darts.graingers.agency`
 
 ## Design and source reconciliation
@@ -14,17 +14,18 @@
 
 ## Automated verification
 
-- `npm test`: 23 test files, 85 tests passed.
+- `npm test`: 23 test files, 86 tests passed.
 - `npm run typecheck`: passed for client and Worker TypeScript projects.
 - `npm run build`: passed; Vite generated the production assets.
 - `git diff --check`: passed.
 - `npm run db:migrate:local`: passed; no migrations were pending after `0003_white_label_access.sql`.
 - `npx wrangler deploy --dry-run`: passed; Worker, D1 and static asset bindings resolved.
+- Local D1 `EXPLAIN QUERY PLAN` checks passed for the guarded pair-limit insert, active-membership capacity insert and membership reactivation update; the expected pair and league-active indexes were selected.
 - The generic install manifest references `/brand/league-board.svg`; the public icon and manifest both returned `200` after deployment.
 - The production CSP now permits Google GIS inline styles under `style-src` while keeping inline scripts disallowed.
 - The production Worker now has an explicit `MASTER_ADMIN_EMAIL` secret in addition to the Google client and bootstrap secrets.
 
-Focused v3 coverage proves the additive master-admin/visibility schema, configured master identity promotion, ordinary-user isolation, owner-only league management, master access to all leagues, automatic owner membership, private public-read filtering, private member reads, generic shell copy, visibility controls and People-panel gating. Post-release coverage now also proves draw rejection, slug-based public standings/results, league-switch form reset, closed-league result-entry gating, repeat-limit enforcement when legacy matches use reversed player ordering, one People row per user across multiple memberships, master-account protection and owner workspace synchronization after create/edit. Google auth regression coverage also clears stale master access when an existing Google identity no longer matches the configured master email. Existing Google credential handling, opaque sessions, profiles, invite hashing/join/capacity, player-only results, per-game averages, confirmation/dispute, standings and admin result controls remain green in the same suite.
+Focused v3 coverage proves the additive master-admin/visibility schema, configured master identity promotion, ordinary-user isolation, owner-only league management, master access to all leagues, automatic owner membership, private public-read filtering, private member reads, generic shell copy, visibility controls and People-panel gating. Post-release coverage now also proves draw rejection, slug-based public standings/results, league-switch form reset, closed-league result-entry gating, repeat-limit enforcement when legacy matches use reversed player ordering, one People row per user across multiple memberships, master-account protection, owner workspace synchronization after create/edit, atomic pair/capacity limits, capacity-safe membership reactivation and idempotent invite joins when a membership insert loses a concurrent race. Google auth regression coverage also clears stale master access when an existing Google identity no longer matches the configured master email. Existing Google credential handling, opaque sessions, profiles, invite hashing/join/capacity, player-only results, per-game averages, confirmation/dispute, standings and admin result controls remain green in the same suite.
 
 ## Production migration and account state
 
@@ -47,12 +48,12 @@ Focused v3 coverage proves the additive master-admin/visibility schema, configur
 - Unauthenticated `GET /api/admin/players`: `401`.
 - `POST /api/auth/google` with a deliberately invalid credential: `401`; this verifies the rejection boundary, not a successful Google session.
 - `GET https://darts-501.zerobytemode.workers.dev/`: `404`; the workers.dev hostname remains inactive.
-- The checks above were rerun after deployment of Worker version `7bd9fc36-8197-4b2b-bfe8-06a6bd992f92`; the custom domain served the generic app and all public slug resources with `200`, while the unauthenticated admin route and invalid Google credential remained `401`.
+- The checks above were rerun after deployment of Worker version `29e10646-04b9-4fa3-9087-aefbdef2c658`; the custom domain served the generic app and all public slug resources with `200`, while the unauthenticated admin route and invalid Google credential remained `401`.
 - During the temporary private fixture, anonymous requests to the private directory/detail/players/standings/results paths returned `404` with `LEAGUE_NOT_FOUND`, while the public directory continued to return only the seeded public league.
 
 ## Browser observation
 
-- Playwright at a `390x844` viewport on Worker `7bd9fc36-8197-4b2b-bfe8-06a6bd992f92` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping.
+- Playwright at a `390x844` viewport on Worker `29e10646-04b9-4fa3-9087-aefbdef2c658` showed the generic `LB` mark, `DARTS / LEAGUES`, `Leagues, properly settled.`, the public league card and the official Google button without visible overlap or horizontal clipping; `document.documentElement.scrollWidth` equalled the `390px` viewport width.
 - Clicking the official Google button opened a Google Accounts tab with `origin=https://darts.graingers.agency`.
 - At `390x844`, the public deep link rendered without visible overlap or horizontal clipping; a local Playwright screenshot was captured for the check.
 - Clicking `Share league` on the public deep link opened the desktop browser share flow. Chromium returned `AbortError: Share failed` when the native share target was dismissed/unavailable, and the client then attempted clipboard fallback for the stable URL `https://darts.graingers.agency/league/misfits-501`.
