@@ -1,8 +1,8 @@
 # Misfits Leagues v2 Verification
 
 **Date:** 20 August 2026  
-**Release commit:** `42653357c6cdb20529ce1b339a84d088a8628ac3`  
-**Cloudflare Worker version:** `99cf9d6f-615d-4c6d-9d0a-d37d2c52c55a`  
+**Release commit:** `42653357c6cdb20529ce1b339a84d088a8628ac3`
+**Cloudflare Worker version:** `99cf9d6f-615d-4c6d-9d0a-d37d2c52c55a`
 **Live origin:** `https://darts.graingers.agency`
 
 ## Source and automated verification
