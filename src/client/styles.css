@@ -1,0 +1,8 @@
+:root { color: #f1ead7; background: #151515; font-family: system-ui, sans-serif; }
+body { margin: 0; min-width: 320px; }
+.shell { max-width: 42rem; margin: 0 auto; padding: 18vh 1.5rem; }
+.eyebrow { color: #b83b35; letter-spacing: .12em; font-weight: 700; }
+h1 { max-width: 12ch; font-size: clamp(2.5rem, 9vw, 5rem); line-height: .95; margin: 1rem 0; }
+.intro { color: #b9b2a1; max-width: 32rem; }
+.google-button { display: inline-block; margin-top: 2rem; padding: .8rem 1rem; color: #151515; background: #f1ead7; text-decoration: none; font-weight: 700; border-radius: 4px; }
+.google-button:focus-visible { outline: 3px solid #b83b35; outline-offset: 4px; }

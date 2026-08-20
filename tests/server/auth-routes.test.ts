@@ -1,0 +1,203 @@
+import { describe, expect, it, vi } from 'vitest';
+import { createAuthRoutes } from '../../src/server/routes/auth';
+import type { GoogleIdentity } from '../../src/server/auth/google';
+
+type User = {
+  id: string;
+  google_sub: string;
+  email: string;
+  username: string | null;
+  role: 'PLAYER' | 'ADMIN';
+  status: 'ACTIVE' | 'SUSPENDED';
+  created_at: string;
+  last_login_at: string;
+};
+
+type Session = { token_hash: string; user_id: string; created_at: string; expires_at: string };
+
+class MemoryD1 {
+  users = new Map<string, User>();
+  sessions = new Map<string, Session>();
+  leaguePlayers = new Set<string>();
+  nextId = 1;
+
+  prepare(sql: string) {
+    const prepared = {
+      bind: (...values: unknown[]) => ({
+        run: async () => this.run(sql, values),
+        first: async <T>() => this.first<T>(sql, values),
+      }),
+      first: async <T>() => this.first<T>(sql, []),
+    };
+    return prepared;
+  }
+
+  private async run(sql: string, values: unknown[]) {
+    if (sql.startsWith('INSERT INTO users')) {
+      const [id, googleSub, email, createdAt, lastLoginAt] = values as string[];
+      if ([...this.users.values()].some((user) => user.google_sub === googleSub)) {
+        throw new Error('UNIQUE constraint failed: users.google_sub');
+      }
+      this.users.set(id, { id, google_sub: googleSub, email, username: null, role: 'PLAYER', status: 'ACTIVE', created_at: createdAt, last_login_at: lastLoginAt });
+    } else if (sql.startsWith('UPDATE users SET email')) {
+      const [email, lastLoginAt, id] = values as string[];
+      const user = this.users.get(id)!;
+      user.email = email;
+      user.last_login_at = lastLoginAt;
+    } else if (sql.includes("UPDATE users SET role = 'ADMIN'")) {
+      this.users.get(String(values[0]))!.role = 'ADMIN';
+    } else if (sql.startsWith('UPDATE users SET username')) {
+      const [username, lastLoginAt, id] = values as string[];
+      if ([...this.users.values()].some((user) => user.id !== id && user.username?.toLowerCase() === username.toLowerCase())) {
+        throw new Error('UNIQUE constraint failed: users.username');
+      }
+      const user = this.users.get(id)!;
+      user.username = username;
+      user.last_login_at = lastLoginAt;
+    } else if (sql.startsWith('INSERT OR IGNORE INTO league_players')) {
+      this.leaguePlayers.add(String(values[0]));
+    } else if (sql.startsWith('INSERT INTO sessions')) {
+      const [tokenHash, userId, createdAt, expiresAt] = values as string[];
+      this.sessions.set(tokenHash, { token_hash: tokenHash, user_id: userId, created_at: createdAt, expires_at: expiresAt });
+    } else if (sql.startsWith('DELETE FROM sessions')) {
+      this.sessions.delete(String(values[0]));
+    }
+    return { success: true };
+  }
+
+  private async first<T>(sql: string, values: unknown[]): Promise<T | null> {
+    if (sql.includes('COUNT(*)')) return { count: [...this.users.values()].filter((user) => user.role === 'ADMIN').length } as T;
+    if (sql.includes('FROM sessions') && sql.includes('JOIN users')) {
+      const session = this.sessions.get(String(values[0]));
+      const user = session && this.users.get(session.user_id);
+      if (!session || !user || session.expires_at <= String(values[1])) return null;
+      return { ...user, ...session } as T;
+    }
+    if (sql.includes('FROM users WHERE google_sub')) {
+      return ([...this.users.values()].find((user) => user.google_sub === String(values[0])) ?? null) as T;
+    }
+    if (sql.includes('FROM users WHERE id')) return (this.users.get(String(values[0])) ?? null) as T;
+    return null;
+  }
+}
+
+function setup() {
+  const db = new MemoryD1();
+  const state = 'state-for-test';
+  let identity: GoogleIdentity = { sub: 'google-1', email: 'admin@example.com', emailVerified: true };
+  const exchange = vi.fn(async () => identity);
+  const routes = createAuthRoutes({
+    exchange,
+    state: () => state,
+    now: () => new Date('2026-08-20T12:00:00.000Z'),
+  });
+  const env = {
+    DB: db as never,
+    ASSETS: {} as never,
+    GOOGLE_CLIENT_ID: 'client-id',
+    GOOGLE_CLIENT_SECRET: 'client-secret',
+    APP_ORIGIN: 'https://misfits.test',
+    BOOTSTRAP_ADMIN_EMAIL: 'admin@example.com',
+  };
+  return { db, routes, env, state, exchange, setIdentity: (next: GoogleIdentity) => { identity = next; } };
+}
+
+function sessionFrom(response: Response): string {
+  const cookie = response.headers.get('set-cookie') ?? '';
+  return cookie.match(/misfits_session=([^;]+)/)?.[1] ?? '';
+}
+
+describe('Google auth routes', () => {
+  it('fails closed when Google production configuration is absent', async () => {
+    const { routes, env } = setup();
+    const response = await routes.fetch(new Request('https://misfits.test/auth/google'), {
+      ...env,
+      GOOGLE_CLIENT_SECRET: '',
+    }, {} as never);
+    expect(response.status).toBe(503);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toMatchObject({ error: { code: 'CONFIGURATION_ERROR' } });
+  });
+
+  it('creates OAuth state and refuses a callback with the wrong state without exchanging', async () => {
+    const { routes, env, state, exchange } = setup();
+    const start = await routes.fetch(new Request('https://misfits.test/auth/google'), env, {} as never);
+    expect(start.status).toBe(302);
+    expect(start.headers.get('location')).toContain('response_type=code');
+    const stateCookie = start.headers.get('set-cookie')!;
+
+    const callback = await routes.fetch(new Request(`https://misfits.test/auth/google/callback?state=wrong&code=code`, {
+      headers: { Cookie: stateCookie },
+    }), env, {} as never);
+    expect(callback.status).toBe(400);
+    expect(exchange).not.toHaveBeenCalled();
+    expect(await callback.json()).toMatchObject({ error: { code: 'VALIDATION_ERROR' } });
+    expect(state).toBe('state-for-test');
+  });
+
+  it('signs in, bootstraps the first admin, completes onboarding, and logs out', async () => {
+    const { routes, env, state, db, setIdentity } = setup();
+    const callback = await routes.fetch(new Request(`https://misfits.test/auth/google/callback?state=${state}&code=code`, {
+      headers: { Cookie: `misfits_oauth_state=${state}` },
+    }), env, {} as never);
+    expect(callback.status).toBe(302);
+    expect(callback.headers.get('location')).toBe('/onboarding');
+    const session = sessionFrom(callback);
+    expect(session).not.toBe('');
+    expect([...db.users.values()][0].role).toBe('ADMIN');
+
+    const meBefore = await routes.fetch(new Request('https://misfits.test/api/me', {
+      headers: { Cookie: `misfits_session=${session}` },
+    }), env, {} as never);
+    expect(await meBefore.json()).toMatchObject({ requiresOnboarding: true, user: { role: 'ADMIN' } });
+
+    const onboarding = await routes.fetch(new Request('https://misfits.test/api/me/username', {
+      method: 'POST',
+      headers: { Cookie: `misfits_session=${session}`, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: '  Dart   Admin  ' }),
+    }), env, {} as never);
+    expect(onboarding.status).toBe(200);
+    expect(await onboarding.json()).toMatchObject({ requiresOnboarding: false, user: { username: 'Dart Admin' } });
+    expect(db.leaguePlayers.has([...db.users.keys()][0])).toBe(true);
+
+    setIdentity({ sub: 'google-2', email: 'admin@example.com', emailVerified: true });
+    const secondCallback = await routes.fetch(new Request(`https://misfits.test/auth/google/callback?state=${state}&code=second-code`, {
+      headers: { Cookie: `misfits_oauth_state=${state}` },
+    }), env, {} as never);
+    const secondSession = sessionFrom(secondCallback);
+    expect([...db.users.values()].find((user) => user.google_sub === 'google-2')?.role).toBe('PLAYER');
+
+    const duplicate = await routes.fetch(new Request('https://misfits.test/api/me/username', {
+      method: 'POST',
+      headers: { Cookie: `misfits_session=${secondSession}`, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'dart admin' }),
+    }), env, {} as never);
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({ error: { code: 'USERNAME_UNAVAILABLE' } });
+
+    const logout = await routes.fetch(new Request('https://misfits.test/auth/logout', {
+      method: 'POST',
+      headers: { Cookie: `misfits_session=${session}`, Origin: 'https://misfits.test' },
+    }), env, {} as never);
+    expect(logout.status).toBe(200);
+    const meAfter = await routes.fetch(new Request('https://misfits.test/api/me', {
+      headers: { Cookie: `misfits_session=${session}` },
+    }), env, {} as never);
+    expect(meAfter.status).toBe(401);
+  });
+
+  it('rejects a cross-origin username mutation', async () => {
+    const { routes, env, state } = setup();
+    const callback = await routes.fetch(new Request(`https://misfits.test/auth/google/callback?state=${state}&code=code`, {
+      headers: { Cookie: `misfits_oauth_state=${state}` },
+    }), env, {} as never);
+    const session = sessionFrom(callback);
+    const response = await routes.fetch(new Request('https://misfits.test/api/me/username', {
+      method: 'POST',
+      headers: { Cookie: `misfits_session=${session}`, Origin: 'https://evil.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'Player One' }),
+    }), env, {} as never);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: { code: 'FORBIDDEN' } });
+  });
+});

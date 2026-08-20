@@ -1,0 +1,56 @@
+{
+  "name": "misfits",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server/index.ts",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:worker": "wrangler dev",
+    "typecheck": "tsc -p tsconfig.client.json --noEmit && tsc -p tsconfig.worker.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "vite build",
+    "deploy": "npm run build && wrangler deploy --keep-vars",
+    "db:migrate:local": "wrangler d1 migrations apply misfits --local",
+    "db:migrate:remote": "wrangler d1 migrations apply misfits --remote"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wilfgrainger/misfits.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/wilfgrainger/misfits/issues"
+  },
+  "homepage": "https://github.com/wilfgrainger/misfits#readme",
+  "dependencies": {
+    "hono": "^4.13.3",
+    "jose": "^6.2.9",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.53.0",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20260820.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "jsdom": "^29.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.124.0"
+  }
+}

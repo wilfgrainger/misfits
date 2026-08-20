@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "misfits-501",
+  "main": "./src/server/index.ts",
+  "compatibility_date": "2026-08-19",
+  "vars": {
+    "APP_ORIGIN": "https://misfits-501.zerobytemode.workers.dev"
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/auth/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "misfits",
+      "database_id": "9702b993-f0b7-479b-9679-7e32a1c35214",
+      "migrations_dir": "./migrations"
+    }
+  ]
+}
