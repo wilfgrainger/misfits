@@ -9,6 +9,7 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  is_master_admin: number;
   created_at: string;
   last_login_at: string;
 };
@@ -93,10 +94,12 @@ function setup() {
   db.users.set('admin-1', {
     id: 'admin-1', google_sub: 'google-admin', email: 'admin@example.com', username: 'Admin',
     role: 'ADMIN', status: 'ACTIVE', created_at: now.toISOString(), last_login_at: now.toISOString(),
+    is_master_admin: 1,
   });
   db.users.set('player-1', {
     id: 'player-1', google_sub: 'google-player', email: 'player@example.com', username: 'Player',
     role: 'PLAYER', status: 'ACTIVE', created_at: now.toISOString(), last_login_at: now.toISOString(),
+    is_master_admin: 0,
   });
   db.leaguePlayers.add('player-1');
   const routes = createAdminRoutes({ now: () => now });

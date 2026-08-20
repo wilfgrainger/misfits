@@ -5,4 +5,5 @@ export interface Env {
   GOOGLE_CLIENT_SECRET?: string;
   APP_ORIGIN: string;
   BOOTSTRAP_ADMIN_EMAIL?: string;
+  MASTER_ADMIN_EMAIL?: string;
 }

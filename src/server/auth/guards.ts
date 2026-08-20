@@ -32,3 +32,11 @@ export const requireAdmin: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
   }
   return next();
 };
+
+export const requireMasterAdmin: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
+  const user = c.get('user');
+  if (!user || !user.isMasterAdmin) {
+    return jsonError(c, new AppError('FORBIDDEN', 'Master administrator access is required', 403));
+  }
+  return next();
+};

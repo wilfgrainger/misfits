@@ -5,6 +5,7 @@ export interface UserSummary {
   status: 'ACTIVE' | 'SUSPENDED';
   profileImageUrl: string | null;
   dartsCounterUrl: string | null;
+  isMasterAdmin: boolean;
 }
 
 export interface AuthPayload {
@@ -33,6 +34,7 @@ export interface LeagueSummary {
   maxPlayers: number;
   matchesPerPair: number;
   createdBy?: string | null;
+  visibility: 'PUBLIC' | 'PRIVATE';
 }
 
 export interface LeaguePlayer {

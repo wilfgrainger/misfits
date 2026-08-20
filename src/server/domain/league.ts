@@ -1,4 +1,5 @@
 export type LeagueStatus = 'OPEN' | 'CLOSED';
+export type LeagueVisibility = 'PUBLIC' | 'PRIVATE';
 
 export interface LeagueInput {
   name: string;
@@ -9,11 +10,12 @@ export interface LeagueInput {
   pointsPerWin: number;
   targetLegs: number;
   status: LeagueStatus;
+  visibility: LeagueVisibility;
 }
 
 export type LeagueValidation =
   | { ok: true; value: LeagueInput }
-  | { ok: false; reason: 'NAME' | 'SEASON' | 'SLUG' | 'MAX_PLAYERS' | 'MATCHES_PER_PAIR' | 'POINTS_PER_WIN' | 'TARGET_LEGS' | 'STATUS' | 'INPUT' };
+  | { ok: false; reason: 'NAME' | 'SEASON' | 'SLUG' | 'MAX_PLAYERS' | 'MATCHES_PER_PAIR' | 'POINTS_PER_WIN' | 'TARGET_LEGS' | 'STATUS' | 'VISIBILITY' | 'INPUT' };
 
 export function normalizeSlug(value: string): string {
   return value.trim().toLowerCase()
@@ -39,6 +41,8 @@ export function validateLeagueInput(input: unknown, _mode: 'create' | 'edit'): L
   if (!integerInRange(value.targetLegs ?? 3, 1, 20)) return { ok: false, reason: 'TARGET_LEGS' };
   const status = value.status ?? 'OPEN';
   if (status !== 'OPEN' && status !== 'CLOSED') return { ok: false, reason: 'STATUS' };
+  const visibility = value.visibility ?? 'PUBLIC';
+  if (visibility !== 'PUBLIC' && visibility !== 'PRIVATE') return { ok: false, reason: 'VISIBILITY' };
   return {
     ok: true,
     value: {
@@ -50,6 +54,7 @@ export function validateLeagueInput(input: unknown, _mode: 'create' | 'edit'): L
       pointsPerWin: Number(value.pointsPerWin ?? 2),
       targetLegs: Number(value.targetLegs ?? 3),
       status,
+      visibility,
     },
   };
 }

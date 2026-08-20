@@ -62,7 +62,7 @@ export function serializeResult(result: ResultRecord) {
   return publicResult(result);
 }
 
-async function getResultById(db: D1Database, resultId: string): Promise<ResultRecord | null> {
+export async function getResultById(db: D1Database, resultId: string): Promise<ResultRecord | null> {
   const result = await db.prepare(
     `SELECT matches.id, matches.league_id, matches.player_a_id, matches.player_b_id,
             matches.player_a_legs, matches.player_b_legs, matches.player_a_average, matches.player_b_average,

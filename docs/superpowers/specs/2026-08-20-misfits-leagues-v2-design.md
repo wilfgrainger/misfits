@@ -1,5 +1,7 @@
 # Misfits Leagues v2 Design
 
+> **Historical:** The v2 behavior is implemented and retained as the previous release record. The current white-label ownership and visibility requirements are defined by [`2026-08-20-white-label-leagues-v3-design.md`](2026-08-20-white-label-leagues-v3-design.md).
+
 **Status:** Superseding design for implementation  
 **Date:** 20 August 2026  
 **Repository:** `wilfgrainger/misfits`  

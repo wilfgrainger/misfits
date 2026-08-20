@@ -10,6 +10,7 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  is_master_admin: number;
   profile_image_url: string | null;
   darts_counter_url: string | null;
   created_at: string;
@@ -28,6 +29,7 @@ type League = {
   created_by: string;
   max_players: number;
   matches_per_pair: number;
+  visibility: 'PUBLIC' | 'PRIVATE';
 };
 type Invite = {
   id: string;
@@ -66,12 +68,12 @@ class MemoryD1 {
       const [tokenHash, userId, createdAt, expiresAt] = values as string[];
       this.sessions.set(tokenHash, { token_hash: tokenHash, user_id: userId, created_at: createdAt, expires_at: expiresAt });
     } else if (sql.includes('INSERT INTO leagues')) {
-      const [id, name, slug, seasonName, status, pointsPerWin, targetLegs, createdAt, updatedAt, createdBy, maxPlayers, matchesPerPair] = values as [string, string, string, string, 'OPEN' | 'CLOSED', number, number, string, string, string, number, number];
-      this.leagues.set(id, { id, name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: matchesPerPair });
+      const [id, name, slug, seasonName, status, pointsPerWin, targetLegs, createdAt, updatedAt, createdBy, maxPlayers, matchesPerPair, visibility] = values as [string, string, string, string, 'OPEN' | 'CLOSED', number, number, string, string, string, number, number, 'PUBLIC' | 'PRIVATE'];
+      this.leagues.set(id, { id, name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC' });
     } else if (sql.includes('UPDATE leagues')) {
-      const [name, slug, seasonName, status, pointsPerWin, targetLegs, maxPlayers, matchesPerPair, updatedAt, id] = values as [string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, string, string];
+      const [name, slug, seasonName, status, pointsPerWin, targetLegs, maxPlayers, matchesPerPair, visibility, updatedAt, id] = values as [string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, 'PUBLIC' | 'PRIVATE', string, string];
       const league = this.leagues.get(id)!;
-      Object.assign(league, { name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, updated_at: updatedAt });
+      Object.assign(league, { name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC', updated_at: updatedAt });
     } else if (sql.includes('INSERT INTO league_invites')) {
       const [id, leagueId, tokenHash, createdBy, expiresAt, createdAt] = values as [string, string, string, string, string | null, string];
       this.invites.set(id, { id, league_id: leagueId, token_hash: tokenHash, created_by: createdBy, expires_at: expiresAt, uses: 0, revoked_at: null, created_at: createdAt });
@@ -118,8 +120,14 @@ class MemoryD1 {
     return null;
   }
 
-  private async all<T>(sql: string, _values: unknown[]): Promise<{ results: T[] }> {
-    if (sql.includes('FROM leagues')) return { results: [...this.leagues.values()] as T[] };
+  private async all<T>(sql: string, values: unknown[]): Promise<{ results: T[] }> {
+    if (sql.includes('FROM leagues')) {
+      const leagues = [...this.leagues.values()].filter((league) =>
+        (!sql.includes("visibility = 'PUBLIC'") || league.visibility === 'PUBLIC') &&
+        (!sql.includes('WHERE created_by = ?') || league.created_by === String(values[0]))
+      );
+      return { results: leagues as T[] };
+    }
     if (sql.includes('FROM league_invites')) return { results: [...this.invites.values()] as T[] };
     if (sql.includes('FROM league_players') && sql.includes('JOIN users')) {
       return {
@@ -138,10 +146,11 @@ const now = new Date('2026-08-20T12:00:00.000Z');
 
 function setup() {
   const db = new MemoryD1();
-  db.users.set('admin-1', { id: 'admin-1', google_sub: 'g-admin', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
-  db.users.set('player-1', { id: 'player-1', google_sub: 'g-player', email: 'player@example.com', username: 'Player', role: 'PLAYER', status: 'ACTIVE', profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
-  db.users.set('player-2', { id: 'player-2', google_sub: 'g-player-2', email: 'player2@example.com', username: 'Player Two', role: 'PLAYER', status: 'ACTIVE', profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
-  db.leagues.set('league-1', { id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'admin-1', max_players: 2, matches_per_pair: 1 });
+  db.users.set('admin-1', { id: 'admin-1', google_sub: 'g-admin', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+  db.users.set('player-1', { id: 'player-1', google_sub: 'g-player', email: 'player@example.com', username: 'Player', role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+  db.users.set('player-2', { id: 'player-2', google_sub: 'g-player-2', email: 'player2@example.com', username: 'Player Two', role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+  db.leagues.set('league-1', { id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'admin-1', max_players: 2, matches_per_pair: 1, visibility: 'PUBLIC' });
+  db.leagues.set('league-private', { id: 'league-private', name: 'Private Tuesday', slug: 'private-tuesday', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'player-2', max_players: 8, matches_per_pair: 1, visibility: 'PRIVATE' });
   db.memberships.add('league-1:admin-1');
   const env = { DB: db as never, ASSETS: {} as never, APP_ORIGIN: 'https://misfits.test' };
   return { db, env, publicRoutes: createLeagueRoutes({ now: () => now }), adminRoutes: createAdminLeagueRoutes({ now: () => now }) };
@@ -153,30 +162,46 @@ async function cookieFor(db: MemoryD1, userId: string) {
 }
 
 describe('league and invite routes', () => {
-  it('allows an admin to create a league and rejects a player', async () => {
+  it('allows any signed-in user to create a league and limits management to its owner', async () => {
     const { db, env, adminRoutes } = setup();
     const playerCookie = await cookieFor(db, 'player-1');
-    const forbidden = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', {
+    const response = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', {
       method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Tuesday 501', seasonName: '2026', maxPlayers: 8 }),
+      body: JSON.stringify({ name: 'Tuesday 501', seasonName: '2026', maxPlayers: 8, visibility: 'PRIVATE' }),
+    }), env, {} as never);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ league: { slug: 'tuesday-501', maxPlayers: 8, matchesPerPair: 1, visibility: 'PRIVATE', createdBy: 'player-1' } });
+
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const forbidden = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-private', {
+      method: 'PATCH', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Should not change' }),
     }), env, {} as never);
     expect(forbidden.status).toBe(403);
 
-    const adminCookie = await cookieFor(db, 'admin-1');
-    const response = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', {
-      method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Tuesday 501', seasonName: '2026', maxPlayers: 8 }),
-    }), env, {} as never);
-    expect(response.status).toBe(201);
-    expect(await response.json()).toMatchObject({ league: { slug: 'tuesday-501', maxPlayers: 8, matchesPerPair: 1 } });
-
     const createdId = [...db.leagues.values()].find((league) => league.slug === 'tuesday-501')!.id;
     const edited = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/leagues/${createdId}`, {
-      method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
       body: JSON.stringify({ maxPlayers: 12, matchesPerPair: 2, targetLegs: 5, pointsPerWin: 3, status: 'CLOSED' }),
     }), env, {} as never);
     expect(edited.status).toBe(200);
     expect(await edited.json()).toMatchObject({ league: { maxPlayers: 12, matchesPerPair: 2, targetLegs: 5, pointsPerWin: 3, status: 'CLOSED' } });
+
+    const ownerLeagues = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', { headers: { Cookie: playerCookie } }), env, {} as never);
+    expect(await ownerLeagues.json()).toMatchObject({ leagues: [{ id: createdId }] });
+
+    const allLeagues = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', { headers: { Cookie: adminCookie } }), env, {} as never);
+    expect((await allLeagues.json() as { leagues: unknown[] }).leagues.length).toBe(3);
+
+    const ownerInvite = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/leagues/${createdId}/invites`, {
+      method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
+    }), env, {} as never);
+    expect(ownerInvite.status).toBe(201);
+
+    const otherOwnerInvite = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-private/invites', {
+      method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
+    }), env, {} as never);
+    expect(otherOwnerInvite.status).toBe(403);
   });
 
   it('creates a hashed invite, joins idempotently, enforces capacity and supports revocation', async () => {
@@ -258,7 +283,8 @@ describe('league and invite routes', () => {
     const response = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues'), env, {} as never);
     expect(response.status).toBe(200);
     const body = await response.json() as { leagues: Array<Record<string, unknown>> };
-    expect(body.leagues[0]).toMatchObject({ slug: 'misfits-501', maxPlayers: 2 });
+    expect(body.leagues).toHaveLength(1);
+    expect(body.leagues[0]).toMatchObject({ slug: 'misfits-501', maxPlayers: 2, visibility: 'PUBLIC' });
     expect(body.leagues[0]).not.toHaveProperty('email');
   });
 
@@ -269,5 +295,16 @@ describe('league and invite routes', () => {
     const body = await response.json() as { players: Array<Record<string, unknown>> };
     expect(body.players).toEqual([{ id: 'admin-1', username: 'Admin', profileImageUrl: null }]);
     expect(body.players[0]).not.toHaveProperty('email');
+  });
+
+  it('keeps private league reads behind an owner or member session', async () => {
+    const { db, env, publicRoutes } = setup();
+    const anonymous = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/private-tuesday'), env, {} as never);
+    expect(anonymous.status).toBe(404);
+
+    const ownerCookie = await cookieFor(db, 'player-2');
+    const owner = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/private-tuesday', { headers: { Cookie: ownerCookie } }), env, {} as never);
+    expect(owner.status).toBe(200);
+    expect(await owner.json()).toMatchObject({ league: { visibility: 'PRIVATE', slug: 'private-tuesday' } });
   });
 });

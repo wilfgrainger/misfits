@@ -9,6 +9,7 @@ const user = {
   status: 'ACTIVE' as const,
   profileImageUrl: null,
   dartsCounterUrl: null,
+  isMasterAdmin: true,
 };
 
 vi.mock('../../src/client/api', () => {
@@ -34,7 +35,10 @@ describe('account profile access', () => {
 
   it('keeps profile management available to a signed-in user without memberships', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Admin desk' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
+    expect(screen.getByRole('heading', { name: 'Leagues, properly settled.' })).toBeTruthy();
+    expect(screen.getByText('DARTS / LEAGUES')).toBeTruthy();
+    expect(screen.queryByAltText('Misfits 501')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Player card' })).toBeTruthy();
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });

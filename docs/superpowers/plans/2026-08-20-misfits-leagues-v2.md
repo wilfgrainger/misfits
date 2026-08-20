@@ -1,5 +1,7 @@
 # Misfits Leagues v2 Implementation Plan
 
+> **Historical:** This plan records the v2 implementation and verification boundary. The current release direction is [`2026-08-20-white-label-leagues-v3.md`](2026-08-20-white-label-leagues-v3.md), which changes league creation, ownership and visibility.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Extend the working Misfits Google-authenticated app into a mobile-first multi-league platform where admins configure leagues and invites, players manage simple profiles and record only their own results with per-player averages, and standings derive from confirmed games.

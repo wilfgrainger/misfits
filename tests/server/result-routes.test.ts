@@ -10,12 +10,13 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  is_master_admin: number;
   profile_image_url: string | null;
   darts_counter_url: string | null;
   created_at: string;
   last_login_at: string;
 };
-type League = { id: string; name: string; slug: string; season_name: string; status: 'OPEN' | 'CLOSED'; points_per_win: number; target_legs: number; max_players: number; matches_per_pair: number; created_at: string; updated_at: string; created_by: string };
+type League = { id: string; name: string; slug: string; season_name: string; status: 'OPEN' | 'CLOSED'; points_per_win: number; target_legs: number; max_players: number; matches_per_pair: number; created_at: string; updated_at: string; created_by: string; visibility?: 'PUBLIC' | 'PRIVATE' };
 type Match = {
   id: string; league_id: string; player_a_id: string; player_b_id: string; player_a_legs: number; player_b_legs: number; player_a_average: number | null; player_b_average: number | null; submitted_by: string; status: 'PENDING' | 'CONFIRMED' | 'DISPUTED'; confirmed_by: string | null; dispute_note: string | null; created_at: string; updated_at: string; confirmed_at: string | null; deleted_at: string | null;
 };
@@ -131,12 +132,14 @@ const now = new Date('2026-08-20T12:00:00.000Z');
 
 function setup() {
   const db = new MemoryD1();
-  db.users.set('admin-1', { id: 'admin-1', google_sub: 'g-admin-1', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+  db.users.set('admin-1', { id: 'admin-1', google_sub: 'g-admin-1', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
   for (const [id, username, role] of [['player-a', 'Alpha', 'PLAYER'], ['player-b', 'Bravo', 'PLAYER'], ['player-c', 'Charlie', 'PLAYER']] as const) {
-    db.users.set(id, { id, google_sub: `g-${id}`, email: `${id}@example.com`, username, role, status: 'ACTIVE', profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+    db.users.set(id, { id, google_sub: `g-${id}`, email: `${id}@example.com`, username, role, status: 'ACTIVE', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
     db.memberships.add(`league-1:${id}`);
   }
   db.leagues.set('league-1', { id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, max_players: 8, matches_per_pair: 1, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'player-a' });
+  db.leagues.set('private-1', { id: 'private-1', name: 'Private Tuesday', slug: 'private-tuesday', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, max_players: 8, matches_per_pair: 1, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'player-a', visibility: 'PRIVATE' });
+  db.memberships.add('private-1:player-a');
   db.memberships.add('league-1:admin-1');
   const env = { DB: db as never, ASSETS: {} as never, APP_ORIGIN: 'https://misfits.test' };
   return { db, env, routes: createResultRoutes({ now: () => now }), adminRoutes: createAdminLeagueRoutes({ now: () => now }) };
@@ -152,6 +155,20 @@ function resultBody(playerAId: string, playerBId: string) {
 }
 
 describe('result routes', () => {
+  it('hides private standings and results from anonymous requests but allows members', async () => {
+    const { db, env, routes } = setup();
+    const anonymousStandings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/standings'), env, {} as never);
+    expect(anonymousStandings.status).toBe(404);
+    const anonymousResults = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/results'), env, {} as never);
+    expect(anonymousResults.status).toBe(404);
+
+    const member = await cookieFor(db, 'player-a');
+    const memberStandings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/standings', { headers: { Cookie: member } }), env, {} as never);
+    expect(memberStandings.status).toBe(200);
+    const memberResults = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/results', { headers: { Cookie: member } }), env, {} as never);
+    expect(memberResults.status).toBe(200);
+  });
+
   it('allows only a self-involved player to submit, and only the opponent to confirm', async () => {
     const { db, env, routes } = setup();
     const playerA = await cookieFor(db, 'player-a');

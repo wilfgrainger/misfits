@@ -9,6 +9,7 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  is_master_admin: number;
   created_at: string;
   last_login_at: string;
 };
@@ -38,12 +39,16 @@ class MemoryD1 {
       if ([...this.users.values()].some((user) => user.google_sub === googleSub)) {
         throw new Error('UNIQUE constraint failed: users.google_sub');
       }
-      this.users.set(id, { id, google_sub: googleSub, email, username: null, role: 'PLAYER', status: 'ACTIVE', created_at: createdAt, last_login_at: lastLoginAt });
+      this.users.set(id, { id, google_sub: googleSub, email, username: null, role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0, created_at: createdAt, last_login_at: lastLoginAt });
     } else if (sql.startsWith('UPDATE users SET email')) {
       const [email, lastLoginAt, id] = values as string[];
       const user = this.users.get(id)!;
       user.email = email;
       user.last_login_at = lastLoginAt;
+    } else if (sql.includes('is_master_admin = 1')) {
+      const user = this.users.get(String(values[0]))!;
+      user.role = 'ADMIN';
+      user.is_master_admin = 1;
     } else if (sql.includes("UPDATE users SET role = 'ADMIN'")) {
       this.users.get(String(values[0]))!.role = 'ADMIN';
     } else if (sql.startsWith('UPDATE users SET profile_image_url')) {
@@ -122,8 +127,9 @@ describe('Google auth routes', () => {
     expect(response.status).toBe(200);
     expect(verifyCredential).toHaveBeenCalledWith('google-id-token-123456', 'client-id');
     expect([...db.users.values()][0].role).toBe('ADMIN');
+    expect([...db.users.values()][0].is_master_admin).toBe(1);
     expect(response.headers.get('set-cookie')).toContain('misfits_session=');
-    expect(await response.json()).toMatchObject({ requiresOnboarding: true, user: { role: 'ADMIN' } });
+    expect(await response.json()).toMatchObject({ requiresOnboarding: true, user: { role: 'ADMIN', isMasterAdmin: true } });
   });
 
   it('persists the verified Google profile picture in the local account', async () => {
@@ -201,12 +207,12 @@ describe('Google auth routes', () => {
     expect(await onboarding.json()).toMatchObject({ requiresOnboarding: false, user: { username: 'Dart Admin' } });
     expect(db.leaguePlayers.has([...db.users.keys()][0])).toBe(false);
 
-    setIdentity({ sub: 'google-2', email: 'admin@example.com', emailVerified: true });
+    setIdentity({ sub: 'google-2', email: 'second@example.com', emailVerified: true });
     const secondCallback = await routes.fetch(new Request(`https://misfits.test/auth/google/callback?state=${state}&code=second-code`, {
       headers: { Cookie: `misfits_oauth_state=${state}` },
     }), env, {} as never);
     const secondSession = sessionFrom(secondCallback);
-    expect([...db.users.values()].find((user) => user.google_sub === 'google-2')?.role).toBe('PLAYER');
+    expect([...db.users.values()].find((user) => user.google_sub === 'google-2')).toMatchObject({ role: 'PLAYER', is_master_admin: 0 });
 
     const duplicate = await routes.fetch(new Request('https://misfits.test/api/me/username', {
       method: 'POST',

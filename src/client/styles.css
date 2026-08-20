@@ -8,6 +8,7 @@ button { min-height: 48px; }
 .shell-panel-wide { width: 100%; }
 .brand-header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: .8rem; padding: calc(.7rem + env(safe-area-inset-top)) 1rem .7rem; background: rgb(241 234 215 / 96%); border-bottom: 1px solid #c8cbbb; backdrop-filter: blur(12px); }
 .brand-mark { display: block; width: 3.5rem; aspect-ratio: 1; flex: 0 0 auto; object-fit: cover; border-radius: 8px; background: #050505; }
+.brand-mark-generic { display: grid; place-items: center; color: #f1ead7; background: #17231e; font-size: .92rem; font-weight: 900; letter-spacing: .06em; }
 .brand-meta { display: grid; gap: .4rem; min-width: 0; }
 .eyebrow { margin: 0; color: #b83b35; font-size: .78rem; letter-spacing: .12em; font-weight: 850; }
 .online-label { color: #536058; font-size: .75rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }

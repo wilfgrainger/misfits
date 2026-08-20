@@ -1,5 +1,6 @@
 import { AppError } from '../errors';
-import type { LeagueInput, LeagueStatus } from '../domain/league';
+import type { AuthUser } from '../auth/session';
+import type { LeagueInput, LeagueStatus, LeagueVisibility } from '../domain/league';
 
 export interface LeagueRecord {
   id: string;
@@ -14,6 +15,7 @@ export interface LeagueRecord {
   created_by: string | null;
   max_players: number;
   matches_per_pair: number;
+  visibility: LeagueVisibility;
 }
 
 export interface LeagueMemberRecord {
@@ -28,8 +30,9 @@ export interface LeagueMemberRecord {
 export async function listPublicLeagues(db: D1Database): Promise<LeagueRecord[]> {
   const result = await db.prepare(
     `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair
-       FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+       FROM leagues WHERE visibility = 'PUBLIC'
+       ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
   ).all<LeagueRecord>();
   return result.results;
 }
@@ -38,18 +41,36 @@ export async function listUserLeagues(db: D1Database, userId: string): Promise<L
   const result = await db.prepare(
     `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.status,
             leagues.points_per_win, leagues.target_legs, leagues.created_at, leagues.updated_at,
-            leagues.created_by, leagues.max_players, leagues.matches_per_pair
-       FROM leagues JOIN league_players ON league_players.league_id = leagues.id
-      WHERE league_players.user_id = ? AND league_players.active = 1
+            leagues.created_by, leagues.max_players, leagues.matches_per_pair, leagues.visibility
+       FROM leagues LEFT JOIN league_players ON league_players.league_id = leagues.id
+      WHERE (leagues.created_by = ? OR (league_players.user_id = ? AND league_players.active = 1))
+      GROUP BY leagues.id
       ORDER BY leagues.status = 'OPEN' DESC, leagues.updated_at DESC, leagues.name ASC`,
-  ).bind(userId).all<LeagueRecord>();
+  ).bind(userId, userId).all<LeagueRecord>();
+  return result.results;
+}
+
+export async function listManagedLeagues(db: D1Database, userId: string, isMasterAdmin: boolean): Promise<LeagueRecord[]> {
+  const statement = isMasterAdmin
+    ? db.prepare(
+      `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
+              created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+         FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
+    )
+    : db.prepare(
+      `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
+              created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+         FROM leagues WHERE created_by = ?
+         ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
+    ).bind(userId);
+  const result = await statement.all<LeagueRecord>();
   return result.results;
 }
 
 export async function getLeagueByIdOrSlug(db: D1Database, key: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
     `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
        FROM leagues WHERE id = ? OR slug = ?`,
   ).bind(key, key).first<LeagueRecord>()) ?? null;
 }
@@ -57,7 +78,7 @@ export async function getLeagueByIdOrSlug(db: D1Database, key: string): Promise<
 export async function getLeagueById(db: D1Database, id: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
     `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
        FROM leagues WHERE id = ?`,
   ).bind(id).first<LeagueRecord>()) ?? null;
 }
@@ -88,14 +109,34 @@ export async function countActiveMembers(db: D1Database, leagueId: string): Prom
   return Number(row?.count ?? 0);
 }
 
+export async function getManagedLeague(db: D1Database, user: Pick<AuthUser, 'id' | 'isMasterAdmin'>, leagueId: string): Promise<LeagueRecord> {
+  const league = await getLeagueById(db, leagueId);
+  if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
+  if (!user.isMasterAdmin && league.created_by !== user.id) {
+    throw new AppError('FORBIDDEN', 'You do not manage this league', 403);
+  }
+  return league;
+}
+
+export async function canViewLeague(db: D1Database, league: LeagueRecord, user?: Pick<AuthUser, 'id' | 'isMasterAdmin'>): Promise<boolean> {
+  if (league.visibility !== 'PRIVATE') return true;
+  if (!user) return false;
+  if (user.isMasterAdmin || league.created_by === user.id) return true;
+  const membership = await getMembership(db, league.id, user.id);
+  return membership?.active === 1;
+}
+
 export async function createLeague(db: D1Database, actorUserId: string, input: LeagueInput, now = new Date()): Promise<LeagueRecord> {
   const id = crypto.randomUUID();
   const timestamp = now.toISOString();
   await db.prepare(
     `INSERT INTO leagues (id, name, slug, season_name, status, points_per_win, target_legs,
-                          created_at, updated_at, created_by, max_players, matches_per_pair)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, timestamp, timestamp, actorUserId, input.maxPlayers, input.matchesPerPair).run();
+                          created_at, updated_at, created_by, max_players, matches_per_pair, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, timestamp, timestamp, actorUserId, input.maxPlayers, input.matchesPerPair, input.visibility).run();
+  await db.prepare(
+    'INSERT OR IGNORE INTO league_players (league_id, user_id, active, joined_at) VALUES (?, ?, 1, ?)',
+  ).bind(id, actorUserId, timestamp).run();
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'LEAGUE_CREATED', 'LEAGUE', ?, NULL, ?, ?)`,
@@ -113,9 +154,9 @@ export async function updateLeague(db: D1Database, actorUserId: string, leagueId
   await db.prepare(
     `UPDATE leagues
         SET name = ?, slug = ?, season_name = ?, status = ?, points_per_win = ?, target_legs = ?,
-            max_players = ?, matches_per_pair = ?, updated_at = ?
+            max_players = ?, matches_per_pair = ?, visibility = ?, updated_at = ?
       WHERE id = ?`,
-  ).bind(input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, input.maxPlayers, input.matchesPerPair, timestamp, leagueId).run();
+  ).bind(input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, input.maxPlayers, input.matchesPerPair, input.visibility, timestamp, leagueId).run();
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'LEAGUE_UPDATED', 'LEAGUE', ?, ?, ?, ?)`,

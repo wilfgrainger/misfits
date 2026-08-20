@@ -1,10 +1,6 @@
 const RESERVED_NAMES = new Set([
   'admin',
   'administrator',
-  'misfits',
-  'misfits admin',
-  'misfits501',
-  'misfits 501',
 ]);
 
 export function normalizeUsername(input: string): string {

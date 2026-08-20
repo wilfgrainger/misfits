@@ -20,4 +20,11 @@ describe('D1 schema', () => {
     }
     expect(sql).toContain('token_hash TEXT NOT NULL UNIQUE');
   });
+
+  it('defines the additive v3 white-label access migration', () => {
+    const sql = readFileSync('migrations/0003_white_label_access.sql', 'utf8');
+    expect(sql).toContain('is_master_admin');
+    expect(sql).toContain("visibility TEXT NOT NULL DEFAULT 'PUBLIC'");
+    expect(sql).toContain("CHECK(visibility IN ('PUBLIC', 'PRIVATE'))");
+  });
 });

@@ -54,7 +54,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     }
 
     try {
-      const user = await upsertGoogleUser(c.env.DB, identity, now(), c.env.BOOTSTRAP_ADMIN_EMAIL);
+      const user = await upsertGoogleUser(c.env.DB, identity, now(), c.env.BOOTSTRAP_ADMIN_EMAIL, c.env.MASTER_ADMIN_EMAIL);
       const session = await issueSession(c.env.DB, user.id, now());
       c.header('Set-Cookie', sessionCookie(session.token));
       return c.json({
@@ -106,7 +106,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     }
 
     try {
-      const user = await upsertGoogleUser(c.env.DB, identity, now(), c.env.BOOTSTRAP_ADMIN_EMAIL);
+      const user = await upsertGoogleUser(c.env.DB, identity, now(), c.env.BOOTSTRAP_ADMIN_EMAIL, c.env.MASTER_ADMIN_EMAIL);
       const session = await issueSession(c.env.DB, user.id, now());
       c.header('Set-Cookie', sessionCookie(session.token));
       c.header('Set-Cookie', expiredCookie('misfits_oauth_state'), { append: true });

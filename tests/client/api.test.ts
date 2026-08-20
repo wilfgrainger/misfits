@@ -32,7 +32,7 @@ describe('ApiClient admin workspace calls', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
       profile: { username: 'Wilf', profileImageUrl: 'https://lh3.googleusercontent.com/avatar', dartsCounterUrl: 'https://darts.example/wilf' },
     }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({
-      leagues: [{ id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', seasonName: '2026', status: 'OPEN', pointsPerWin: 2, targetLegs: 3, maxPlayers: 16, matchesPerPair: 1 }],
+      leagues: [{ id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', seasonName: '2026', status: 'OPEN', pointsPerWin: 2, targetLegs: 3, maxPlayers: 16, matchesPerPair: 1, visibility: 'PUBLIC' }],
     }), { status: 200 }));
 
     await expect(new ApiClient().updateProfile({ username: 'Wilf', dartsCounterUrl: 'https://darts.example/wilf' })).resolves.toMatchObject({ profile: { username: 'Wilf' } });

@@ -35,6 +35,13 @@ async function getInviteByHash(db: D1Database, tokenHash: string): Promise<Invit
   ).bind(tokenHash).first<InviteRecord>()) ?? null;
 }
 
+export async function getInviteById(db: D1Database, inviteId: string): Promise<InviteRecord | null> {
+  return (await db.prepare(
+    `SELECT id, league_id, token_hash, created_by, expires_at, uses, revoked_at, created_at
+       FROM league_invites WHERE id = ?`,
+  ).bind(inviteId).first<InviteRecord>()) ?? null;
+}
+
 export async function listLeagueInvites(db: D1Database, leagueId: string): Promise<InviteRecord[]> {
   const result = await db.prepare(
     `SELECT id, league_id, token_hash, created_by, expires_at, uses, revoked_at, created_at

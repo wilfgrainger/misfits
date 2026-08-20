@@ -75,10 +75,11 @@ export default function App() {
   };
 
   const joinPendingInvite = async () => {
-    const token = typeof window !== 'undefined' ? window.sessionStorage.getItem('misfits_pending_invite') : null;
+    const token = typeof window !== 'undefined' ? (window.sessionStorage.getItem('league_pending_invite') ?? window.sessionStorage.getItem('misfits_pending_invite')) : null;
     if (!token) return;
     try {
       await api.joinInvite(token);
+      window.sessionStorage.removeItem('league_pending_invite');
       window.sessionStorage.removeItem('misfits_pending_invite');
       setMessage('You joined the league.');
     } catch (cause) {
@@ -95,7 +96,7 @@ export default function App() {
       return;
     }
     setView('signed-in');
-    setMessage(payload.user.role === 'ADMIN' ? 'Your league desk is ready.' : 'Your leagues are ready.');
+    setMessage('Your league workspace is ready.');
     await joinPendingInvite();
     await loadMyLeagues();
   };
@@ -136,7 +137,7 @@ export default function App() {
 
   useEffect(() => {
     const match = typeof window !== 'undefined' ? window.location.pathname.match(/^\/join\/([^/]+)/) : null;
-    if (match) window.sessionStorage.setItem('misfits_pending_invite', match[1]);
+    if (match) window.sessionStorage.setItem('league_pending_invite', match[1]);
   }, []);
 
   const submitUsername = async (event: FormEvent<HTMLFormElement>) => {
@@ -170,11 +171,11 @@ export default function App() {
     <main className="shell" data-state={view}>
       <section className={`shell-panel ${view === 'signed-in' ? 'shell-panel-wide' : ''}`}>
         <header className="brand-header">
-          <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501" />
-          <div className="brand-meta"><p className="eyebrow">CLUB DARTS / 501</p><span className="online-label">Online</span></div>
+          <div className="brand-mark brand-mark-generic" aria-hidden="true">LB</div>
+          <div className="brand-meta"><p className="eyebrow">DARTS / LEAGUES</p><span className="online-label">Online</span></div>
           {user && <div className="header-user"><div className="avatar">{user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase()}</div><button className="header-signout" type="button" onClick={() => void logout()}>Sign out</button></div>}
         </header>
-        <div className="page-intro"><h1>Club darts, properly settled.</h1><p className="intro">{message}</p></div>
+        <div className="page-intro"><h1>Leagues, properly settled.</h1><p className="intro">{message}</p></div>
 
         {view === 'signed-out' && <>
           {publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><div className="section-heading"><div><p className="section-kicker">LIVE LEAGUES</p><h2 id="public-leagues-title">The club board</h2></div><span className="count-label">{publicLeagues.length}</span></div><LeagueTabs leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
@@ -183,7 +184,7 @@ export default function App() {
 
         {view === 'onboarding' && <form className="onboarding-form" onSubmit={submitUsername}><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Continue</button></form>}
 
-        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.role === 'ADMIN' ? 'League administrator' : 'League player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div>{user.role === 'ADMIN' && <AdminLeagueDesk user={user} />}<div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><p className="section-kicker">NO MEMBERSHIPS</p><h2>Join with an invite link.</h2><p>Open an admin invite link in this browser to enter a league.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
+        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.isMasterAdmin ? 'Master administrator' : 'League owner / player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div><AdminLeagueDesk user={user} /><div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><p className="section-kicker">NO MEMBERSHIPS</p><h2>Join with an invite link.</h2><p>Open a league invite link in this browser to enter a league.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
 
         {view !== 'signed-in' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
       </section>

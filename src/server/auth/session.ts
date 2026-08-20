@@ -8,9 +8,11 @@ export interface AuthUser {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  isMasterAdmin: boolean;
 }
 
 interface SessionRow extends AuthUser {
+  is_master_admin: number;
   token_hash: string;
   user_id: string;
   created_at: string;
@@ -54,14 +56,14 @@ export async function resolveSession(
   if (!rawToken) return null;
   const tokenHash = await hashSessionToken(rawToken);
   const row = await db.prepare(
-    `SELECT users.id, users.username, users.role, users.status,
+    `SELECT users.id, users.username, users.role, users.status, users.is_master_admin,
             sessions.token_hash, sessions.user_id, sessions.created_at, sessions.expires_at
        FROM sessions JOIN users ON users.id = sessions.user_id
       WHERE sessions.token_hash = ? AND sessions.expires_at > ?`,
   ).bind(tokenHash, now.toISOString()).first<SessionRow>();
 
   if (!row || row.status !== 'ACTIVE') return null;
-  return { id: row.id, username: row.username, role: row.role, status: row.status };
+  return { id: row.id, username: row.username, role: row.role, status: row.status, isMasterAdmin: row.is_master_admin === 1 };
 }
 
 export async function revokeSession(db: D1Database, rawToken: string | null | undefined): Promise<void> {

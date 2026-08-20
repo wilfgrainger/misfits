@@ -1,15 +1,15 @@
 /** @vitest-environment jsdom */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayerLeague } from '../../src/client/components/PlayerLeague';
 import { AdminLeagueDesk } from '../../src/client/components/AdminLeagueDesk';
 import type { LeagueSummary, UserSummary } from '../../src/client/api';
 
-const league: LeagueSummary = { id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', seasonName: '2026', status: 'OPEN', pointsPerWin: 2, targetLegs: 3, maxPlayers: 16, matchesPerPair: 1 };
-const user: UserSummary = { id: 'player-a', username: 'Alpha', role: 'PLAYER', status: 'ACTIVE', profileImageUrl: null, dartsCounterUrl: null };
+const league: LeagueSummary = { id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', seasonName: '2026', status: 'OPEN', pointsPerWin: 2, targetLegs: 3, maxPlayers: 16, matchesPerPair: 1, visibility: 'PUBLIC' };
+const user: UserSummary = { id: 'player-a', username: 'Alpha', role: 'PLAYER', status: 'ACTIVE', profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false };
 
 describe('mobile league workspaces', () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => { cleanup(); vi.restoreAllMocks(); });
 
   it('renders a signed-in player table, result navigation and profile entry', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({ standings: [{ rank: 1, playerId: 'player-a', username: 'Alpha', played: 1, won: 1, lost: 0, legsFor: 3, legsAgainst: 1, legDifference: 2, points: 2, average: 51.24 }] }), { status: 200 }))
@@ -40,9 +40,9 @@ describe('mobile league workspaces', () => {
       if (path.includes('/invites')) return new Response(JSON.stringify({ invite: { id: 'invite-2', leagueId: 'league-1', expiresAt: null, url: 'https://misfits.test/join/token' } }), { status: 201 });
       throw new Error(`Unexpected fetch: ${path}`);
     });
-    const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const };
+    const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const, isMasterAdmin: true };
     render(<AdminLeagueDesk user={admin} />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Admin desk' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
     expect(screen.getByRole('button', { name: 'Create league' })).toBeTruthy();
     expect(screen.getByLabelText('Target legs')).toBeTruthy();
     expect(screen.getByLabelText('Points per win')).toBeTruthy();
@@ -61,5 +61,18 @@ describe('mobile league workspaces', () => {
     fireEvent.click((await screen.findAllByRole('button', { name: 'Revoke invite' }))[0]);
     await waitFor(() => expect(screen.getByText('Invite revoked.')).toBeTruthy());
     expect(confirm).toHaveBeenCalled();
+  });
+
+  it('lets an ordinary signed-in user create a league without global People controls', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input);
+      if (path.endsWith('/api/admin/leagues')) return new Response(JSON.stringify({ leagues: [] }), { status: 200 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+    render(<AdminLeagueDesk user={user} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
+    expect(screen.getByRole('button', { name: 'Create league' })).toBeTruthy();
+    expect(screen.getByLabelText('Visibility')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'People' })).toBeNull();
   });
 });

@@ -1,5 +1,7 @@
 # Misfits Leagues v2 Verification
 
+> **Historical release evidence:** This records the v2 deployment. White-label v3 work and its live evidence are tracked separately.
+
 **Date:** 20 August 2026  
 **Release commit:** `25b64e21a77c96ee5a4c7356a40fcaa719efaec3` (`feat: complete admin league controls`)
 **Cloudflare Worker version:** `a9ae2cef-21d3-400a-b3cf-1666e3aa1707`

@@ -10,6 +10,7 @@ export interface UserRecord {
   username: string | null;
   role: UserRole;
   status: UserStatus;
+  is_master_admin: number;
   profile_image_url: string | null;
   darts_counter_url: string | null;
   created_at: string;
@@ -23,9 +24,10 @@ export interface PublicUserSummary {
   status: UserStatus;
   profileImageUrl: string | null;
   dartsCounterUrl: string | null;
+  isMasterAdmin: boolean;
 }
 
-export function publicUser(user: Pick<UserRecord, 'id' | 'username' | 'role' | 'status' | 'profile_image_url' | 'darts_counter_url'>): PublicUserSummary {
+export function publicUser(user: Pick<UserRecord, 'id' | 'username' | 'role' | 'status' | 'profile_image_url' | 'darts_counter_url' | 'is_master_admin'>): PublicUserSummary {
   return {
     id: user.id,
     username: user.username,
@@ -33,6 +35,7 @@ export function publicUser(user: Pick<UserRecord, 'id' | 'username' | 'role' | '
     status: user.status,
     profileImageUrl: user.profile_image_url ?? null,
     dartsCounterUrl: user.darts_counter_url ?? null,
+    isMasterAdmin: user.is_master_admin === 1,
   };
 }
 
@@ -54,6 +57,7 @@ export async function upsertGoogleUser(
   identity: GoogleIdentity,
   now = new Date(),
   bootstrapAdminEmail?: string,
+  masterAdminEmail?: string,
 ): Promise<UserRecord> {
   const timestamp = now.toISOString();
   let user = await getUserByGoogleSub(db, identity.sub);
@@ -64,8 +68,8 @@ export async function upsertGoogleUser(
   } else {
     const id = crypto.randomUUID();
     await db.prepare(
-      `INSERT INTO users (id, google_sub, email, username, role, status, created_at, last_login_at)
-       VALUES (?, ?, ?, NULL, 'PLAYER', 'ACTIVE', ?, ?)`,
+      `INSERT INTO users (id, google_sub, email, username, role, status, is_master_admin, created_at, last_login_at)
+       VALUES (?, ?, ?, NULL, 'PLAYER', 'ACTIVE', 0, ?, ?)`,
     ).bind(id, identity.sub, identity.email, timestamp, timestamp).run();
     user = await getUserById(db, id);
   }
@@ -77,7 +81,10 @@ export async function upsertGoogleUser(
       .bind(identity.picture, user.id).run();
   }
 
-  if (
+  const configuredMasterEmail = (masterAdminEmail ?? bootstrapAdminEmail)?.trim().toLowerCase();
+  if (configuredMasterEmail && user.email.toLowerCase() === configuredMasterEmail) {
+    await db.prepare("UPDATE users SET role = 'ADMIN', is_master_admin = 1 WHERE id = ?").bind(user.id).run();
+  } else if (
     bootstrapAdminEmail &&
     user.email.toLowerCase() === bootstrapAdminEmail.trim().toLowerCase() &&
     (await countAdmins(db)) === 0
