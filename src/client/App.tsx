@@ -79,26 +79,31 @@ export default function App() {
     }
   };
 
-  const loadMyLeagues = async () => {
+  const loadMyLeagues = async (preferredLeagueId?: string | null) => {
     try {
       const result = await api.myLeagues();
       setMyLeagues(result.leagues);
-      setSelectedLeagueId((current) => current && result.leagues.some((league) => league.id === current) ? current : result.leagues[0]?.id || null);
+      setSelectedLeagueId((current) => {
+        if (preferredLeagueId && result.leagues.some((league) => league.id === preferredLeagueId)) return preferredLeagueId;
+        return current && result.leagues.some((league) => league.id === current) ? current : result.leagues[0]?.id || null;
+      });
     } catch {
       setMyLeagues([]);
     }
   };
 
-  const joinPendingInvite = async () => {
+  const joinPendingInvite = async (): Promise<string | null> => {
     const token = typeof window !== 'undefined' ? (window.sessionStorage.getItem('league_pending_invite') ?? window.sessionStorage.getItem('misfits_pending_invite')) : null;
-    if (!token) return;
+    if (!token) return null;
     try {
-      await api.joinInvite(token);
+      const result = await api.joinInvite(token);
       window.sessionStorage.removeItem('league_pending_invite');
       window.sessionStorage.removeItem('misfits_pending_invite');
       setMessage('You joined the league.');
+      return result.membership.leagueId;
     } catch (cause) {
       setMessage(messageFor(cause, 'That invite could not be used.'));
+      return null;
     }
   };
 
@@ -112,8 +117,8 @@ export default function App() {
     }
     setView('signed-in');
     setMessage('Your league workspace is ready.');
-    await joinPendingInvite();
-    await loadMyLeagues();
+    const joinedLeagueId = await joinPendingInvite();
+    await loadMyLeagues(joinedLeagueId);
   };
 
   useEffect(() => {
