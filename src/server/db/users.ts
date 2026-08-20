@@ -65,6 +65,7 @@ export async function upsertGoogleUser(
   if (user) {
     await db.prepare('UPDATE users SET email = ?, last_login_at = ? WHERE id = ?')
       .bind(identity.email, timestamp, user.id).run();
+    user = await getUserByGoogleSub(db, identity.sub);
   } else {
     const id = crypto.randomUUID();
     await db.prepare(

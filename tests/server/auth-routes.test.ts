@@ -84,9 +84,13 @@ class MemoryD1 {
       return { ...user, ...session } as T;
     }
     if (sql.includes('FROM users WHERE google_sub')) {
-      return ([...this.users.values()].find((user) => user.google_sub === String(values[0])) ?? null) as T;
+      const user = [...this.users.values()].find((candidate) => candidate.google_sub === String(values[0]));
+      return (user ? { ...user } : null) as T;
     }
-    if (sql.includes('FROM users WHERE id')) return (this.users.get(String(values[0])) ?? null) as T;
+    if (sql.includes('FROM users WHERE id')) {
+      const user = this.users.get(String(values[0]));
+      return (user ? { ...user } : null) as T;
+    }
     return null;
   }
 }
@@ -165,6 +169,27 @@ describe('Google auth routes', () => {
     }), { ...env, GOOGLE_CLIENT_SECRET: '' }, {} as never);
     expect(secondSignIn.status).toBe(200);
     expect([...db.users.values()][0]).toMatchObject({ role: 'ADMIN', is_master_admin: 0 });
+  });
+
+  it('promotes an existing Google identity when its verified email becomes the configured master email', async () => {
+    const { routes, env, setIdentity, db } = setup();
+    setIdentity({ sub: 'google-existing', email: 'ordinary@example.com', emailVerified: true });
+    const firstSignIn = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
+      method: 'POST',
+      headers: { Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: 'google-id-token-123456' }),
+    }), { ...env, MASTER_ADMIN_EMAIL: 'master@example.com' }, {} as never);
+    expect(firstSignIn.status).toBe(200);
+    expect([...db.users.values()][0]).toMatchObject({ role: 'PLAYER', is_master_admin: 0, email: 'ordinary@example.com' });
+
+    setIdentity({ sub: 'google-existing', email: 'master@example.com', emailVerified: true });
+    const secondSignIn = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
+      method: 'POST',
+      headers: { Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: 'google-id-token-123456' }),
+    }), { ...env, MASTER_ADMIN_EMAIL: 'master@example.com' }, {} as never);
+    expect(secondSignIn.status).toBe(200);
+    expect([...db.users.values()][0]).toMatchObject({ role: 'ADMIN', is_master_admin: 1, email: 'master@example.com' });
   });
 
   it('rejects a Google Identity Services credential from another origin', async () => {
