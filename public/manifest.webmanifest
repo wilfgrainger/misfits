@@ -1,0 +1,17 @@
+{
+  "name": "Misfits 501",
+  "short_name": "Misfits 501",
+  "description": "Club darts, properly settled.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1ead7",
+  "theme_color": "#0b0d0c",
+  "icons": [
+    {
+      "src": "/brand/misfits-501.jpg",
+      "sizes": "1256x1256",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

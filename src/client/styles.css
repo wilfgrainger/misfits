@@ -3,29 +3,30 @@
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #0b0d0c; }
 button, input { font: inherit; }
 button { min-height: 48px; }
-.shell { min-height: 100vh; display: grid; align-items: start; justify-items: center; padding: .75rem .75rem 2rem; }
-.shell-panel { width: min(100%, 36rem); padding: 1rem; background: #f1ead7; border: 1px solid rgb(255 255 255 / 12%); border-radius: 18px; box-shadow: 0 22px 55px rgb(0 0 0 / 35%); }
-.shell-panel-wide { width: min(100%, 60rem); }
-.brand-header { display: flex; align-items: center; gap: .8rem; padding-bottom: 1rem; border-bottom: 1px solid #c8cbbb; }
-.brand-mark { display: block; width: 5.5rem; aspect-ratio: 1; flex: 0 0 auto; object-fit: cover; border-radius: 10px; background: #050505; }
+.shell { min-height: 100dvh; display: grid; align-items: start; justify-items: center; padding: 0; background: #f1ead7; }
+.shell-panel { width: 100%; min-height: 100dvh; padding: 0 0 2rem; overflow: hidden; background: #f1ead7; }
+.shell-panel-wide { width: 100%; }
+.brand-header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: .8rem; padding: calc(.7rem + env(safe-area-inset-top)) 1rem .7rem; background: rgb(241 234 215 / 96%); border-bottom: 1px solid #c8cbbb; backdrop-filter: blur(12px); }
+.brand-mark { display: block; width: 3.5rem; aspect-ratio: 1; flex: 0 0 auto; object-fit: cover; border-radius: 8px; background: #050505; }
 .brand-meta { display: grid; gap: .4rem; min-width: 0; }
 .eyebrow { margin: 0; color: #b83b35; font-size: .78rem; letter-spacing: .12em; font-weight: 850; }
 .online-label { color: #536058; font-size: .75rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
-.page-intro { padding: 1.25rem 0 0; }
-h1 { max-width: 11ch; margin: 0; color: #17231e; font-size: 2.75rem; line-height: .95; letter-spacing: 0; }
+.page-intro { padding: 1.35rem 1rem .25rem; }
+h1 { max-width: 11ch; margin: 0; color: #17231e; font-size: 2.5rem; line-height: .95; letter-spacing: 0; }
 .intro { max-width: 32rem; margin: 1rem 0 0; color: #536058; }
 .google-button, .primary-button, .secondary-button { width: 100%; border: 0; border-radius: 6px; cursor: pointer; font-weight: 750; padding: .8rem 1rem; }
-.google-button, .primary-button { margin-top: 1.25rem; color: #f1ead7; background: #17231e; }
+.google-button { width: calc(100% - 2rem); margin: 1.25rem 1rem 0; color: #f1ead7; background: #17231e; }
+.primary-button { margin-top: 1.25rem; color: #f1ead7; background: #17231e; }
 .secondary-button { color: #17231e; background: transparent; border: 1px solid #a7afa5; }
 .google-button:focus-visible, .primary-button:focus-visible, .secondary-button:focus-visible, input:focus-visible, .refresh-button:focus-visible, .action-button:focus-visible { outline: 3px solid #b83b35; outline-offset: 3px; }
-.onboarding-form { display: grid; gap: .5rem; margin-top: 1rem; }
+.onboarding-form { display: grid; gap: .5rem; margin: 1rem 1rem 0; }
 .onboarding-form label { font-weight: 700; }
 .onboarding-form input { width: 100%; min-height: 48px; padding: .8rem; color: #17231e; background: #fffdf5; border: 1px solid #a7afa5; border-radius: 6px; }
-.account-panel { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #c8cbbb; }
+.account-panel { margin-top: 1.5rem; padding: 1.25rem 1rem 0; border-top: 1px solid #c8cbbb; }
 .account-heading { display: grid; gap: 1rem; }
 .account-name { margin: 0; font-size: 1.45rem; font-weight: 850; }
 .account-role { margin: .25rem 0 0; color: #536058; }
-.workspace { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #c8cbbb; }
+.workspace { margin: 1.5rem -1rem 0; padding: 1.25rem 1rem 0; border-top: 1px solid #c8cbbb; }
 .workspace-heading { display: grid; gap: .9rem; }
 .workspace-kicker { margin: 0 0 .25rem; color: #b83b35; font-size: .72rem; font-weight: 850; letter-spacing: .1em; }
 .workspace h2 { margin: 0; font-size: 2rem; line-height: 1; }
@@ -50,12 +51,20 @@ h1 { max-width: 11ch; margin: 0; color: #17231e; font-size: 2.75rem; line-height
 .player-tag-suspended { color: #7d2927; background: #ead0c9; }
 .player-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
 .player-note { color: #536058; font-size: .85rem; font-weight: 750; }
-.shell-stamp { display: block; margin-top: 1.5rem; color: #7b8278; }
+.shell-stamp { display: block; margin: 1.5rem 1rem 0; color: #7b8278; }
 
 @media (min-width: 681px) {
-  .shell { padding: 3rem 1.5rem; }
-  .shell-panel { padding: 1.5rem; }
-  .brand-mark { width: 6.5rem; }
+  .shell { min-height: 100vh; padding: 2rem 1.5rem; background: #0b0d0c; }
+  .shell-panel { width: min(100%, 60rem); min-height: calc(100dvh - 4rem); padding: 0 1.5rem 2rem; border: 1px solid rgb(255 255 255 / 12%); border-radius: 18px; box-shadow: 0 22px 55px rgb(0 0 0 / 35%); }
+  .shell-panel-wide { width: min(100%, 64rem); }
+  .brand-header { position: static; margin: 0 -1.5rem; padding: 1.25rem 1.5rem; }
+  .brand-mark { width: 4.5rem; }
+  .page-intro { padding: 1.75rem 0 .25rem; }
+  .account-panel { padding-left: 0; padding-right: 0; }
+  .workspace { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+  .shell-stamp { margin-left: 0; margin-right: 0; }
+  .google-button { width: 100%; margin-left: 0; margin-right: 0; }
+  .onboarding-form { margin-left: 0; margin-right: 0; }
   h1 { font-size: 4rem; }
   .account-heading, .workspace-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
   .account-heading .secondary-button, .refresh-button { width: auto; }
