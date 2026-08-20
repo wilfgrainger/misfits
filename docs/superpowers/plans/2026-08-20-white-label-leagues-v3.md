@@ -70,13 +70,16 @@
 
 ### Task 5: Post-release correctness hardening
 
-**Files:** `src/server/domain/result.ts`, `src/server/routes/results.ts`, `src/client/components/PlayerLeague.tsx`, focused domain/route/client tests
+**Files:** `src/server/domain/result.ts`, `src/server/routes/results.ts`, `src/client/components/PlayerLeague.tsx`, `src/client/App.tsx`, `src/client/components/AdminLeagueDesk.tsx`, `src/server/db/admin.ts`, `src/server/db/users.ts`, focused domain/route/client tests
 
 - [x] Add failing coverage for decisive target-leg scores and reject draw scores such as `3-3`.
 - [x] Make public standings and result endpoints resolve both league IDs and stable league slugs.
 - [x] Reset opponent, leg and average entry state when a player switches leagues.
 - [x] Make player result entry visibly unavailable while a league is closed.
 - [x] Count legacy matches stored in either player order toward the repeat limit.
+- [x] Keep the master People list unique across users with multiple active league memberships.
+- [x] Protect the configured master administrator from role/status removal and clear stale master flags after a non-master sign-in.
+- [x] Keep the signed-in league workspace synchronized immediately after creating or editing a league.
 - [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate
