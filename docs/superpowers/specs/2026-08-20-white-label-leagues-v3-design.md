@@ -17,8 +17,9 @@ The homepage remains the working application: public leagues, standings and resu
 ### Included
 
 - Generic white-label application shell and document metadata.
-- Any active Google-authenticated user may create a league.
-- The creating user owns that league and may edit its settings, membership, invites and results.
+- Any active Google-authenticated user may create a league and becomes its scoped league administrator/owner.
+- The scoped league administrator/owner may edit that league's settings, membership, invites and administrative result records; this does not grant global People, role or account powers.
+- A normal player can record only a result involving their own account. Administrative result entry and correction are reserved for the league owner or master administrator.
 - `wjgrainger@gmail.com` is the configured master administrator of all leagues and global people/role controls.
 - Public and private league visibility.
 - Public leagues appear in the directory and public read endpoints.
@@ -38,9 +39,10 @@ The homepage remains the working application: public leagues, standings and resu
 
 Keep the existing `PLAYER`/`ADMIN` role values for compatibility. Add an independent `is_master_admin` flag to the user record.
 
-- Any active authenticated user can create a league.
+- Any active authenticated user can create a league; creation grants scoped management of that league rather than the global `ADMIN` role.
 - `leagues.created_by` is the owner and source of truth for league management.
-- A league owner or master administrator can use the existing `/api/admin/leagues/*` operations for that league.
+- A league owner or master administrator can use the existing `/api/admin/leagues/*` operations for that league. The route namespace is scoped league control, not proof of global administrator status.
+- A normal player may use only the player result route for a result where the session user is one of the two players; they cannot use administrative result entry or correction to record games for other players.
 - A normal user cannot manage another user's league, even if they are a member.
 - Only a master administrator can list or mutate global people, roles and account status.
 - The master email is read from `MASTER_ADMIN_EMAIL`, falling back to the existing `BOOTSTRAP_ADMIN_EMAIL` so the current production configuration continues to work.
@@ -62,7 +64,7 @@ The existing `leagues.created_by` column is used as the league owner. New league
 Existing endpoint names remain stable:
 
 - `GET /api/admin/leagues` returns all leagues for the master administrator and only owned leagues for other users.
-- `POST /api/admin/leagues` requires an active session, not global admin role.
+- `POST /api/admin/leagues` requires an active session, not the global admin role; the authenticated creator becomes the scoped owner.
 - League edit, invite, member and league-result routes require ownership or master-admin access.
 - Result-id edit/delete routes resolve the result's league before authorizing it.
 - `/api/admin/players` and its mutation route require master-admin access.

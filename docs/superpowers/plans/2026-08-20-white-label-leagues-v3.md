@@ -84,6 +84,7 @@
 - [x] Keep invite joins idempotent when a membership insert loses a concurrent race, without double-counting invite usage or audit entries.
 - [x] Restrict profile links to the official DartCounter host and mark API error responses as non-cacheable.
 - [x] Keep capacity edits and administrator pair corrections inside their configured limits at the D1 write boundary.
+- [x] Add a cross-route authenticated lifecycle test covering Google sign-in, onboarding, ownership, invite join, profiles, player-only result entry, averages, confirmation and standings.
 - [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate
