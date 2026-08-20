@@ -10,6 +10,16 @@ export interface AuthPayload {
   requiresOnboarding: boolean;
 }
 
+export interface AdminPlayer extends UserSummary {
+  email: string;
+  leagueActive: boolean;
+}
+
+export interface AdminPlayerChanges {
+  role?: UserSummary['role'];
+  status?: UserSummary['status'];
+}
+
 export class ApiClientError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
@@ -30,4 +40,11 @@ export class ApiClient {
   signIn(credential: string) { return this.call<AuthPayload>('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }); }
   setUsername(username: string) { return this.call<AuthPayload>('/api/me/username', { method: 'POST', body: JSON.stringify({ username }) }); }
   logout() { return this.call<{ ok: true }>('/auth/logout', { method: 'POST' }); }
+  adminPlayers() { return this.call<{ players: AdminPlayer[] }>('/api/admin/players'); }
+  updateAdminPlayer(id: string, changes: AdminPlayerChanges) {
+    return this.call<{ player: AdminPlayer }>(`/api/admin/players/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(changes),
+    });
+  }
 }
