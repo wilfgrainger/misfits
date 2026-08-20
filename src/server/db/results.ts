@@ -163,8 +163,9 @@ export async function confirmResult(db: D1Database, userId: string, resultId: st
   if (!result || result.deleted_at) throw new AppError('VALIDATION_ERROR', 'Result was not found', 404);
   await requireResolvingOpponent(db, result, userId);
   const timestamp = now.toISOString();
-  await db.prepare("UPDATE matches SET status = 'CONFIRMED', confirmed_by = ?, confirmed_at = ?, updated_at = ? WHERE id = ?")
+  const updated = await db.prepare("UPDATE matches SET status = 'CONFIRMED', confirmed_by = ?, confirmed_at = ?, updated_at = ? WHERE id = ? AND status = 'PENDING'")
     .bind(userId, timestamp, timestamp, resultId).run();
+  if (updated.meta.changes !== 1) throw new AppError('RESULT_ALREADY_RESOLVED', 'This result has already been resolved', 409);
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'RESULT_CONFIRMED', 'MATCH', ?, ?, ?, ?)`,
@@ -181,8 +182,9 @@ export async function disputeResult(db: D1Database, userId: string, resultId: st
   const trimmed = note.trim();
   if (!trimmed || trimmed.length > 240) throw new AppError('INVALID_RESULT', 'A short dispute note is required', 400);
   const timestamp = now.toISOString();
-  await db.prepare("UPDATE matches SET status = 'DISPUTED', dispute_note = ?, updated_at = ? WHERE id = ?")
+  const updated = await db.prepare("UPDATE matches SET status = 'DISPUTED', dispute_note = ?, updated_at = ? WHERE id = ? AND status = 'PENDING'")
     .bind(trimmed, timestamp, resultId).run();
+  if (updated.meta.changes !== 1) throw new AppError('RESULT_ALREADY_RESOLVED', 'This result has already been resolved', 409);
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'RESULT_DISPUTED', 'MATCH', ?, ?, ?, ?)`,

@@ -29,6 +29,7 @@ class MemoryD1 {
   matches = new Map<string, Match>();
   sessions = new Map<string, Session>();
   audits: unknown[] = [];
+  resolveRace: 'CONFIRMED' | 'DISPUTED' | null = null;
 
   prepare(sql: string) {
     return {
@@ -62,9 +63,19 @@ class MemoryD1 {
       }
     } else if (sql.includes("SET status = 'CONFIRMED'")) {
       const [confirmedBy, _confirmedAt, timestamp, id] = values as [string, string, string, string];
+      if (this.resolveRace) {
+        Object.assign(this.matches.get(id)!, { status: this.resolveRace });
+        this.resolveRace = null;
+        return { success: true, meta: { changes: 0 } };
+      }
       Object.assign(this.matches.get(id)!, { status: 'CONFIRMED', confirmed_by: confirmedBy, updated_at: timestamp, confirmed_at: timestamp });
     } else if (sql.includes("SET status = 'DISPUTED'")) {
       const [note, timestamp, id] = values as [string, string, string];
+      if (this.resolveRace) {
+        Object.assign(this.matches.get(id)!, { status: this.resolveRace });
+        this.resolveRace = null;
+        return { success: true, meta: { changes: 0 } };
+      }
       Object.assign(this.matches.get(id)!, { status: 'DISPUTED', dispute_note: note, updated_at: timestamp });
     } else if (sql.includes('SET player_a_id = ?')) {
       const [playerAId, playerBId, playerALegs, playerBLegs, playerAAverage, playerBAverage, status, note, updatedAt, _statusForConfirmed, confirmedBy, _statusForConfirmedAt, confirmedAt, id] = values as [string, string, number, number, number, number, Match['status'], string | null, string, string, string, string, string, string];
@@ -218,6 +229,44 @@ describe('result routes', () => {
     }), env, {} as never);
     expect(confirmed.status).toBe(200);
     expect(await confirmed.json()).toMatchObject({ result: { status: 'CONFIRMED' } });
+  });
+
+  it('rejects a confirmation when the pending row resolves between authorization and update', async () => {
+    const { db, env, routes } = setup();
+    const playerA = await cookieFor(db, 'player-a');
+    const submitted = await routes.fetch(new Request('https://misfits.test/api/leagues/league-1/results', {
+      method: 'POST', headers: { Cookie: playerA, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: resultBody('player-a', 'player-b'),
+    }), env, {} as never);
+    expect(submitted.status).toBe(201);
+    const resultId = [...db.matches.keys()][0];
+    db.resolveRace = 'CONFIRMED';
+
+    const playerB = await cookieFor(db, 'player-b');
+    const response = await routes.fetch(new Request(`https://misfits.test/api/results/${resultId}/confirm`, {
+      method: 'POST', headers: { Cookie: playerB, Origin: 'https://misfits.test' },
+    }), env, {} as never);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'RESULT_ALREADY_RESOLVED' } });
+    expect(db.matches.get(resultId)?.status).toBe('CONFIRMED');
+  });
+
+  it('rejects a dispute when the pending row resolves between authorization and update', async () => {
+    const { db, env, routes } = setup();
+    const playerA = await cookieFor(db, 'player-a');
+    const submitted = await routes.fetch(new Request('https://misfits.test/api/leagues/league-1/results', {
+      method: 'POST', headers: { Cookie: playerA, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: resultBody('player-a', 'player-c'),
+    }), env, {} as never);
+    expect(submitted.status).toBe(201);
+    const resultId = [...db.matches.keys()][0];
+    db.resolveRace = 'DISPUTED';
+
+    const playerC = await cookieFor(db, 'player-c');
+    const response = await routes.fetch(new Request(`https://misfits.test/api/results/${resultId}/dispute`, {
+      method: 'POST', headers: { Cookie: playerC, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ note: 'Score needs checking' }),
+    }), env, {} as never);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'RESULT_ALREADY_RESOLVED' } });
+    expect(db.matches.get(resultId)?.status).toBe('DISPUTED');
   });
 
   it('keeps disputes out of standings and enforces the configured pair limit', async () => {
