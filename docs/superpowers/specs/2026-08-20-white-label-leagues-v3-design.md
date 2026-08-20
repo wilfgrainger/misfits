@@ -1,6 +1,6 @@
 # White-Label Leagues v3 Design
 
-> **Status:** Current design for the next release. This supersedes the v2 assumption that only global administrators can create leagues and that the shared shell is Misfits-branded.
+> **Status:** Current v3 behavior contract. This supersedes the v2 assumption that only global administrators can create leagues and that the shared shell is Misfits-branded.
 
 **Date:** 20 August 2026  
 **Repository:** `wilfgrainger/misfits`  

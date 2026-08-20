@@ -6,5 +6,12 @@
   "display": "standalone",
   "background_color": "#f1ead7",
   "theme_color": "#0b0d0c",
-  "icons": []
+  "icons": [
+    {
+      "src": "/brand/league-board.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
