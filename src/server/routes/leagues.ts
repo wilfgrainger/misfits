@@ -1,6 +1,6 @@
 import { Hono, type Context } from 'hono';
 import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
-import { readSessionToken, resolveSession, type AuthUser } from '../auth/session';
+import { resolveRequestSession, type AuthUser } from '../auth/session';
 import { AppError, jsonError } from '../errors';
 import { canViewLeague, getLeagueByIdOrSlug, listLeagueMembers, listPublicLeagues, listUserLeagues, type LeagueRecord } from '../db/leagues';
 import { joinLeagueByInvite } from '../db/invites';
@@ -28,7 +28,7 @@ function publicLeague(league: Awaited<ReturnType<typeof getLeagueByIdOrSlug>>) {
 async function findViewableLeague(c: Context<AuthAppEnv>, key: string): Promise<LeagueRecord | null> {
   const league = await getLeagueByIdOrSlug(c.env.DB, key);
   if (!league) return null;
-  const user = await resolveSession(c.env.DB, readSessionToken(c.req.raw));
+  const user = await resolveRequestSession(c.env.DB, c.req.raw);
   return await canViewLeague(c.env.DB, league, user ?? undefined) ? league : null;
 }
 

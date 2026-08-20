@@ -12,7 +12,7 @@ import {
   OAUTH_STATE_COOKIE,
   oauthStateCookie,
   readOAuthState,
-  readSessionToken,
+  readSessionTokens,
   revokeSession,
   sessionCookie,
   SESSION_COOKIE,
@@ -156,7 +156,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
   });
 
   routes.post('/auth/logout', requireSameOrigin, async (c) => {
-    await revokeSession(c.env.DB, readSessionToken(c.req.raw));
+    for (const token of readSessionTokens(c.req.raw)) await revokeSession(c.env.DB, token);
     c.header('Set-Cookie', expiredCookie(SESSION_COOKIE));
     c.header('Set-Cookie', expiredCookie(LEGACY_SESSION_COOKIE), { append: true });
     return c.json({ ok: true }, 200, { 'Cache-Control': 'no-store' });

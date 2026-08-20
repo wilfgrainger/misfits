@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createAuthRoutes } from '../../src/server/routes/auth';
 import type { GoogleIdentity } from '../../src/server/auth/google';
+import { issueSession } from '../../src/server/auth/session';
 
 type User = {
   id: string;
@@ -269,5 +270,35 @@ describe('Google auth routes', () => {
     }), env, {} as never);
     expect(response.status).toBe(403);
     expect(await response.json()).toMatchObject({ error: { code: 'FORBIDDEN' } });
+  });
+
+  it('revokes both generic and legacy sessions when both cookies are present', async () => {
+    const { routes, env, db } = setup();
+    const signedIn = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
+      method: 'POST',
+      headers: { Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: 'google-id-token-123456' }),
+    }), env, {} as never);
+    const genericSession = sessionFrom(signedIn);
+    const userId = [...db.users.keys()][0];
+    const legacySession = await issueSession(db as never, userId, new Date('2026-08-20T12:00:00.000Z'));
+
+    const logout = await routes.fetch(new Request('https://misfits.test/auth/logout', {
+      method: 'POST',
+      headers: {
+        Cookie: `league_board_session=${genericSession}; misfits_session=${legacySession.token}`,
+        Origin: 'https://misfits.test',
+      },
+    }), env, {} as never);
+    expect(logout.status).toBe(200);
+
+    const genericAfter = await routes.fetch(new Request('https://misfits.test/api/me', {
+      headers: { Cookie: `league_board_session=${genericSession}` },
+    }), env, {} as never);
+    const legacyAfter = await routes.fetch(new Request('https://misfits.test/api/me', {
+      headers: { Cookie: `misfits_session=${legacySession.token}` },
+    }), env, {} as never);
+    expect(genericAfter.status).toBe(401);
+    expect(legacyAfter.status).toBe(401);
   });
 });

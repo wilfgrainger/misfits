@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import type { Env } from '../env';
 import { AppError, jsonError } from '../errors';
-import { readSessionToken, resolveSession, type AuthUser } from './session';
+import { resolveRequestSession, type AuthUser } from './session';
 
 export interface AuthVariables {
   user: AuthUser;
@@ -19,7 +19,7 @@ export const requireSameOrigin: MiddlewareHandler<AuthAppEnv> = async (c, next) 
 };
 
 export const requireUser: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
-  const user = await resolveSession(c.env.DB, readSessionToken(c.req.raw));
+  const user = await resolveRequestSession(c.env.DB, c.req.raw);
   if (!user) return jsonError(c, new AppError('UNAUTHENTICATED', 'Sign-in is required', 401));
   c.set('user', user);
   return next();

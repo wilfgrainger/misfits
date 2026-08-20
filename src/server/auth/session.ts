@@ -86,7 +86,19 @@ export function readCookie(request: Request, name: string): string | null {
 }
 
 export function readSessionToken(request: Request): string | null {
-  return readCookie(request, SESSION_COOKIE) ?? readCookie(request, LEGACY_SESSION_COOKIE);
+  return readSessionTokens(request)[0] ?? null;
+}
+
+export function readSessionTokens(request: Request): string[] {
+  return [...new Set([readCookie(request, SESSION_COOKIE), readCookie(request, LEGACY_SESSION_COOKIE)].filter((token): token is string => Boolean(token)))];
+}
+
+export async function resolveRequestSession(db: D1Database, request: Request, now = new Date()): Promise<AuthUser | null> {
+  for (const token of readSessionTokens(request)) {
+    const user = await resolveSession(db, token, now);
+    if (user) return user;
+  }
+  return null;
 }
 
 export function readOAuthState(request: Request): string | null {
