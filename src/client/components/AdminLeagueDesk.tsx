@@ -7,6 +7,7 @@ const api = new ApiClient();
 interface AdminLeagueDeskProps {
   user: UserSummary;
   onLeagueSelected?: (league: LeagueSummary | null) => void;
+  onLeagueChanged?: (league: LeagueSummary) => void;
 }
 
 function resultInput(result: ResultSummary) {
@@ -39,7 +40,7 @@ async function copyText(value: string): Promise<void> {
   }
 }
 
-export function AdminLeagueDesk({ user, onLeagueSelected }: AdminLeagueDeskProps) {
+export function AdminLeagueDesk({ user, onLeagueSelected, onLeagueChanged }: AdminLeagueDeskProps) {
   const [leagues, setLeagues] = useState<LeagueSummary[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [members, setMembers] = useState<Array<{ userId: string; username: string | null; profileImageUrl: string | null; active: boolean }>>([]);
@@ -122,6 +123,7 @@ export function AdminLeagueDesk({ user, onLeagueSelected }: AdminLeagueDeskProps
       const result = await api.createAdminLeague({ name: newName, seasonName: newSeason, maxPlayers: Number(newCapacity), matchesPerPair: Number(newRepeats), targetLegs: Number(newTargetLegs), pointsPerWin: Number(newPointsPerWin), visibility: newVisibility });
       setLeagues((current) => [...current, result.league]);
       setSelectedId(result.league.id);
+      onLeagueChanged?.(result.league);
       setNewName('');
       setMessage('League created.');
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'League could not be created.'); }
@@ -135,6 +137,7 @@ export function AdminLeagueDesk({ user, onLeagueSelected }: AdminLeagueDeskProps
     try {
       const result = await api.updateAdminLeague(selectedLeague.id, { name: editName, seasonName: editSeason, maxPlayers: Number(editCapacity), matchesPerPair: Number(editRepeats), targetLegs: Number(editTargetLegs), pointsPerWin: Number(editPointsPerWin), status: editStatus, visibility: editVisibility });
       setLeagues((current) => current.map((league) => league.id === result.league.id ? result.league : league));
+      onLeagueChanged?.(result.league);
       setMessage('League settings saved.');
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'League settings could not be saved.'); }
     finally { setBusy(null); }

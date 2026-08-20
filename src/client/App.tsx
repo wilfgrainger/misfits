@@ -179,6 +179,10 @@ export default function App() {
 
   const saveUser = (saved: UserSummary) => setUser(saved);
   const saveProfile = (profile: Pick<UserSummary, 'username' | 'profileImageUrl' | 'dartsCounterUrl'>) => setUser((current) => current ? { ...current, ...profile } : current);
+  const handleLeagueCreated = (league: LeagueSummary) => {
+    setMyLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : [league, ...current]);
+    setSelectedLeagueId(league.id);
+  };
   const selectedLeague = myLeagues.find((league) => league.id === selectedLeagueId) ?? null;
   const selectedPublicLeague = publicLeagues.find((league) => league.id === publicLeagueId) ?? null;
 
@@ -199,7 +203,7 @@ export default function App() {
 
         {view === 'onboarding' && <form className="onboarding-form" onSubmit={submitUsername}><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Continue</button></form>}
 
-        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.isMasterAdmin ? 'Master administrator' : 'League owner / player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div><AdminLeagueDesk user={user} /><div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><p className="section-kicker">NO MEMBERSHIPS</p><h2>Join with an invite link.</h2><p>Open a league invite link in this browser to enter a league.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
+        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.isMasterAdmin ? 'Master administrator' : 'League owner / player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div><AdminLeagueDesk user={user} onLeagueChanged={handleLeagueCreated} /><div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><p className="section-kicker">NO MEMBERSHIPS</p><h2>Join with an invite link.</h2><p>Open a league invite link in this browser to enter a league.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
 
         {view !== 'signed-in' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
       </section>

@@ -76,12 +76,14 @@ class MemoryD1 {
 
   private async all<T>(sql: string): Promise<{ results: T[] }> {
     if (sql.includes('FROM users')) {
-      return {
-        results: [...this.users.values()].map((user) => ({
-          ...user,
-          league_active: this.leaguePlayers.has(user.id) ? 1 : 0,
-        })) as T[],
-      };
+      const rows = [...this.users.values()].flatMap((user) => {
+        const memberships = [...this.leaguePlayers].filter((key) => key === user.id || key.endsWith(`:${user.id}`));
+        if (sql.includes('LEFT JOIN league_players')) {
+          return (memberships.length > 0 ? memberships : [null]).map(() => ({ ...user, league_active: memberships.length > 0 ? 1 : 0 }));
+        }
+        return [{ ...user, league_active: memberships.length > 0 ? 1 : 0 }];
+      });
+      return { results: rows as T[] };
     }
     return { results: [] };
   }
@@ -133,6 +135,17 @@ describe('admin routes', () => {
     });
   });
 
+  it('lists each user once when they belong to multiple leagues', async () => {
+    const { db, routes, env } = setup();
+    db.leaguePlayers.add('league-1:player-1');
+    db.leaguePlayers.add('league-2:player-1');
+    const cookie = await cookieFor(db, 'admin-1');
+    const response = await routes.fetch(new Request('https://misfits.test/api/admin/players', { headers: { Cookie: cookie } }), env, {} as never);
+    expect(response.status).toBe(200);
+    const body = await response.json() as { players: Array<{ id: string }> };
+    expect(body.players.filter((player) => player.id === 'player-1')).toHaveLength(1);
+  });
+
   it('lets an administrator promote a player and records the change', async () => {
     const { db, routes, env } = setup();
     const cookie = await cookieFor(db, 'admin-1');
@@ -161,6 +174,24 @@ describe('admin routes', () => {
       expect(response.status).toBe(409);
       expect(await response.json()).toMatchObject({ error: { code: 'LAST_ADMIN_PROTECTED' } });
     }
+    expect(db.audit).toHaveLength(0);
+  });
+
+  it('protects the master administrator even when another administrator exists', async () => {
+    const { db, routes, env } = setup();
+    db.users.set('admin-2', {
+      id: 'admin-2', google_sub: 'google-admin-2', email: 'admin2@example.com', username: 'Admin Two',
+      role: 'ADMIN', status: 'ACTIVE', created_at: now.toISOString(), last_login_at: now.toISOString(), is_master_admin: 0,
+    });
+    const cookie = await cookieFor(db, 'admin-1');
+    const response = await routes.fetch(new Request('https://misfits.test/api/admin/players/admin-1', {
+      method: 'PATCH',
+      headers: { Cookie: cookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'PLAYER' }),
+    }), env, {} as never);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'MASTER_ADMIN_PROTECTED' } });
+    expect(db.users.get('admin-1')).toMatchObject({ role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1 });
     expect(db.audit).toHaveLength(0);
   });
 

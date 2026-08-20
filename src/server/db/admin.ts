@@ -13,10 +13,11 @@ export interface AdminPlayerChanges {
 
 export async function listAdminPlayers(db: D1Database): Promise<AdminPlayerRecord[]> {
   const result = await db.prepare(
-    `SELECT users.*, CASE WHEN league_players.active = 1 THEN 1 ELSE 0 END AS league_active
+    `SELECT users.*, CASE WHEN EXISTS (
+              SELECT 1 FROM league_players
+               WHERE league_players.user_id = users.id AND league_players.active = 1
+            ) THEN 1 ELSE 0 END AS league_active
       FROM users
-      LEFT JOIN league_players
-         ON league_players.user_id = users.id AND league_players.active = 1
       ORDER BY users.created_at ASC, users.id ASC`,
   ).all<AdminPlayerRecord>();
   return result.results;
@@ -50,6 +51,10 @@ export async function updateAdminPlayer(
     (await countActiveAdmins(db)) <= 1
   ) {
     throw new AppError('LAST_ADMIN_PROTECTED', 'The last active administrator cannot be removed or suspended', 409);
+  }
+
+  if (before.is_master_admin === 1 && (nextRole !== 'ADMIN' || nextStatus !== 'ACTIVE')) {
+    throw new AppError('MASTER_ADMIN_PROTECTED', 'The master administrator cannot be removed or suspended', 409);
   }
 
   const updatedAt = now.toISOString();
