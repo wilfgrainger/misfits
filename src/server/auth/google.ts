@@ -28,6 +28,18 @@ export interface GoogleIdentity {
   emailVerified: true;
 }
 
+export async function verifyGoogleCredential(credential: string, clientId: string): Promise<GoogleIdentity> {
+  const { payload } = await jwtVerify(credential, GOOGLE_JWKS, {
+    issuer: GOOGLE_ISSUERS,
+    audience: clientId,
+  });
+  const claims = payload as unknown as GoogleClaims;
+  if (!claims.sub || !claims.email || claims.email_verified !== true) {
+    throw new Error('Google account must have a verified email');
+  }
+  return { sub: claims.sub, email: claims.email, emailVerified: true };
+}
+
 export function buildGoogleAuthorizationUrl(
   config: Pick<GoogleConfig, 'clientId' | 'redirectUri'>,
   state: string,

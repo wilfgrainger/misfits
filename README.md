@@ -11,39 +11,38 @@ npm run db:migrate:local
 npm run dev:worker
 ```
 
-The local Worker runs at `http://localhost:8787`. The local Google OAuth client must allow this exact callback URI:
+The local Worker runs at `http://localhost:8787`. The browser uses Google Identity Services, so add the local browser origin to the OAuth client's **Authorized JavaScript origins**:
 
 ```text
-http://localhost:8787/auth/google/callback
+http://localhost:5173
 ```
 
 Set the local values in `.dev.vars`. That file is ignored and must never be committed:
 
 ```text
 GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-APP_ORIGIN=http://localhost:8787
+APP_ORIGIN=http://localhost:5173
 BOOTSTRAP_ADMIN_EMAIL=...
 ```
 
-The browser client is built separately with `npm run dev`, but backend routes and D1 bindings are exercised through `npm run dev:worker`.
+The public browser client ID is configured in `VITE_GOOGLE_CLIENT_ID`. Google client IDs are identifiers, not secrets; the Worker still verifies the returned Google ID token server-side.
 
 ## Google sign-in setup
 
 In Google Cloud Console:
 
 1. Create or select a project and configure the OAuth consent screen.
-2. Create an OAuth client with application type **Web application**.
-3. Add the exact authorized redirect URI for each environment:
-   - Local: `http://localhost:8787/auth/google/callback`
-   - Production: `<APP_ORIGIN>/auth/google/callback`
-4. Put the generated client ID and client secret in the environment configuration, never in source control.
+2. Create or use an OAuth client with application type **Web application**.
+3. Add these exact **Authorized JavaScript origins**:
+   - Local: `http://localhost:5173`
+   - Production: `https://darts.graingers.agency`
+4. Put the public client ID in `VITE_GOOGLE_CLIENT_ID` and the Worker `GOOGLE_CLIENT_ID` secret. No client secret is required for this Google Identity Services flow.
 
-The Worker uses Google's authorization-code flow with `openid email`, validates the OAuth state cookie, exchanges the code server-side, verifies the ID token against Google's JWKS, requires a verified email, and keys the application account by Google's stable `sub` claim rather than email.
+The browser loads Google Identity Services, receives an ID-token credential, and posts it to `/api/auth/google`. The Worker verifies the token against Google's JWKS, requires a verified email, and keys the application account by Google's stable `sub` claim rather than email.
 
 ## Cloudflare setup
 
-The production D1 database has been provisioned in the `WEUR` region as `misfits` with ID `9702b993-f0b7-479b-9679-7e32a1c35214`. That ID is committed in `wrangler.jsonc`; no application code depends on it.
+The production Worker is `darts-501` at `https://darts.graingers.agency`. Its `workers.dev` route is disabled; the Worker is exposed through the custom domain only. The production D1 database has been provisioned in the `WEUR` region as `misfits` with ID `9702b993-f0b7-479b-9679-7e32a1c35214`. That ID is committed in `wrangler.jsonc`; no application code depends on it.
 
 The initial migration has been applied remotely and seeds the `Misfits 501` league. To inspect the remote database:
 
@@ -52,15 +51,14 @@ npx wrangler d1 execute misfits --remote --command "SELECT id,name,status,target
 npx wrangler d1 migrations list misfits --remote
 ```
 
-Before the first deployment, configure the production environment values. `APP_ORIGIN` must be the final HTTPS origin and must match the Google redirect URI exactly:
+Before the first deployment, configure the production Worker values:
 
 ```powershell
 npx wrangler secret put GOOGLE_CLIENT_ID
-npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put BOOTSTRAP_ADMIN_EMAIL
 ```
 
-`APP_ORIGIN` is committed as the current Worker origin in `wrangler.jsonc`. Keep externally managed variables when deploying:
+`APP_ORIGIN` and the public browser client ID are committed in `wrangler.jsonc`. Keep externally managed variables when deploying:
 
 ```powershell
 npm run build
@@ -81,4 +79,4 @@ npx wrangler d1 execute misfits --local --command "SELECT id,name,status,target_
 npx wrangler deploy --dry-run
 ```
 
-`wrangler deploy --dry-run` validates the Worker bundle and bindings without publishing a deployment. A real deploy and live Google callback still require the final `APP_ORIGIN` and Google OAuth configuration above.
+`wrangler deploy --dry-run` validates the Worker bundle and bindings without publishing a deployment. A live sign-in test requires the production JavaScript origin above to be present in the Google OAuth client.

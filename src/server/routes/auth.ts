@@ -3,7 +3,7 @@ import type { Env } from '../env';
 import { AppError, jsonError } from '../errors';
 import { validateUsername } from '../domain/username';
 import { getUserById, setUsernameAndJoinLeague, upsertGoogleUser } from '../db/users';
-import { buildGoogleAuthorizationUrl, exchangeGoogleCode, type GoogleIdentity } from '../auth/google';
+import { buildGoogleAuthorizationUrl, exchangeGoogleCode, verifyGoogleCredential, type GoogleIdentity } from '../auth/google';
 import {
   expiredCookie,
   issueSession,
@@ -16,6 +16,7 @@ import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards'
 
 interface AuthRouteDependencies {
   exchange?: (config: Parameters<typeof exchangeGoogleCode>[0], code: string) => Promise<GoogleIdentity>;
+  verifyCredential?: (credential: string, clientId: string) => Promise<GoogleIdentity>;
   now?: () => Date;
   state?: () => string;
 }
@@ -34,6 +35,36 @@ function authFailure(c: Parameters<typeof jsonError>[0], message = 'Authenticati
 export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
   const routes = new Hono<AuthAppEnv>();
   const now = dependencies.now ?? (() => new Date());
+
+  routes.post('/api/auth/google', requireSameOrigin, async (c) => {
+    c.header('Cache-Control', 'no-store');
+    if (!c.env.GOOGLE_CLIENT_ID) {
+      return jsonError(c, new AppError('CONFIGURATION_ERROR', 'Google sign-in is not configured', 503));
+    }
+    const body = await c.req.json().catch(() => null) as { credential?: unknown } | null;
+    if (!body || typeof body.credential !== 'string' || body.credential.length < 20) {
+      return jsonError(c, new AppError('VALIDATION_ERROR', 'A Google credential is required', 400));
+    }
+
+    let identity: GoogleIdentity;
+    try {
+      identity = await (dependencies.verifyCredential ?? verifyGoogleCredential)(body.credential, c.env.GOOGLE_CLIENT_ID);
+    } catch {
+      return jsonError(c, new AppError('UNAUTHENTICATED', 'Google sign-in could not be verified', 401));
+    }
+
+    try {
+      const user = await upsertGoogleUser(c.env.DB, identity, now(), c.env.BOOTSTRAP_ADMIN_EMAIL);
+      const session = await issueSession(c.env.DB, user.id, now());
+      c.header('Set-Cookie', sessionCookie(session.token));
+      return c.json({
+        user: { id: user.id, username: user.username, role: user.role, status: user.status },
+        requiresOnboarding: user.username === null,
+      }, 200, { 'Cache-Control': 'no-store' });
+    } catch {
+      return jsonError(c, new AppError('VALIDATION_ERROR', 'Account setup could not be completed', 400));
+    }
+  });
 
   routes.get('/auth/google', (c) => {
     c.header('Cache-Control', 'no-store');

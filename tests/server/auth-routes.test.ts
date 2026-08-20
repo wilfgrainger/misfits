@@ -86,8 +86,10 @@ function setup() {
   const state = 'state-for-test';
   let identity: GoogleIdentity = { sub: 'google-1', email: 'admin@example.com', emailVerified: true };
   const exchange = vi.fn(async () => identity);
+  const verifyCredential = vi.fn(async () => identity);
   const routes = createAuthRoutes({
     exchange,
+    verifyCredential,
     state: () => state,
     now: () => new Date('2026-08-20T12:00:00.000Z'),
   });
@@ -99,7 +101,7 @@ function setup() {
     APP_ORIGIN: 'https://misfits.test',
     BOOTSTRAP_ADMIN_EMAIL: 'admin@example.com',
   };
-  return { db, routes, env, state, exchange, setIdentity: (next: GoogleIdentity) => { identity = next; } };
+  return { db, routes, env, state, exchange, verifyCredential, setIdentity: (next: GoogleIdentity) => { identity = next; } };
 }
 
 function sessionFrom(response: Response): string {
@@ -108,6 +110,31 @@ function sessionFrom(response: Response): string {
 }
 
 describe('Google auth routes', () => {
+  it('accepts a Google Identity Services credential through the same-origin API', async () => {
+    const { routes, env, verifyCredential, db } = setup();
+    const response = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
+      method: 'POST',
+      headers: { Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: 'google-id-token-123456' }),
+    }), { ...env, GOOGLE_CLIENT_SECRET: '' }, {} as never);
+    expect(response.status).toBe(200);
+    expect(verifyCredential).toHaveBeenCalledWith('google-id-token-123456', 'client-id');
+    expect([...db.users.values()][0].role).toBe('ADMIN');
+    expect(response.headers.get('set-cookie')).toContain('misfits_session=');
+    expect(await response.json()).toMatchObject({ requiresOnboarding: true, user: { role: 'ADMIN' } });
+  });
+
+  it('rejects a Google Identity Services credential from another origin', async () => {
+    const { routes, env, verifyCredential } = setup();
+    const response = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
+      method: 'POST',
+      headers: { Origin: 'https://evil.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: 'google-id-token-123456' }),
+    }), env, {} as never);
+    expect(response.status).toBe(403);
+    expect(verifyCredential).not.toHaveBeenCalled();
+  });
+
   it('fails closed when Google production configuration is absent', async () => {
     const { routes, env } = setup();
     const response = await routes.fetch(new Request('https://misfits.test/auth/google'), {

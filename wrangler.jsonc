@@ -1,10 +1,12 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "misfits-501",
+  "name": "darts-501",
+  "workers_dev": false,
   "main": "./src/server/index.ts",
   "compatibility_date": "2026-08-19",
   "vars": {
-    "APP_ORIGIN": "https://misfits-501.zerobytemode.workers.dev"
+    "APP_ORIGIN": "https://darts.graingers.agency",
+    "VITE_GOOGLE_CLIENT_ID": "283865619073-pbgbcaoamje9rutnq7sq59fd9lmqrme3.apps.googleusercontent.com"
   },
   "assets": {
     "directory": "./dist",
