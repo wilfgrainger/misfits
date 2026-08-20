@@ -46,6 +46,8 @@ class MemoryD1 {
       user.last_login_at = lastLoginAt;
     } else if (sql.includes("UPDATE users SET role = 'ADMIN'")) {
       this.users.get(String(values[0]))!.role = 'ADMIN';
+    } else if (sql.startsWith('UPDATE users SET profile_image_url')) {
+      (this.users.get(String(values[1])) as User & { profile_image_url?: string }).profile_image_url = String(values[0]);
     } else if (sql.startsWith('UPDATE users SET username')) {
       const [username, lastLoginAt, id] = values as string[];
       if ([...this.users.values()].some((user) => user.id !== id && user.username?.toLowerCase() === username.toLowerCase())) {
@@ -124,6 +126,18 @@ describe('Google auth routes', () => {
     expect(await response.json()).toMatchObject({ requiresOnboarding: true, user: { role: 'ADMIN' } });
   });
 
+  it('persists the verified Google profile picture in the local account', async () => {
+    const { routes, env, setIdentity } = setup();
+    setIdentity({ sub: 'google-picture', email: 'picture@example.com', emailVerified: true, picture: 'https://lh3.googleusercontent.com/picture' });
+    const response = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
+      method: 'POST',
+      headers: { Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: 'google-id-token-123456' }),
+    }), env, {} as never);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ user: { profileImageUrl: 'https://lh3.googleusercontent.com/picture' } });
+  });
+
   it('rejects a Google Identity Services credential from another origin', async () => {
     const { routes, env, verifyCredential } = setup();
     const response = await routes.fetch(new Request('https://misfits.test/api/auth/google', {
@@ -185,7 +199,7 @@ describe('Google auth routes', () => {
     }), env, {} as never);
     expect(onboarding.status).toBe(200);
     expect(await onboarding.json()).toMatchObject({ requiresOnboarding: false, user: { username: 'Dart Admin' } });
-    expect(db.leaguePlayers.has([...db.users.keys()][0])).toBe(true);
+    expect(db.leaguePlayers.has([...db.users.keys()][0])).toBe(false);
 
     setIdentity({ sub: 'google-2', email: 'admin@example.com', emailVerified: true });
     const secondCallback = await routes.fetch(new Request(`https://misfits.test/auth/google/callback?state=${state}&code=second-code`, {

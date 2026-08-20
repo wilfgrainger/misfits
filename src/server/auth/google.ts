@@ -20,12 +20,14 @@ export interface GoogleClaims {
   iss?: string;
   aud?: string | string[];
   exp?: number;
+  picture?: string;
 }
 
 export interface GoogleIdentity {
   sub: string;
   email: string;
   emailVerified: true;
+  picture?: string;
 }
 
 export async function verifyGoogleCredential(credential: string, clientId: string): Promise<GoogleIdentity> {
@@ -37,7 +39,12 @@ export async function verifyGoogleCredential(credential: string, clientId: strin
   if (!claims.sub || !claims.email || claims.email_verified !== true) {
     throw new Error('Google account must have a verified email');
   }
-  return { sub: claims.sub, email: claims.email, emailVerified: true };
+  return {
+    sub: claims.sub,
+    email: claims.email,
+    emailVerified: true,
+    ...(typeof claims.picture === 'string' && claims.picture.startsWith('https://') ? { picture: claims.picture } : {}),
+  };
 }
 
 export function buildGoogleAuthorizationUrl(
@@ -92,5 +99,10 @@ export async function exchangeGoogleCode(config: GoogleConfig, code: string): Pr
   if (!claims.sub || !claims.email || claims.email_verified !== true) {
     throw new Error('Google account must have a verified email');
   }
-  return { sub: claims.sub, email: claims.email, emailVerified: true };
+  return {
+    sub: claims.sub,
+    email: claims.email,
+    emailVerified: true,
+    ...(typeof claims.picture === 'string' && claims.picture.startsWith('https://') ? { picture: claims.picture } : {}),
+  };
 }

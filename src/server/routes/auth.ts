@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../env';
 import { AppError, jsonError } from '../errors';
 import { validateUsername } from '../domain/username';
-import { getUserById, setUsernameAndJoinLeague, upsertGoogleUser } from '../db/users';
+import { getUserById, publicUser, setUsernameAndJoinLeague, upsertGoogleUser } from '../db/users';
 import { buildGoogleAuthorizationUrl, exchangeGoogleCode, verifyGoogleCredential, type GoogleIdentity } from '../auth/google';
 import {
   expiredCookie,
@@ -58,7 +58,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
       const session = await issueSession(c.env.DB, user.id, now());
       c.header('Set-Cookie', sessionCookie(session.token));
       return c.json({
-        user: { id: user.id, username: user.username, role: user.role, status: user.status },
+        user: publicUser(user),
         requiresOnboarding: user.username === null,
       }, 200, { 'Cache-Control': 'no-store' });
     } catch {
@@ -117,9 +117,10 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
   });
 
   routes.get('/api/me', requireUser, async (c) => {
-    const user = c.get('user');
+    const user = await getUserById(c.env.DB, c.get('user').id);
+    if (!user) return jsonError(c, new AppError('UNAUTHENTICATED', 'Sign-in is required', 401));
     return c.json({
-      user: { id: user.id, username: user.username, role: user.role, status: user.status },
+      user: publicUser(user),
       requiresOnboarding: user.username === null,
     }, 200, { 'Cache-Control': 'private, no-store' });
   });
@@ -137,7 +138,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     try {
       const user = await setUsernameAndJoinLeague(c.env.DB, c.get('user').id, validation.value, now());
       return c.json({
-        user: { id: user.id, username: user.username, role: user.role, status: user.status },
+        user: publicUser(user),
         requiresOnboarding: false,
       });
     } catch (error) {

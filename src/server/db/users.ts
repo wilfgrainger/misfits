@@ -10,8 +10,30 @@ export interface UserRecord {
   username: string | null;
   role: UserRole;
   status: UserStatus;
+  profile_image_url: string | null;
+  darts_counter_url: string | null;
   created_at: string;
   last_login_at: string;
+}
+
+export interface PublicUserSummary {
+  id: string;
+  username: string | null;
+  role: UserRole;
+  status: UserStatus;
+  profileImageUrl: string | null;
+  dartsCounterUrl: string | null;
+}
+
+export function publicUser(user: Pick<UserRecord, 'id' | 'username' | 'role' | 'status' | 'profile_image_url' | 'darts_counter_url'>): PublicUserSummary {
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    status: user.status,
+    profileImageUrl: user.profile_image_url ?? null,
+    dartsCounterUrl: user.darts_counter_url ?? null,
+  };
 }
 
 export async function getUserByGoogleSub(db: D1Database, googleSub: string): Promise<UserRecord | null> {
@@ -50,6 +72,11 @@ export async function upsertGoogleUser(
 
   if (!user) throw new Error('User could not be loaded after Google sign-in');
 
+  if (identity.picture) {
+    await db.prepare('UPDATE users SET profile_image_url = ? WHERE id = ?')
+      .bind(identity.picture, user.id).run();
+  }
+
   if (
     bootstrapAdminEmail &&
     user.email.toLowerCase() === bootstrapAdminEmail.trim().toLowerCase() &&
@@ -70,10 +97,6 @@ export async function setUsernameAndJoinLeague(
   const timestamp = now.toISOString();
   await db.prepare('UPDATE users SET username = ?, last_login_at = ? WHERE id = ?')
     .bind(username, timestamp, userId).run();
-  await db.prepare(
-    `INSERT OR IGNORE INTO league_players (league_id, user_id, active, joined_at)
-     VALUES ('misfits-501', ?, 1, ?)`,
-  ).bind(userId, timestamp).run();
   const user = await getUserById(db, userId);
   if (!user) throw new Error('User could not be loaded after onboarding');
   return user;
