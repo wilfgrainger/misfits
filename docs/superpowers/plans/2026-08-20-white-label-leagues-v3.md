@@ -76,6 +76,7 @@
 - [x] Make public standings and result endpoints resolve both league IDs and stable league slugs.
 - [x] Reset opponent, leg and average entry state when a player switches leagues.
 - [x] Make player result entry visibly unavailable while a league is closed.
+- [x] Count legacy matches stored in either player order toward the repeat limit.
 - [x] Run the focused tests, full gate and production deployment checks.
 
 ## Verification gate
