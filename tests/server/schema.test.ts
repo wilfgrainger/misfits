@@ -12,4 +12,12 @@ describe('D1 schema', () => {
     expect(sql).toContain("CHECK(role IN ('PLAYER', 'ADMIN'))");
     expect(sql).toContain("CHECK(status IN ('PENDING', 'CONFIRMED', 'DISPUTED'))");
   });
+
+  it('defines the additive v2 migration', () => {
+    const sql = readFileSync('migrations/0002_leagues_profiles_invites.sql', 'utf8');
+    for (const fragment of ['profile_image_url', 'darts_counter_url', 'max_players', 'matches_per_pair', 'player_a_average', 'player_b_average', 'league_invites']) {
+      expect(sql).toContain(fragment);
+    }
+    expect(sql).toContain('token_hash TEXT NOT NULL UNIQUE');
+  });
 });
