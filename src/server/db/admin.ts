@@ -14,9 +14,9 @@ export interface AdminPlayerChanges {
 export async function listAdminPlayers(db: D1Database): Promise<AdminPlayerRecord[]> {
   const result = await db.prepare(
     `SELECT users.*, CASE WHEN league_players.active = 1 THEN 1 ELSE 0 END AS league_active
-       FROM users
-       LEFT JOIN league_players
-         ON league_players.user_id = users.id AND league_players.league_id = 'misfits-501'
+      FROM users
+      LEFT JOIN league_players
+         ON league_players.user_id = users.id AND league_players.active = 1
       ORDER BY users.created_at ASC, users.id ASC`,
   ).all<AdminPlayerRecord>();
   return result.results;
