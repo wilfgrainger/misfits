@@ -119,7 +119,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
       setInvites(invitePayload.invites);
       setResults(resultPayload.results);
     }).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'League workspace could not be loaded.'));
-  }, [activeSelectedId]);
+  }, [activeSelectedId, selectedLeague?.id]);
 
   const createLeague = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

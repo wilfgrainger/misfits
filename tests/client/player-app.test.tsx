@@ -43,8 +43,9 @@ describe('mobile league workspaces', () => {
       throw new Error(`Unexpected fetch: ${path}`);
     });
     const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const, isMasterAdmin: true };
-    render(<AdminLeagueDesk user={admin} />);
+    render(<AdminLeagueDesk user={admin} selectedLeagueId="league-1" />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
+    await waitFor(() => expect((screen.getAllByLabelText('League name')[1] as HTMLInputElement).value).toBe('Misfits 501'));
     expect(screen.getByRole('heading', { name: 'Your leagues' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Create a league' })).toBeTruthy();
     expect(screen.getAllByLabelText('League name')).toHaveLength(2);
