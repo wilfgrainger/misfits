@@ -68,6 +68,18 @@ export interface PromotionMovement {
   kind: 'PROMOTED' | 'RELEGATED';
 }
 
+export interface PromotionAmbiguity {
+  leagueId: string;
+  boundary: 'PROMOTION' | 'RELEGATION';
+  position: number;
+  tiedUserIds: string[];
+}
+
+export interface PromotionProjection {
+  movements: PromotionMovement[];
+  ambiguities: PromotionAmbiguity[];
+}
+
 function integerInRange(value: unknown, min: number, max: number): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 }
@@ -211,4 +223,69 @@ export function calculatePromotionMovements(
     }
   });
   return movements;
+}
+
+function sameCompetitiveRank(left: StandingPosition, right: StandingPosition): boolean {
+  return left.points === right.points
+    && left.legDifference === right.legDifference
+    && left.legsFor === right.legsFor
+    && left.average === right.average;
+}
+
+function tiedUserIds(standings: StandingPosition[], boundaryIndex: number): string[] {
+  const boundary = standings[boundaryIndex];
+  if (!boundary) return [];
+  return standings.filter((row) => sameCompetitiveRank(row, boundary)).map((row) => row.userId).sort();
+}
+
+/**
+ * Projection deliberately ignores the username fallback used for display
+ * ordering. If two players are equal on every approved competitive metric at
+ * a movement boundary, an administrator must resolve the tie before a final
+ * proposal can be written.
+ */
+export function calculatePromotionProjection(
+  standingsByLeague: Map<string, StandingPosition[]>,
+  orderedLeagues: LeagueMovementConfig[],
+): PromotionProjection {
+  const leagues = [...orderedLeagues].sort((a, b) => a.hierarchyPosition - b.hierarchyPosition);
+  const ambiguities: PromotionAmbiguity[] = [];
+
+  leagues.forEach((league, index) => {
+    const standings = standingsByLeague.get(league.leagueId) ?? [];
+    const promotionPlaces = index === 0 ? 0 : league.promotionPlaces;
+    const relegationPlaces = index === leagues.length - 1 ? 0 : league.relegationPlaces;
+
+    if (promotionPlaces > 0 && promotionPlaces < standings.length) {
+      const lastPromoted = standings[promotionPlaces - 1];
+      const firstSafe = standings[promotionPlaces];
+      if (lastPromoted && firstSafe && sameCompetitiveRank(lastPromoted, firstSafe)) {
+        ambiguities.push({
+          leagueId: league.leagueId,
+          boundary: 'PROMOTION',
+          position: promotionPlaces,
+          tiedUserIds: tiedUserIds(standings, promotionPlaces - 1),
+        });
+      }
+    }
+
+    const firstRelegatedIndex = standings.length - relegationPlaces;
+    if (relegationPlaces > 0 && firstRelegatedIndex > 0 && firstRelegatedIndex < standings.length) {
+      const lastSafe = standings[firstRelegatedIndex - 1];
+      const firstRelegated = standings[firstRelegatedIndex];
+      if (lastSafe && firstRelegated && sameCompetitiveRank(lastSafe, firstRelegated)) {
+        ambiguities.push({
+          leagueId: league.leagueId,
+          boundary: 'RELEGATION',
+          position: firstRelegatedIndex + 1,
+          tiedUserIds: tiedUserIds(standings, firstRelegatedIndex),
+        });
+      }
+    }
+  });
+
+  return {
+    movements: calculatePromotionMovements(standingsByLeague, leagues),
+    ambiguities,
+  };
 }
