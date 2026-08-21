@@ -19,14 +19,16 @@ describe('competition rules', () => {
     expect(new Set(fixtures.map((fixture) => `${fixture.meetingNumber}:${[fixture.playerAId, fixture.playerBId].sort().join(':')}`)).size).toBe(expected);
   });
 
-  it('uses stable rounds and gives each player at most one fixture in a round for a single round robin', () => {
-    const fixtures = generateRoundRobinFixtures(['a', 'b', 'c', 'd', 'e'], 1);
+  it('uses stable deterministic rounds and gives each player at most one fixture in a round', () => {
+    const players = ['a', 'b', 'c', 'd', 'e'];
+    const fixtures = generateRoundRobinFixtures(players, 1);
+    expect(generateRoundRobinFixtures(players, 1)).toEqual(fixtures);
     const byRound = Map.groupBy(fixtures, (fixture) => fixture.round);
     expect(fixtures).toHaveLength(10);
     expect(byRound.size).toBe(5);
     for (const round of byRound.values()) {
-      const players = round.flatMap((fixture) => [fixture.playerAId, fixture.playerBId]);
-      expect(new Set(players).size).toBe(players.length);
+      const roundPlayers = round.flatMap((fixture) => [fixture.playerAId, fixture.playerBId]);
+      expect(new Set(roundPlayers).size).toBe(roundPlayers.length);
     }
   });
 
