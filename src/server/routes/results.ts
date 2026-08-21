@@ -4,6 +4,13 @@ import { resolveRequestSession } from '../auth/session';
 import { AppError, jsonError } from '../errors';
 import { getLeagueByIdOrSlug, canViewLeague } from '../db/leagues';
 import { getPlayerResults, getPublicResults, getLeagueStandings, serializeResult, submitPlayerResult, confirmResult, disputeResult } from '../db/results';
+import {
+  fixtureIdForResult,
+  leagueHasPersistedFixtures,
+  submitFixtureResult,
+  syncFixtureForResult,
+  type FixtureResultRecord,
+} from '../db/fixture-results';
 
 interface ResultRouteDependencies {
   now?: () => Date;
@@ -14,6 +21,33 @@ async function findViewableLeague(c: Context<AuthAppEnv>, leagueId: string) {
   if (!league) return null;
   const user = await resolveRequestSession(c.env.DB, c.req.raw);
   return await canViewLeague(c.env.DB, league, user ?? undefined) ? league : null;
+}
+
+function serializeFixtureResult(result: FixtureResultRecord) {
+  return {
+    id: result.id,
+    fixtureId: result.fixture_id,
+    leagueId: result.league_id,
+    playerAId: result.player_a_id,
+    playerBId: result.player_b_id,
+    playerAUsername: result.player_a_username ?? null,
+    playerBUsername: result.player_b_username ?? null,
+    playerALegs: result.player_a_legs,
+    playerBLegs: result.player_b_legs,
+    playerAAverage: Number(result.player_a_average),
+    playerBAverage: Number(result.player_b_average),
+    submittedBy: result.submitted_by,
+    status: result.status,
+    confirmedBy: result.confirmed_by,
+    disputeNote: result.dispute_note,
+    createdAt: result.created_at,
+    confirmedAt: result.confirmed_at,
+  };
+}
+
+async function serializeResolvedResult(db: D1Database, result: Parameters<typeof serializeResult>[0]) {
+  const fixtureId = await fixtureIdForResult(db, result.id);
+  return { ...serializeResult(result), fixtureId };
 }
 
 export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
@@ -44,8 +78,17 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
   });
 
   routes.post('/api/leagues/:leagueId/results', requireSameOrigin, requireUser, requireNamedUser, async (c) => {
+    const leagueId = c.req.param('leagueId');
+    const body = await c.req.json().catch(() => null);
     try {
-      const result = await submitPlayerResult(c.env.DB, c.get('user').id, c.req.param('leagueId'), await c.req.json().catch(() => null), now());
+      if (body && typeof body === 'object' && typeof (body as { fixtureId?: unknown }).fixtureId === 'string') {
+        const result = await submitFixtureResult(c.env.DB, c.get('user').id, leagueId, body, now());
+        return c.json({ result: serializeFixtureResult(result) }, 201, { 'Cache-Control': 'private, no-store' });
+      }
+      if (await leagueHasPersistedFixtures(c.env.DB, leagueId)) {
+        throw new AppError('RESULT_ALREADY_RESOLVED', 'Choose an outstanding fixture before recording a league result', 409);
+      }
+      const result = await submitPlayerResult(c.env.DB, c.get('user').id, leagueId, body, now());
       return c.json({ result: serializeResult(result) }, 201, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
@@ -54,9 +97,11 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
   });
 
   routes.post('/api/results/:resultId/confirm', requireSameOrigin, requireUser, async (c) => {
+    const resultId = c.req.param('resultId');
     try {
-      const result = await confirmResult(c.env.DB, c.get('user').id, c.req.param('resultId'), now());
-      return c.json({ result: serializeResult(result) }, 200, { 'Cache-Control': 'private, no-store' });
+      const result = await confirmResult(c.env.DB, c.get('user').id, resultId, now());
+      await syncFixtureForResult(c.env.DB, resultId, now());
+      return c.json({ result: await serializeResolvedResult(c.env.DB, result) }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('VALIDATION_ERROR', 'Result could not be confirmed', 400));
@@ -64,11 +109,13 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
   });
 
   routes.post('/api/results/:resultId/dispute', requireSameOrigin, requireUser, async (c) => {
+    const resultId = c.req.param('resultId');
     const body = await c.req.json().catch(() => null) as { note?: unknown } | null;
     if (typeof body?.note !== 'string') return jsonError(c, new AppError('INVALID_RESULT', 'A dispute note is required', 400));
     try {
-      const result = await disputeResult(c.env.DB, c.get('user').id, c.req.param('resultId'), body.note, now());
-      return c.json({ result: serializeResult(result) }, 200, { 'Cache-Control': 'private, no-store' });
+      const result = await disputeResult(c.env.DB, c.get('user').id, resultId, body.note, now());
+      await syncFixtureForResult(c.env.DB, resultId, now());
+      return c.json({ result: await serializeResolvedResult(c.env.DB, result) }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('VALIDATION_ERROR', 'Result could not be disputed', 400));

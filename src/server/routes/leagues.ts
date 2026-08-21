@@ -1,8 +1,9 @@
 import { Hono, type Context } from 'hono';
 import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
-import { resolveRequestSession, type AuthUser } from '../auth/session';
+import { resolveRequestSession } from '../auth/session';
 import { AppError, jsonError } from '../errors';
 import { canViewLeague, getLeagueByIdOrSlug, listLeagueMembers, listPublicLeagues, listUserLeagues, type LeagueRecord } from '../db/leagues';
+import { getCompetitionLeague } from '../db/competition';
 import { joinLeagueByInvite } from '../db/invites';
 
 interface LeagueRouteDependencies {
@@ -69,7 +70,8 @@ export function createLeagueRoutes(dependencies: LeagueRouteDependencies = {}) {
   routes.post('/api/invites/:token/join', requireSameOrigin, requireUser, async (c) => {
     try {
       const member = await joinLeagueByInvite(c.env.DB, c.get('user').id, c.req.param('token'), now());
-      return c.json({ membership: { leagueId: member.league_id, userId: member.user_id, active: member.active === 1 } }, 200, { 'Cache-Control': 'private, no-store' });
+      const league = await getCompetitionLeague(c.env.DB, member.league_id);
+      return c.json({ membership: { seasonId: league?.season_id ?? null, leagueId: member.league_id, userId: member.user_id, active: member.active === 1 } }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('INVITE_INVALID', 'That invite link could not be used', 400));

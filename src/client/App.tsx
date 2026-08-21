@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { AdminLeagueDesk } from './components/AdminLeagueDesk';
+import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
 import { LeagueTabs } from './components/LeagueTabs';
 import { PlayerLeague } from './components/PlayerLeague';
 import { ProfilePanel } from './components/ProfilePanel';
@@ -280,7 +280,7 @@ export default function App() {
             {message && <p className="success-message" role="status">{message}</p>}
             {user.role === 'ADMIN' && adminMode === 'admin' && (
               <div className="admin-workbench">
-                <AdminLeagueDesk
+                <AdminCompetitionDesk
                   user={user}
                   selectedLeagueId={adminSelectedLeagueId}
                   onLeagueCreated={handleLeagueCreated}
