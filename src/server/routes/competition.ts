@@ -21,6 +21,7 @@ import {
   updateSeason,
 } from '../db/competition';
 import { createSeasonLeague, deleteEmptySeasonLeague, updateSeasonLeague } from '../db/competition-leagues';
+import { applyPromotionProposal, createPromotionProposal, getPromotionPreview, overridePromotionMovement } from '../db/promotion';
 
 interface CompetitionRouteDependencies {
   now?: () => Date;
@@ -134,6 +135,40 @@ export function createCompetitionRoutes(dependencies: CompetitionRouteDependenci
     if (typeof body?.fromLeagueId !== 'string' || typeof body?.toLeagueId !== 'string' || !body.fromLeagueId || !body.toLeagueId) return jsonError(c, new AppError('VALIDATION_ERROR', 'Source and target leagues are required', 400));
     try { await moveUserBetweenLeagues(c.env.DB, c.get('user').id, c.req.param('seasonId'), body.fromLeagueId, body.toLeagueId, c.req.param('userId'), now()); return c.json({ membership: { seasonId: c.req.param('seasonId'), leagueId: body.toLeagueId, userId: c.req.param('userId'), active: true } }, 200, { 'Cache-Control': 'private, no-store' }); }
     catch (error) { return failure(c, error, 'Player could not be moved'); }
+  });
+
+  routes.get('/api/admin/seasons/:seasonId/promotion/preview', async (c) => {
+    try { return c.json({ preview: await getPromotionPreview(c.env.DB, c.req.param('seasonId')) }, 200, { 'Cache-Control': 'private, no-store' }); }
+    catch (error) { return failure(c, error, 'Promotion projection could not be generated'); }
+  });
+
+  routes.post('/api/admin/seasons/:seasonId/promotion/proposal', requireSameOrigin, async (c) => {
+    const body = await c.req.json().catch(() => null) as { toSeasonId?: unknown } | null;
+    if (typeof body?.toSeasonId !== 'string' || !body.toSeasonId) return jsonError(c, new AppError('VALIDATION_ERROR', 'Target season is required', 400));
+    try {
+      const movements = await createPromotionProposal(c.env.DB, c.get('user').id, c.req.param('seasonId'), body.toSeasonId, now());
+      return c.json({ movements }, 201, { 'Cache-Control': 'private, no-store' });
+    } catch (error) { return failure(c, error, 'Promotion proposal could not be created'); }
+  });
+
+  routes.patch('/api/admin/seasons/:seasonId/promotion/:userId', requireSameOrigin, async (c) => {
+    const body = await c.req.json().catch(() => null) as { toLeagueId?: unknown; reason?: unknown } | null;
+    if (typeof body?.toLeagueId !== 'string' || !body.toLeagueId || typeof body.reason !== 'string') {
+      return jsonError(c, new AppError('VALIDATION_ERROR', 'Override target and reason are required', 400));
+    }
+    try {
+      const movement = await overridePromotionMovement(c.env.DB, c.get('user').id, c.req.param('seasonId'), c.req.param('userId'), body.toLeagueId, body.reason, now());
+      return c.json({ movement }, 200, { 'Cache-Control': 'private, no-store' });
+    } catch (error) { return failure(c, error, 'Promotion override could not be saved'); }
+  });
+
+  routes.post('/api/admin/seasons/:seasonId/promotion/apply', requireSameOrigin, async (c) => {
+    const body = await c.req.json().catch(() => null) as { toSeasonId?: unknown } | null;
+    if (typeof body?.toSeasonId !== 'string' || !body.toSeasonId) return jsonError(c, new AppError('VALIDATION_ERROR', 'Target season is required', 400));
+    try {
+      const result = await applyPromotionProposal(c.env.DB, c.get('user').id, c.req.param('seasonId'), body.toSeasonId, now());
+      return c.json(result, 200, { 'Cache-Control': 'private, no-store' });
+    } catch (error) { return failure(c, error, 'Promotion plan could not be applied'); }
   });
 
   routes.get('/api/admin/competition/leagues/:leagueId/fixtures/preview', async (c) => {
