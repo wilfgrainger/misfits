@@ -126,7 +126,10 @@ export default function App() {
 
   useEffect(() => {
     void loadPublicLeagues();
-    api.me().then((payload) => void applyAuth(payload)).catch((error: unknown) => {
+    api.me().then((payload) => {
+      if (!payload || !payload.user) throw new ApiClientError(401, 'Unauthenticated');
+      return applyAuth(payload);
+    }).catch((error: unknown) => {
       if (error instanceof ApiClientError && error.status === 401) {
         setView('signed-out');
         setMessage('The league table and match results are coming online.');
