@@ -1,10 +1,10 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiClient, type LeagueDetail, type LeagueSummary, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
+import { ApiClient, type FixtureSummary, type LeagueDetail, type LeagueSummary, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
 import { ProfilePanel } from './ProfilePanel';
 import { StandingsTable } from './StandingsTable';
 
 const api = new ApiClient();
-type PlayerView = 'table' | 'results' | 'players' | 'record' | 'profile';
+type PlayerView = 'table' | 'fixtures' | 'results' | 'players' | 'record' | 'profile';
 
 interface PlayerLeagueProps {
   user: UserSummary;
@@ -43,10 +43,12 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [results, setResults] = useState<ResultSummary[]>([]);
   const [myResults, setMyResults] = useState<ResultSummary[]>([]);
+  const [fixtures, setFixtures] = useState<FixtureSummary[]>([]);
   const [detail, setDetail] = useState<LeagueDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [opponentId, setOpponentId] = useState('');
   const [playerALegs, setPlayerALegs] = useState(String(league.targetLegs));
   const [playerBLegs, setPlayerBLegs] = useState('0');
@@ -66,17 +68,19 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
     setLoading(true);
     setError('');
     try {
-      const [standingPayload, resultPayload, detailPayload, mine] = await Promise.all([
+      const [standingPayload, resultPayload, detailPayload, mine, fixturePayload] = await Promise.all([
         api.standings(league.id),
         api.results(league.id),
         api.publicLeague(league.id),
         api.myResults(),
+        api.fixtures(league.id).catch(() => ({ fixtures: [] })),
       ]);
       if (request !== loadRequest.current) return;
       setStandings(standingPayload.standings);
       setResults(resultPayload.results);
       setDetail(detailPayload.league);
       setMyResults(mine.results.filter((result) => result.leagueId === league.id));
+      setFixtures(fixturePayload.fixtures ?? []);
       setOpponentId((current) => current || detailPayload.players.find((player) => player.id !== user.id)?.id || '');
     } catch (cause) {
       if (request === loadRequest.current) setError(cause instanceof Error ? cause.message : 'League data could not be loaded.');
@@ -93,6 +97,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
 
   useEffect(() => {
     setView('table');
+    setSelectedFixtureId(null);
     setOpponentId('');
     setPlayerALegs(String(league.targetLegs));
     setPlayerBLegs('0');
@@ -138,11 +143,22 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
     setBusyResult('new');
     setError('');
     setNotice('');
-    const input: ResultInput = { playerAId: user.id, playerBId: opponentId, playerALegs: Number(playerALegs), playerBLegs: Number(playerBLegs), playerAAverage: Number(playerAAverage), playerBAverage: Number(playerBAverage) };
     try {
-      await api.submitResult(league.id, input);
+      if (selectedFixtureId) {
+        await api.submitFixtureResult(league.id, {
+          fixtureId: selectedFixtureId,
+          playerALegs: Number(playerALegs),
+          playerBLegs: Number(playerBLegs),
+          playerAAverage: Number(playerAAverage),
+          playerBAverage: Number(playerBAverage),
+        });
+      } else {
+        const input: ResultInput = { playerAId: user.id, playerBId: opponentId, playerALegs: Number(playerALegs), playerBLegs: Number(playerBLegs), playerAAverage: Number(playerAAverage), playerBAverage: Number(playerBAverage) };
+        await api.submitResult(league.id, input);
+      }
       setNotice('Result sent to your opponent.');
       setView('results');
+      setSelectedFixtureId(null);
       setPlayerALegs(String(league.targetLegs));
       setPlayerBLegs('0');
       setPlayerAAverage('');
@@ -183,7 +199,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         <button className="refresh-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Loading' : 'Refresh'}</button>
       </div>
       <nav className="segmented-tabs" aria-label="Member workspace">
-        {([['table', 'Table'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
+        {([['table', 'Table'], ['fixtures', 'Fixtures'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
       </nav>
       {notice && <p className="success-message" role="status">{notice}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
@@ -194,6 +210,32 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
           <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} highlightPlayerId={user.id} />
           {standings.length === 0 && <p className="empty-message">No active players yet.</p>}
         </>
+      )}
+
+      {!loading && view === 'fixtures' && (
+        <div className="admin-block">
+          <div className="section-heading"><h3>League fixtures</h3><span className="count-label">{fixtures.length}</span></div>
+          <ul className="admin-list">
+            {fixtures.map((fixture) => {
+              const opponentName = fixture.playerAId === user.id ? (fixture.playerBUsername ?? 'Opponent') : (fixture.playerAUsername ?? 'Opponent');
+              const isMine = fixture.playerAId === user.id || fixture.playerBId === user.id;
+              return (
+                <li key={fixture.id}>
+                  <div>
+                    <strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong>
+                    <small>Round {fixture.round} · Meeting {fixture.meetingNumber} · {fixture.status}</small>
+                  </div>
+                  {isMine && fixture.status === 'OUTSTANDING' && league.status === 'OPEN' && (
+                    <button className="action-button" type="button" onClick={() => { setSelectedFixtureId(fixture.id); setView('record'); }}>
+                      Record result
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {fixtures.length === 0 && <p className="empty-message">No fixtures generated for this season yet.</p>}
+        </div>
       )}
 
       {!loading && view === 'results' && (
@@ -210,11 +252,24 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
             <p className="form-help">First to {league.targetLegs} leg{league.targetLegs > 1 ? 's' : ''} wins.</p>
           </div>
           {!canRecord && <p className="empty-message">Result entry is unavailable while this league is closed.</p>}
-          <label htmlFor="opponent">Opponent</label>
-          <select id="opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)} required disabled={!canRecord}>
-            <option value="">Choose player</option>
-            {opponents.map((player) => <option key={player.id} value={player.id}>{player.username}</option>)}
-          </select>
+          {selectedFixtureId && (() => {
+            const selectedFixture = fixtures.find((f) => f.id === selectedFixtureId);
+            const opponentName = selectedFixture ? (selectedFixture.playerAId === user.id ? selectedFixture.playerBUsername : selectedFixture.playerAUsername) : 'Opponent';
+            return (
+              <p className="account-context">
+                Selected fixture: {selectedFixture?.playerAUsername} vs {selectedFixture?.playerBUsername} (Round {selectedFixture?.round})
+              </p>
+            );
+          })()}
+          {!selectedFixtureId && (
+            <>
+              <label htmlFor="opponent">Opponent</label>
+              <select id="opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)} required disabled={!canRecord}>
+                <option value="">Choose player</option>
+                {opponents.map((player) => <option key={player.id} value={player.id}>{player.username}</option>)}
+              </select>
+            </>
+          )}
           <div className="form-grid">
             <label htmlFor="your-legs">Your legs<input id="your-legs" type="number" min="0" max={league.targetLegs} value={playerALegs} onChange={(event) => setPlayerALegs(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="their-legs">Their legs<input id="their-legs" type="number" min="0" max={league.targetLegs} value={playerBLegs} onChange={(event) => setPlayerBLegs(event.target.value)} required disabled={!canRecord} /></label>

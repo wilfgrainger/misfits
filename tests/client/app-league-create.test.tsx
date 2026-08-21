@@ -27,17 +27,24 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
     leagues() { return Promise.resolve({ leagues: [] }); }
     myLeagues() { return Promise.resolve({ leagues: shared.multipleLeagues ? [createdLeague, secondLeague] : shared.myLeagues }); }
     adminLeagues() { return Promise.resolve({ leagues: shared.multipleLeagues ? [createdLeague, secondLeague] : shared.adminLeagues }); }
+    adminSeasons() { return Promise.resolve({ seasons: [{ id: 's1', name: '2026', status: 'OPEN', isCurrent: true, createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z', closedAt: null }] }); }
+    seasonLeagues() { return Promise.resolve({ leagues: shared.multipleLeagues ? [createdLeague, secondLeague] : shared.adminLeagues }); }
+    seasonUnassigned() { return Promise.resolve({ users: [] }); }
+    competitionMembers() { return Promise.resolve({ members: [] }); }
+    fixtures() { return Promise.resolve({ fixtures: [] }); }
+    promotionPreview() { return Promise.resolve({ preview: { seasonId: 's1', provisional: false, unresolvedCount: 0, movements: [], ambiguities: [] } }); }
     adminPlayers() { return Promise.resolve({ players: [] }); }
     adminMembers() { return Promise.resolve({ members: [] }); }
     adminInvites() { return Promise.resolve({ invites: [] }); }
     adminResults() { return Promise.resolve({ results: [] }); }
+    createSeasonLeague(_seasonId: string, input: Record<string, unknown>) { return this.createAdminLeague(input); }
     createAdminLeague(input: Record<string, unknown>) {
       shared.creationCounter++;
       const newLeague = {
         ...createdLeague,
         id: `league-created-${shared.creationCounter}`,
         name: (input.name as string) || createdLeague.name,
-        seasonName: (input.seasonName as string) || createdLeague.seasonName,
+        seasonName: (input.seasonName as string) || createdLeague.seasonName || '2026',
         maxPlayers: Number(input.maxPlayers) || createdLeague.maxPlayers,
         matchesPerPair: Number(input.matchesPerPair) || createdLeague.matchesPerPair,
         targetLegs: Number(input.targetLegs) || createdLeague.targetLegs,
@@ -49,7 +56,8 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
       shared.adminLeagues = [newLeague];
       return Promise.resolve({ league: newLeague });
     }
-    updateAdminLeague(leagueId: string) {
+    updateCompetitionLeague(leagueId: string, input: Record<string, unknown>) { return this.updateAdminLeague(leagueId, input); }
+    updateAdminLeague(leagueId: string, _input?: Record<string, unknown>) {
       const league = leagueId === secondLeague.id ? secondLeague : createdLeague;
       const updatedLeague = { ...league, status: 'CLOSED' as const };
       shared.adminLeagues = shared.adminLeagues.map((item) => item.id === updatedLeague.id ? updatedLeague : item);
@@ -110,9 +118,10 @@ describe('club administration visibility', () => {
 
     // Switch to admin view to select Thursday Club
     fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
-    const adminRegion = screen.getByRole('region', { name: 'Season admin' });
-    await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
-    fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
+    const leaguesRegion = screen.getByRole('region', { name: 'Competition admin' });
+    await waitFor(() => expect(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
+    fireEvent.click(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
     
@@ -143,9 +152,10 @@ describe('club administration visibility', () => {
     
     // Switch to admin view and change selected league
     fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
-    const adminRegion = screen.getByRole('region', { name: 'Season admin' });
-    await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
-    fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
+    const leaguesRegion = screen.getByRole('region', { name: 'Competition admin' });
+    await waitFor(() => expect(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
+    fireEvent.click(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
     
@@ -176,12 +186,13 @@ describe('club administration visibility', () => {
     
     // Switch to admin view to select and save Thursday Club
     fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
-    const adminRegion = screen.getByRole('region', { name: 'Season admin' });
-    await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
-    fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
+    const leaguesRegion = screen.getByRole('region', { name: 'Competition admin' });
+    await waitFor(() => expect(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
+    fireEvent.click(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ }));
     await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save league' }));
 
     await waitFor(() => expect(screen.getByText('League settings saved.')).toBeTruthy());
     
@@ -191,37 +202,25 @@ describe('club administration visibility', () => {
     expect(screen.queryByRole('table', { name: 'Thursday Club 2026 standings' })).toBeNull();
   });
 
-  it('keeps new season creation in a native closed disclosure and submits private by default', async () => {
+  it('submits new league creation private by default', async () => {
     state.user.role = 'ADMIN';
     render(<App />);
 
-    // Default mode is Club table; switch to Season admin to reveal the admin workbench
     const adminTabButton = await screen.findByRole('button', { name: 'Season admin' });
     fireEvent.click(adminTabButton);
 
-    const adminRegion = (await screen.findAllByRole('region')).find((region) => within(region).queryAllByText(/Create (a new )?season/).length > 0);
-    expect(adminRegion).toBeTruthy();
-    const summary = within(adminRegion as HTMLElement).getByText('Create a new season');
-    const disclosure = summary.closest('details');
-    expect(disclosure).toBeTruthy();
-    expect((disclosure as HTMLDetailsElement).open).toBe(false);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
+    const createForm = screen.getByRole('region', { name: 'Competition admin' });
 
-    fireEvent.click(summary);
-    const createForm = within(disclosure as HTMLDetailsElement);
-    expect((createForm.getByLabelText('Visibility') as HTMLSelectElement).value).toBe('PRIVATE');
-    fireEvent.change(createForm.getByLabelText('Visibility'), { target: { value: 'PUBLIC' } });
-    fireEvent.change(createForm.getByLabelText('Club name'), { target: { value: 'Friday Club' } });
-    fireEvent.change(createForm.getByLabelText('Season'), { target: { value: '2027' } });
-    fireEvent.change(createForm.getByLabelText('Max players'), { target: { value: '8' } });
-    fireEvent.change(createForm.getByLabelText('Matches per pair'), { target: { value: '1' } });
-    fireEvent.change(createForm.getByLabelText('Legs to win'), { target: { value: '3' } });
-    fireEvent.change(createForm.getByLabelText('Points per win'), { target: { value: '2' } });
-    fireEvent.click(createForm.getByRole('button', { name: 'Create season' }));
+    expect((within(createForm).getByLabelText('New visibility') as HTMLSelectElement).value).toBe('PRIVATE');
+    fireEvent.change(within(createForm).getByLabelText('New visibility'), { target: { value: 'PUBLIC' } });
+    fireEvent.change(within(createForm).getByLabelText('New league name'), { target: { value: 'Friday Club' } });
+    fireEvent.click(within(createForm).getByRole('button', { name: 'Create league' }));
 
-    await waitFor(() => expect(state.createdLeagueInput).toMatchObject({ name: 'Friday Club', seasonName: '2027', maxPlayers: 8, matchesPerPair: 1, targetLegs: 3, pointsPerWin: 2, visibility: 'PUBLIC' }));
-    expect((createForm.getByLabelText('Visibility') as HTMLSelectElement).value).toBe('PRIVATE');
-    fireEvent.change(createForm.getByLabelText('Club name'), { target: { value: 'Saturday Club' } });
-    fireEvent.click(createForm.getByRole('button', { name: 'Create season' }));
+    await waitFor(() => expect(state.createdLeagueInput).toMatchObject({ name: 'Friday Club', visibility: 'PUBLIC' }));
+    expect((within(createForm).getByLabelText('New visibility') as HTMLSelectElement).value).toBe('PRIVATE');
+    fireEvent.change(within(createForm).getByLabelText('New league name'), { target: { value: 'Saturday Club' } });
+    fireEvent.click(within(createForm).getByRole('button', { name: 'Create league' }));
     await waitFor(() => expect(state.createdLeagueInput).toMatchObject({ name: 'Saturday Club', visibility: 'PRIVATE' }));
   });
 });

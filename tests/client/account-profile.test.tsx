@@ -21,6 +21,8 @@ vi.mock('../../src/client/api', () => {
     leagues() { return Promise.resolve({ leagues: [] }); }
     myLeagues() { return Promise.resolve({ leagues: [] }); }
     adminLeagues() { return Promise.resolve({ leagues: [] }); }
+    adminSeasons() { return Promise.resolve({ seasons: [] }); }
+    seasonLeagues() { return Promise.resolve({ leagues: [] }); }
     adminPlayers() { return Promise.resolve({ players: [{ id: 'player-1', username: 'Player', role: 'PLAYER', status: 'ACTIVE', profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false, email: 'player@example.com', leagueActive: false }] }); }
   }
   return { ApiClient: MockApiClient, ApiClientError: MockApiClientError };
@@ -64,6 +66,6 @@ describe('account profile access', () => {
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Club access' })).toBeTruthy());
     fireEvent.click(screen.getByRole('tab', { name: 'Club access' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Club access' })).toBeTruthy());
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Make admin' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: /Make .* admin/ })).toBeTruthy());
   });
 });

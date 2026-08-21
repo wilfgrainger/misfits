@@ -1,5 +1,6 @@
 import { AppError } from '../errors';
 import { getLeagueById, getMembership, type LeagueMemberRecord } from './leagues';
+import { getCompetitionLeague } from './competition';
 import { getUserById } from './users';
 
 export interface InviteRecord {
@@ -15,6 +16,10 @@ export interface InviteRecord {
 
 function leagueFull(): AppError {
   return new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
+}
+
+function alreadyAssigned(): AppError {
+  return new AppError('VALIDATION_ERROR', 'You are already assigned to another league in this season', 409);
 }
 
 function encodeBase64Url(bytes: Uint8Array): string {
@@ -95,18 +100,50 @@ export async function joinLeagueByInvite(db: D1Database, userId: string, token: 
   if (!user || user.status !== 'ACTIVE') throw new AppError('FORBIDDEN', 'Your account cannot join this league', 403);
   if (!user.username) throw new AppError('PROFILE_INVALID', 'Choose a nickname before joining a league', 400);
 
+  const competitionLeague = await getCompetitionLeague(db, league.id);
+  const seasonId = competitionLeague?.season_id ?? null;
+  if (seasonId) {
+    const existingSeason = await db.prepare(
+      'SELECT league_id FROM league_players WHERE season_id = ? AND user_id = ? AND active = 1',
+    ).bind(seasonId, userId).first<{ league_id: string }>();
+    if (existingSeason && existingSeason.league_id !== league.id) throw alreadyAssigned();
+  }
+
   const existing = await getMembership(db, league.id, userId);
   if (existing?.active === 1) return existing;
   const timestamp = now.toISOString();
   if (existing) {
-    const reactivated = await db.prepare(
-      `UPDATE league_players SET active = 1
-        WHERE league_id = ? AND user_id = ? AND active = 0
-          AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
-    ).bind(league.id, userId, league.id, league.max_players).run();
+    const reactivated = seasonId
+      ? await db.prepare(
+        `UPDATE league_players SET active = 1, season_id = ?
+          WHERE league_id = ? AND user_id = ? AND active = 0
+            AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
+      ).bind(seasonId, league.id, userId, league.id, league.max_players).run()
+      : await db.prepare(
+        `UPDATE league_players SET active = 1
+          WHERE league_id = ? AND user_id = ? AND active = 0
+            AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
+      ).bind(league.id, userId, league.id, league.max_players).run();
     if (reactivated.meta.changes !== 1) {
       const current = await getMembership(db, league.id, userId);
       if (current?.active === 1) return current;
+      if (seasonId) {
+        const currentSeason = await db.prepare('SELECT league_id FROM league_players WHERE season_id = ? AND user_id = ? AND active = 1').bind(seasonId, userId).first<{ league_id: string }>();
+        if (currentSeason && currentSeason.league_id !== league.id) throw alreadyAssigned();
+      }
+      throw leagueFull();
+    }
+  } else if (seasonId) {
+    const joined = await db.prepare(
+      `INSERT OR IGNORE INTO league_players (league_id, user_id, active, joined_at, season_id)
+       SELECT ?, ?, 1, ?, ?
+        WHERE (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) < ?`,
+    ).bind(league.id, userId, timestamp, seasonId, league.id, league.max_players).run();
+    if (joined.meta.changes !== 1) {
+      const current = await getMembership(db, league.id, userId);
+      if (current?.active === 1) return current;
+      const currentSeason = await db.prepare('SELECT league_id FROM league_players WHERE season_id = ? AND user_id = ? AND active = 1').bind(seasonId, userId).first<{ league_id: string }>();
+      if (currentSeason && currentSeason.league_id !== league.id) throw alreadyAssigned();
       throw leagueFull();
     }
   } else {
@@ -125,7 +162,7 @@ export async function joinLeagueByInvite(db: D1Database, userId: string, token: 
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'LEAGUE_JOINED', 'LEAGUE_MEMBER', ?, NULL, ?, ?)`,
-  ).bind(userId, `${league.id}:${userId}`, JSON.stringify({ leagueId: league.id, inviteId: invite.id }), timestamp).run();
+  ).bind(userId, `${league.id}:${userId}`, JSON.stringify({ leagueId: league.id, seasonId, inviteId: invite.id }), timestamp).run();
   const member = await getMembership(db, league.id, userId);
   if (!member) throw new Error('League member could not be loaded after joining');
   return member;
