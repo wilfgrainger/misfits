@@ -62,7 +62,8 @@ function fixtureLabel(status: FixtureStatus) {
 
 function formatExpiry(value: string | null) {
   if (!value) return 'No expiry';
-  return `Expires ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value))}`;
+  const formatted = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value));
+  return `Expires ${formatted.replace('Sept', 'Sep')}`;
 }
 
 export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected, onLeagueCreated, onLeagueChanged }: Props) {
@@ -72,6 +73,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const [leagues, setLeagues] = useState<LeagueSummary[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [membersByLeague, setMembersByLeague] = useState<Record<string, CompetitionMember[]>>({});
+  const [leagueSummariesReady, setLeagueSummariesReady] = useState(false);
   const [unassigned, setUnassigned] = useState<UnassignedPlayer[]>([]);
   const [invites, setInvites] = useState<AdminInvite[]>([]);
   const [inviteUrl, setInviteUrl] = useState('');
@@ -98,6 +100,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const [seasonCurrent, setSeasonCurrent] = useState(false);
   const [newLeagueName, setNewLeagueName] = useState('');
   const [newHierarchy, setNewHierarchy] = useState('1');
+  const [newVisibility, setNewVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PRIVATE');
   const [leagueEdit, setLeagueEdit] = useState<LeagueSummary | null>(null);
   const [assignmentTargets, setAssignmentTargets] = useState<Record<string, string>>({});
   const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
@@ -107,6 +110,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const selectedSeason = seasons.find((season) => season.id === selectedSeasonId) ?? null;
   const effectiveLeagueId = selectedLeagueId && leagues.some((league) => league.id === selectedLeagueId) ? selectedLeagueId : selectedId;
   const selectedLeague = leagues.find((league) => league.id === effectiveLeagueId) ?? null;
+  const memberLeague = selectedLeague ?? orderedLeagues[0] ?? null;
 
   const clear = () => { setMessage(''); setError(''); };
 
@@ -139,6 +143,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     setSeasonName(selectedSeason.name);
     setSeasonStatus(selectedSeason.status);
     setSeasonCurrent(selectedSeason.isCurrent);
+    setLeagueSummariesReady(false);
     let active = true;
     api.seasonLeagues(selectedSeason.id).then((payload) => {
       if (!active) return;
@@ -159,7 +164,8 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   }, [selectedLeagueId]);
 
   const loadLeagueMembers = async () => {
-    if (orderedLeagues.length === 0) return;
+    setLeagueSummariesReady(false);
+    if (orderedLeagues.length === 0) { setLeagueSummariesReady(true); return; }
     try {
       const payloads = await Promise.all(orderedLeagues.map((league) => api.competitionMembers(league.id)));
       const next: Record<string, CompetitionMember[]> = {};
@@ -172,6 +178,8 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       });
     } catch (cause) {
       setError(describeError(cause, 'League membership could not be loaded.'));
+    } finally {
+      setLeagueSummariesReady(true);
     }
   };
 
@@ -188,7 +196,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       setMembersByLeague(next);
       setAssignmentTargets((current) => {
         const copy = { ...current };
-        for (const player of unassignedPayload.users) copy[player.id] ||= selectedLeague?.id ?? orderedLeagues[0]?.id ?? '';
+        for (const player of unassignedPayload.users) copy[player.id] ||= memberLeague?.id ?? orderedLeagues[0]?.id ?? '';
         return copy;
       });
       setMoveTargets((current) => {
@@ -202,8 +210,8 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   };
 
   const loadInvites = async () => {
-    if (!selectedLeague) return setInvites([]);
-    try { setInvites((await api.adminInvites(selectedLeague.id)).invites); }
+    if (!memberLeague) return setInvites([]);
+    try { setInvites((await api.adminInvites(memberLeague.id)).invites); }
     catch (cause) { setError(describeError(cause, 'Invites could not be loaded.')); }
   };
 
@@ -220,7 +228,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       setMembersByLeague((current) => ({ ...current, ...next }));
     }).catch((cause) => setError(describeError(cause, 'Promotion projection could not be loaded.')));
     if (task === 'access') api.adminPlayers().then((payload) => setPlayers(payload.players)).catch((cause) => setError(describeError(cause, 'Club access could not be loaded.')));
-  }, [task, selectedLeague?.id, selectedSeason?.id, leagues.length]);
+  }, [task, selectedLeague?.id, memberLeague?.id, selectedSeason?.id, leagues.length]);
 
   useEffect(() => {
     if (task !== 'promotion' || !targetSeasonId) return;
@@ -290,11 +298,11 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     event.preventDefault(); if (!selectedSeason) return; clear(); setBusy('create-league');
     try {
       const payload = await api.createSeasonLeague(selectedSeason.id, {
-        name: newLeagueName, maxPlayers: 8, matchesPerPair: 1, pointsPerWin: 2, targetLegs: 3, visibility: 'PRIVATE',
+        name: newLeagueName, maxPlayers: 8, matchesPerPair: 1, pointsPerWin: 2, targetLegs: 3, visibility: newVisibility,
         hierarchyPosition: Number(newHierarchy), promotionPlaces: 0, relegationPlaces: 0,
       });
       setLeagues((current) => [...current, payload.league].sort(orderLeagues)); selectLeague(payload.league); onLeagueCreated?.(payload.league);
-      setNewLeagueName(''); setNewHierarchy(String(leagues.length + 2)); setMessage('League created.');
+      setNewLeagueName(''); setNewHierarchy(String(leagues.length + 2)); setNewVisibility('PRIVATE'); setMessage('League created.');
     } catch (cause) { setError(describeError(cause, 'League could not be created.')); } finally { setBusy(null); }
   };
 
@@ -332,9 +340,9 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   };
 
   const createInvite = async () => {
-    if (!selectedLeague) return; clear();
+    if (!memberLeague) return; clear();
     try {
-      const payload = await api.createInvite(selectedLeague.id);
+      const payload = await api.createInvite(memberLeague.id);
       setInviteUrl(payload.invite.url);
       setInvites((current) => [{ id: payload.invite.id, leagueId: payload.invite.leagueId, expiresAt: payload.invite.expiresAt, uses: 0, revokedAt: null, createdAt: new Date().toISOString() }, ...current]);
       setMessage('Invite link ready.');
@@ -423,19 +431,19 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     </div>
 
     <div role="tabpanel" hidden={task !== 'leagues'}>
-      <div className="admin-block"><div className="section-heading"><h3>League structure</h3><span className="count-label">{orderedLeagues.length}</span></div><ul className="competition-league-list" aria-label="Ordered league structure">{orderedLeagues.map((league) => {
+      <div className="admin-block"><div className="section-heading"><h3>League structure</h3><span className="count-label">{orderedLeagues.length}</span></div>{leagueSummariesReady ? <ul className="competition-league-list" aria-label="Ordered league structure">{orderedLeagues.map((league) => {
         const activeCount = (membersByLeague[league.id] ?? []).filter((member) => member.active).length;
         return <li key={league.id}><button type="button" className={league.id === selectedLeague?.id ? 'picker-item picker-item-active' : 'picker-item'} onClick={() => selectLeague(league)}><strong>{league.hierarchyPosition ?? '?'} {league.name}</strong><span>{league.status} · {activeCount}/{league.maxPlayers} active · {league.matchesPerPair}× pair · P{league.promotionPlaces ?? 0}/R{league.relegationPlaces ?? 0}</span></button></li>;
-      })}</ul></div>
+      })}</ul> : <p className="empty-message">Loading league summaries…</p>}</div>
       {leagueEdit && <form className="admin-block stack-form" onSubmit={saveLeague}><div className="section-heading"><h3>Edit {leagueEdit.name}</h3><span className="count-label">#{leagueEdit.hierarchyPosition ?? 1}</span></div><label>League name<input value={leagueEdit.name} onChange={(e) => setLeagueEdit({ ...leagueEdit, name: e.target.value })} /></label><div className="form-grid"><label>Hierarchy position<input type="number" min="1" value={leagueEdit.hierarchyPosition ?? 1} onChange={(e) => setLeagueEdit({ ...leagueEdit, hierarchyPosition: Number(e.target.value) })} /></label><label>Max players<input type="number" min="2" value={leagueEdit.maxPlayers} onChange={(e) => setLeagueEdit({ ...leagueEdit, maxPlayers: Number(e.target.value) })} /></label><label>Matches per pair<input type="number" min="1" value={leagueEdit.matchesPerPair} onChange={(e) => setLeagueEdit({ ...leagueEdit, matchesPerPair: Number(e.target.value) })} /></label><label>Legs to win<input type="number" min="1" value={leagueEdit.targetLegs} onChange={(e) => setLeagueEdit({ ...leagueEdit, targetLegs: Number(e.target.value) })} /></label><label>Points per win<input type="number" min="1" value={leagueEdit.pointsPerWin} onChange={(e) => setLeagueEdit({ ...leagueEdit, pointsPerWin: Number(e.target.value) })} /></label><label>Promotion places<input type="number" min="0" value={leagueEdit.promotionPlaces ?? 0} onChange={(e) => setLeagueEdit({ ...leagueEdit, promotionPlaces: Number(e.target.value) })} /></label><label>Relegation places<input type="number" min="0" value={leagueEdit.relegationPlaces ?? 0} onChange={(e) => setLeagueEdit({ ...leagueEdit, relegationPlaces: Number(e.target.value) })} /></label></div><label>Visibility<select value={leagueEdit.visibility} onChange={(e) => setLeagueEdit({ ...leagueEdit, visibility: e.target.value as 'PUBLIC' | 'PRIVATE' })}><option value="PRIVATE">Private</option><option value="PUBLIC">Public</option></select></label><button className="primary-button" type="submit">Save league</button><button className="secondary-button" type="button" onClick={() => setConfirm({ title: `Delete ${leagueEdit.name}?`, message: 'Only an empty league can be removed. The server protects competition history.', action: async () => { await api.deleteCompetitionLeague(leagueEdit.id); setLeagues((current) => current.filter((league) => league.id !== leagueEdit.id)); setMessage('Empty league deleted.'); } })}>Delete empty league</button></form>}
-      <form className="admin-block stack-form" onSubmit={createLeague}><h3>Add league</h3><label>New league name<input value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} required /></label><label>New hierarchy position<input type="number" min="1" value={newHierarchy} onChange={(e) => setNewHierarchy(e.target.value)} required /></label><button className="primary-button" type="submit">Create league</button></form>
+      <form className="admin-block stack-form" onSubmit={createLeague}><h3>Add league</h3><label>New league name<input value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} required /></label><label>New hierarchy position<input type="number" min="1" value={newHierarchy} onChange={(e) => setNewHierarchy(e.target.value)} required /></label><label>New visibility<select value={newVisibility} onChange={(e) => setNewVisibility(e.target.value as 'PUBLIC' | 'PRIVATE')}><option value="PRIVATE">Private</option><option value="PUBLIC">Public</option></select></label><button className="primary-button" type="submit">Create league</button></form>
     </div>
 
     <div role="tabpanel" hidden={task !== 'members'}>
       <div className="admin-block"><div className="section-heading"><h3>Unassigned players</h3><span className="count-label">{unassigned.length}</span></div><ul className="admin-list">{unassigned.map((player) => <li key={player.id}><div><strong>{player.username ?? 'Name pending'}</strong><small>{player.email}</small></div><div className="inline-actions"><select aria-label={`League for ${player.username}`} value={assignmentTargets[player.id] ?? ''} onChange={(e) => setAssignmentTargets((current) => ({ ...current, [player.id]: e.target.value }))}>{orderedLeagues.map((league) => <option key={league.id} value={league.id}>{league.name}</option>)}</select><button className="action-button" type="button" onClick={() => void assignPlayer(player)}>Assign {player.username}</button></div></li>)}</ul>{unassigned.length === 0 && <p className="empty-message">Every active club player has a league placement.</p>}</div>
       <div className="admin-block"><div className="section-heading"><h3>Season rosters</h3><span className="count-label">{Object.values(membersByLeague).flat().filter((member) => member.active).length}</span></div>{orderedLeagues.map((league) => <div className="roster-group" key={league.id}><h4>{league.name} · {(membersByLeague[league.id] ?? []).filter((member) => member.active).length}/{league.maxPlayers}</h4><ul className="admin-list">{(membersByLeague[league.id] ?? []).map((member) => <li key={member.userId}><div><strong>{member.username ?? 'Name pending'}</strong><small>{member.active ? 'Active' : 'Inactive'}</small></div><div className="inline-actions"><select aria-label={`Move ${member.username}`} value={moveTargets[member.userId] ?? league.id} onChange={(e) => setMoveTargets((current) => ({ ...current, [member.userId]: e.target.value }))}>{orderedLeagues.map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}</select><button className="action-button" type="button" disabled={!member.active || (moveTargets[member.userId] ?? league.id) === league.id} onClick={() => void moveMember(member)}>Move {member.username}</button><button className="action-button" type="button" onClick={() => void setMemberActive(member, !member.active)}>{member.active ? `Deactivate ${member.username}` : `Reactivate ${member.username}`}</button></div></li>)}</ul></div>)}</div>
       {selectedSeason && <div className="admin-block stack-form"><h3>Draft starting placements</h3><p className="form-help">Copy this season's reviewed league placements into a draft season, then adjust promotions or overrides before opening.</p><label>Draft season for baseline placements<select value={baselineSeasonId} onChange={(e) => setBaselineSeasonId(e.target.value)}><option value="">Choose draft season</option>{seasons.filter((season) => season.id !== selectedSeason.id && season.status === 'DRAFT').map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}</select></label><button className="secondary-button" type="button" disabled={!baselineSeasonId} onClick={copyBaseline}>Copy current placements to draft</button></div>}
-      {selectedLeague && <div className="admin-block"><div className="section-heading"><h3>{selectedLeague.name} invites</h3><span className="count-label">{invites.filter((invite) => !invite.revokedAt).length} active</span></div><button className="primary-button" type="button" onClick={() => void createInvite()}>Create invite for {selectedLeague.name}</button>{inviteUrl && <div className="stack-form"><label>Latest invite<input value={inviteUrl} readOnly /></label><button className="secondary-button" type="button" onClick={() => void copyInvite()}>Copy invite link</button></div>}<ul className="admin-list">{invites.map((invite) => <li key={invite.id}><div><strong>{invite.revokedAt ? 'Revoked invite' : 'Active invite'}</strong><small>{invite.uses} uses · {formatExpiry(invite.expiresAt)}</small></div>{!invite.revokedAt && <button className="action-button" type="button" onClick={() => setConfirm({ title: 'Revoke invite?', message: 'The link will stop admitting new players; existing memberships remain.', action: async () => { await api.revokeInvite(invite.id); setInvites((current) => current.map((row) => row.id === invite.id ? { ...row, revokedAt: new Date().toISOString() } : row)); setMessage('Invite revoked.'); } })}>Revoke</button>}</li>)}</ul></div>}
+      {memberLeague && <div className="admin-block"><div className="section-heading"><h3>{memberLeague.name} invites</h3><span className="count-label">{invites.filter((invite) => !invite.revokedAt).length} active</span></div><button className="primary-button" type="button" onClick={() => void createInvite()}>Create invite for {memberLeague.name}</button>{inviteUrl && <div className="stack-form"><label>Latest invite<input value={inviteUrl} readOnly /></label><button className="secondary-button" type="button" onClick={() => void copyInvite()}>Copy invite link</button></div>}<ul className="admin-list">{invites.map((invite) => <li key={invite.id}><div><strong>{invite.revokedAt ? 'Revoked invite' : 'Active invite'}</strong><small>{invite.uses} uses · {formatExpiry(invite.expiresAt)}</small></div>{!invite.revokedAt && <button className="action-button" type="button" onClick={() => setConfirm({ title: 'Revoke invite?', message: 'The link will stop admitting new players; existing memberships remain.', action: async () => { await api.revokeInvite(invite.id); setInvites((current) => current.map((row) => row.id === invite.id ? { ...row, revokedAt: new Date().toISOString() } : row)); setMessage('Invite revoked.'); } })}>Revoke</button>}</li>)}</ul></div>}
     </div>
 
     <div role="tabpanel" hidden={task !== 'fixtures'}>{selectedLeague && <><div className="admin-block"><div className="section-heading"><h3>{selectedLeague.name} fixture health</h3><span className="count-label">{fixtures.length} total</span></div><div className="fixture-health"><button className="action-button" type="button" onClick={() => setFixtureFilter('OUTSTANDING')}>Outstanding {fixtureCounts.outstanding}</button><button className="action-button" type="button" onClick={() => setFixtureFilter('PENDING_CONFIRMATION')}>Pending {fixtureCounts.pending}</button><button className="action-button" type="button" onClick={() => setFixtureFilter('DISPUTED')}>Disputed {fixtureCounts.disputed}</button><button className="action-button" type="button" onClick={() => setFixtureFilter('CONFIRMED')}>Completed {fixtureCounts.completed}</button></div><div className="inline-actions"><button className="secondary-button" type="button" onClick={() => void previewFixtures()}>Preview fixtures</button><button className="primary-button" type="button" onClick={() => void commitFixtures()}>Commit fixtures</button><button className="secondary-button" type="button" onClick={() => setConfirm({ title: 'Reset unplayed fixtures?', message: 'The server refuses reset after protected play begins.', action: async () => { await api.resetFixtures(selectedLeague.id); setFixtures([]); setFixturePreview(null); setMessage('Unplayed fixtures reset.'); } })}>Reset before play</button></div></div>{fixturePreview && <div className="admin-block"><div className="section-heading"><h3>Preview</h3><span className="count-label">{fixturePreview.expectedFixtureCount} fixture{fixturePreview.expectedFixtureCount === 1 ? '' : 's'} expected</span></div><ul className="admin-list">{fixturePreview.fixtures.map((item) => <li key={`${item.playerAId}:${item.playerBId}:${item.meetingNumber}`}><div><strong>{memberName(item.playerAId)} vs {memberName(item.playerBId)}</strong><small>Round {item.round} · meeting {item.meetingNumber}</small></div></li>)}</ul></div>}<div className="admin-block"><ul className="admin-list">{visibleFixtures.map((item) => <li key={item.id}><div><strong>{item.playerAUsername ?? memberName(item.playerAId)} vs {item.playerBUsername ?? memberName(item.playerBId)}</strong><small>Round {item.round} · meeting {item.meetingNumber} · {fixtureLabel(item.status)}</small></div>{(item.status === 'OUTSTANDING' || item.status === 'VOID') && <button className="action-button" type="button" onClick={() => void voidFixture(item)}>{item.status === 'VOID' ? `Restore ${item.playerAUsername} vs ${item.playerBUsername}` : `Void ${item.playerAUsername} vs ${item.playerBUsername}`}</button>}</li>)}</ul></div></>}</div>
@@ -444,7 +452,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
 
     <div role="tabpanel" hidden={task !== 'promotion'}><div className="admin-block"><div className="section-heading"><h3>Promotion & relegation</h3>{promotion && <span className="status-label">{promotion.provisional ? 'Provisional' : 'Final eligible'}</span>}</div><ul className="admin-list">{promotion?.movements.map((movement) => <li key={movement.userId}><div><strong>{memberName(movement.userId)}</strong><small>{leagueName(movement.fromLeagueId)} → {leagueName(movement.toLeagueId)} · {movement.kind.toLowerCase()}</small></div></li>)}</ul></div><div className="admin-block stack-form"><label>Next season<select value={targetSeasonId} onChange={(e) => setTargetSeasonId(e.target.value)}><option value="">Choose draft season</option>{seasons.filter((season) => season.id !== selectedSeasonId && season.status === 'DRAFT').map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}</select></label><button className="primary-button" type="button" disabled={!targetSeasonId || promotion?.provisional === true} onClick={() => void createProposal()}>Create promotion proposal</button></div>{proposal.length > 0 && <div className="admin-block"><ul className="admin-list">{proposal.map((movement) => <li key={movement.userId}><div><strong>{memberName(movement.userId)}</strong><small>{leagueName(movement.fromLeagueId)} → {leagueName(movement.toLeagueId)}</small></div><div className="proposal-controls"><label>Override destination for {memberName(movement.userId)}<select value={overrideTargets[movement.userId] ?? movement.toLeagueId ?? ''} onChange={(e) => setOverrideTargets((current) => ({ ...current, [movement.userId]: e.target.value }))}>{targetLeagues.map((league) => <option key={league.id} value={league.id}>{league.name}</option>)}</select></label><label>Override reason for {memberName(movement.userId)}<input value={overrideReasons[movement.userId] ?? ''} onChange={(e) => setOverrideReasons((current) => ({ ...current, [movement.userId]: e.target.value }))} /></label><button className="action-button" type="button" onClick={() => void saveOverride(movement)}>Save override for {memberName(movement.userId)}</button></div></li>)}</ul><button className="primary-button" type="button" onClick={() => void applyProposal()}>Apply to next season</button></div>}</div>
 
-    <div role="tabpanel" hidden={task !== 'access'}><div className="admin-block"><div className="section-heading"><h3>Club accounts</h3><span className="count-label">{players.length}</span></div><ul className="admin-list">{players.map((player) => <li key={player.id}><div><strong>{player.username ?? 'Name pending'}</strong><small>{player.email} · {player.role} · {player.status}</small></div>{!player.isMasterAdmin && <div className="inline-actions">{player.role === 'PLAYER' ? <button className="action-button" type="button" onClick={() => void updatePlayer(player, { role: 'ADMIN' })}>Make {player.username} admin</button> : <button className="action-button" type="button" onClick={() => void updatePlayer(player, { role: 'PLAYER' })}>Remove {player.username} admin</button>}{player.status === 'ACTIVE' ? <button className="action-button" type="button" onClick={() => void updatePlayer(player, { status: 'SUSPENDED' })}>Suspend {player.username}</button> : <button className="action-button" type="button" onClick={() => void updatePlayer(player, { status: 'ACTIVE' })}>Reactivate {player.username}</button>}</div>}</li>)}</ul></div></div>
+    <div role="tabpanel" hidden={task !== 'access'}><div className="admin-block"><div className="section-heading"><h3>Club access</h3><span className="count-label">{players.length}</span></div><ul className="admin-list">{players.map((player) => <li key={player.id}><div><strong>{player.username ?? 'Name pending'}</strong><small>{player.email} · {player.role} · {player.status}</small>{player.isMasterAdmin && <small>Protected master administrator</small>}</div>{!player.isMasterAdmin && <div className="inline-actions">{player.role === 'PLAYER' ? <button className="action-button" type="button" onClick={() => void updatePlayer(player, { role: 'ADMIN' })}>Make {player.username} admin</button> : <button className="action-button" type="button" onClick={() => void updatePlayer(player, { role: 'PLAYER' })}>Remove {player.username} admin</button>}{player.status === 'ACTIVE' ? <button className="action-button" type="button" onClick={() => void updatePlayer(player, { status: 'SUSPENDED' })}>Suspend {player.username}</button> : <button className="action-button" type="button" onClick={() => void updatePlayer(player, { status: 'ACTIVE' })}>Reactivate {player.username}</button>}</div>}</li>)}</ul></div></div>
 
     {confirm && <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-labelledby="competition-confirm-title" className="confirm-dialog"><h3 id="competition-confirm-title">{confirm.title}</h3><p>{confirm.message}</p><div className="inline-actions"><button className="secondary-button" type="button" onClick={() => setConfirm(null)}>Cancel</button><button className="primary-button" type="button" onClick={() => { const current = confirm; setConfirm(null); void current.action().catch((cause) => setError(describeError(cause, 'Action could not be completed.'))); }}>Confirm</button></div></div></div>}
   </section>;
