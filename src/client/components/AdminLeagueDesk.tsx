@@ -437,7 +437,6 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
     <section className="admin-desk" aria-labelledby="admin-title">
       <div className="workspace-heading">
         <div>
-          <p className="section-kicker">LEAGUE CONTROL</p>
           <h2 id="admin-title">Season admin</h2>
         </div>
         <button className="refresh-button" type="button" onClick={() => void load()} disabled={busy !== null}>
@@ -477,8 +476,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
         <div className="admin-block">
           <div className="section-heading">
             <div>
-              <p className="section-kicker">YOUR LEAGUES</p>
-              <h3>Your leagues</h3>
+              <h3>Your seasons</h3>
             </div>
             <span className="count-label">{leagues.length}</span>
           </div>
@@ -508,17 +506,13 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
           >
             <div className="section-heading">
               <div>
-                <p className="section-kicker">MANAGE SELECTED SEASON</p>
-                <h3 id="league-settings-title">Manage {selectedLeague.name}</h3>
-                <p className="admin-section-caption">Season settings</p>
+                <h3 id="league-settings-title">{selectedLeague.name} · {selectedLeague.seasonName}</h3>
               </div>
               <span className={`status-label status-${selectedLeague.status.toLowerCase()}`}>
                 {selectedLeague.status}
               </span>
             </div>
-            <p className="account-context">
-              Current season: {selectedLeague.name} · {selectedLeague.seasonName} · {selectedLeague.status === 'OPEN' ? 'Open' : 'Closed'} · {selectedLeague.visibility === 'PUBLIC' ? 'Public' : 'Private'}
-            </p>
+
             <label htmlFor="edit-league-name">
               Club name
               <input
@@ -539,48 +533,35 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
             </label>
             <div className="form-grid">
               <label htmlFor="edit-capacity">
-                Player capacity
-                <input
-                  id="edit-capacity"
-                  type="number"
-                  min="2"
-                  value={editCapacity}
-                  onChange={(event) => setEditCapacity(event.target.value)}
-                  required
-                />
+                Max players
+                <select id="edit-capacity" value={editCapacity} onChange={(event) => setEditCapacity(event.target.value)} required>
+                  {[4,6,8,10,12,16,20,24,32].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
               </label>
               <label htmlFor="edit-repeats">
-                Games per pair
-                <input
-                  id="edit-repeats"
-                  type="number"
-                  min="1"
-                  value={editRepeats}
-                  onChange={(event) => setEditRepeats(event.target.value)}
-                  required
-                />
+                Matches per pair
+                <select id="edit-repeats" value={editRepeats} onChange={(event) => setEditRepeats(event.target.value)} required>
+                  <option value="1">1 — single round</option>
+                  <option value="2">2 — home &amp; away</option>
+                  <option value="3">3 — triple round</option>
+                </select>
               </label>
               <label htmlFor="edit-target-legs">
-                Target legs
-                <input
-                  id="edit-target-legs"
-                  type="number"
-                  min="1"
-                  value={editTargetLegs}
-                  onChange={(event) => setEditTargetLegs(event.target.value)}
-                  required
-                />
+                Legs to win
+                <select id="edit-target-legs" value={editTargetLegs} onChange={(event) => setEditTargetLegs(event.target.value)} required>
+                  <option value="1">1 leg</option>
+                  <option value="3">Best of 3</option>
+                  <option value="5">Best of 5</option>
+                  <option value="7">Best of 7</option>
+                </select>
               </label>
               <label htmlFor="edit-points-per-win">
                 Points per win
-                <input
-                  id="edit-points-per-win"
-                  type="number"
-                  min="1"
-                  value={editPointsPerWin}
-                  onChange={(event) => setEditPointsPerWin(event.target.value)}
-                  required
-                />
+                <select id="edit-points-per-win" value={editPointsPerWin} onChange={(event) => setEditPointsPerWin(event.target.value)} required>
+                  <option value="1">1 pt</option>
+                  <option value="2">2 pts</option>
+                  <option value="3">3 pts</option>
+                </select>
               </label>
             </div>
             <label htmlFor="edit-status">
@@ -625,8 +606,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
           <summary>Create a new season</summary>
           <form className="compact-form create-league-form" aria-labelledby="create-league-title" onSubmit={createLeague}>
             <div className="create-form-intro">
-              <p className="section-kicker">NEW SEASON</p>
-              <h3 id="create-league-title">Create a season</h3>
+              <h3 id="create-league-title">New season</h3>
               <p className="form-help">Set the rules first, then invite players to join.</p>
             </div>
             <fieldset>
@@ -655,48 +635,35 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
               <legend>Rules</legend>
               <div className="form-grid">
                 <label htmlFor="new-capacity">
-                  Player capacity
-                  <input
-                    id="new-capacity"
-                    type="number"
-                    min="2"
-                    value={newCapacity}
-                    onChange={(event) => setNewCapacity(event.target.value)}
-                    required
-                  />
+                  Max players
+                  <select id="new-capacity" value={newCapacity} onChange={(event) => setNewCapacity(event.target.value)} required>
+                    {[4,6,8,10,12,16,20,24,32].map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
                 </label>
                 <label htmlFor="new-repeats">
-                  Games per pair
-                  <input
-                    id="new-repeats"
-                    type="number"
-                    min="1"
-                    value={newRepeats}
-                    onChange={(event) => setNewRepeats(event.target.value)}
-                    required
-                  />
+                  Matches per pair
+                  <select id="new-repeats" value={newRepeats} onChange={(event) => setNewRepeats(event.target.value)} required>
+                    <option value="1">1 — single round</option>
+                    <option value="2">2 — home &amp; away</option>
+                    <option value="3">3 — triple round</option>
+                  </select>
                 </label>
                 <label htmlFor="new-target-legs">
-                  Target legs
-                  <input
-                    id="new-target-legs"
-                    type="number"
-                    min="1"
-                    value={newTargetLegs}
-                    onChange={(event) => setNewTargetLegs(event.target.value)}
-                    required
-                  />
+                  Legs to win
+                  <select id="new-target-legs" value={newTargetLegs} onChange={(event) => setNewTargetLegs(event.target.value)} required>
+                    <option value="1">1 leg</option>
+                    <option value="3">Best of 3</option>
+                    <option value="5">Best of 5</option>
+                    <option value="7">Best of 7</option>
+                  </select>
                 </label>
                 <label htmlFor="new-points-per-win">
                   Points per win
-                  <input
-                    id="new-points-per-win"
-                    type="number"
-                    min="1"
-                    value={newPointsPerWin}
-                    onChange={(event) => setNewPointsPerWin(event.target.value)}
-                    required
-                  />
+                  <select id="new-points-per-win" value={newPointsPerWin} onChange={(event) => setNewPointsPerWin(event.target.value)} required>
+                    <option value="1">1 pt</option>
+                    <option value="2">2 pts</option>
+                    <option value="3">3 pts</option>
+                  </select>
                 </label>
               </div>
             </fieldset>

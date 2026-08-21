@@ -142,8 +142,7 @@ describe('mobile league workspaces', () => {
     render(<AdminLeagueDesk user={admin} selectedLeagueId="league-1" />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Season admin' })).toBeTruthy());
     await waitFor(() => expect((screen.getByLabelText('Club name', { selector: '#edit-league-name' }) as HTMLInputElement).value).toBe('Misfits 501'));
-    expect(screen.getByRole('heading', { name: 'Your leagues' })).toBeTruthy();
-    expect(screen.getByText('Current season: Misfits 501 · 2026 · Open · Public')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Your seasons' })).toBeTruthy();
     const disclosure = screen.getByText('Create a new season').closest('details') as HTMLDetailsElement;
     expect(disclosure.open).toBe(false);
     fireEvent.click(screen.getByText('Create a new season'));
@@ -153,14 +152,13 @@ describe('mobile league workspaces', () => {
     expect(createForm.getByRole('group', { name: 'Access' })).toBeTruthy();
     expect(createForm.getByLabelText('Club name')).toBeTruthy();
     expect(createForm.getByLabelText('Season')).toBeTruthy();
-    expect(createForm.getByLabelText('Player capacity')).toBeTruthy();
-    expect(createForm.getByLabelText('Games per pair')).toBeTruthy();
+    expect(createForm.getByLabelText('Max players')).toBeTruthy();
+    expect(createForm.getByLabelText('Matches per pair')).toBeTruthy();
     expect(createForm.getByRole('button', { name: 'Create season' })).toBeTruthy();
-    expect(createForm.getByLabelText('Target legs')).toBeTruthy();
+    expect(createForm.getByLabelText('Legs to win')).toBeTruthy();
     expect(createForm.getByLabelText('Points per win')).toBeTruthy();
     expect(createForm.getByLabelText('Visibility')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Manage Misfits 501' })).toBeTruthy();
-    expect(screen.getByText('Season settings')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Misfits 501/ })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Share season' }));
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('League link copied.'));
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/league/misfits-501`);
@@ -247,7 +245,6 @@ describe('mobile league workspaces', () => {
     fireEvent.click(within(disclosure).getByText('Create a new season'));
     expect((within(disclosure).getByLabelText('Visibility') as HTMLSelectElement).value).toBe('PRIVATE');
     expect((screen.getByLabelText('Visibility', { selector: '#edit-visibility' }) as HTMLSelectElement).value).toBe('PUBLIC');
-    expect(screen.getByText('Current season: Misfits 501 · 2026 · Open · Public')).toBeTruthy();
   });
 
   it('does not claim an invite was copied when clipboard access is denied', async () => {

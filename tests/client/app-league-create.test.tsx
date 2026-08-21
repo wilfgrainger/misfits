@@ -94,7 +94,7 @@ describe('club administration visibility', () => {
     }];
     render(<App />);
 
-    await screen.findByText('Current season: Tuesday Club · 2026 · Open · Public');
+    await screen.findByRole('heading', { name: 'Tuesday Club' });
     expect(screen.queryByText('Club darts, properly settled.')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy();
   });
@@ -114,7 +114,7 @@ describe('club administration visibility', () => {
     await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
     fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
     
     // Switch back to player view to check that Tuesday Club standings are still displayed
     fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
@@ -147,7 +147,7 @@ describe('club administration visibility', () => {
     await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
     fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
     
     // Switch back to player view to verify standings did not change
     fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
@@ -179,7 +179,7 @@ describe('club administration visibility', () => {
     const adminRegion = screen.getByRole('region', { name: 'Season admin' });
     await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
     fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
 
     fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
@@ -212,9 +212,9 @@ describe('club administration visibility', () => {
     fireEvent.change(createForm.getByLabelText('Visibility'), { target: { value: 'PUBLIC' } });
     fireEvent.change(createForm.getByLabelText('Club name'), { target: { value: 'Friday Club' } });
     fireEvent.change(createForm.getByLabelText('Season'), { target: { value: '2027' } });
-    fireEvent.change(createForm.getByLabelText('Player capacity'), { target: { value: '8' } });
-    fireEvent.change(createForm.getByLabelText('Games per pair'), { target: { value: '1' } });
-    fireEvent.change(createForm.getByLabelText('Target legs'), { target: { value: '3' } });
+    fireEvent.change(createForm.getByLabelText('Max players'), { target: { value: '8' } });
+    fireEvent.change(createForm.getByLabelText('Matches per pair'), { target: { value: '1' } });
+    fireEvent.change(createForm.getByLabelText('Legs to win'), { target: { value: '3' } });
     fireEvent.change(createForm.getByLabelText('Points per win'), { target: { value: '2' } });
     fireEvent.click(createForm.getByRole('button', { name: 'Create season' }));
 
