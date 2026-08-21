@@ -20,13 +20,14 @@ function tabName(target: EventTarget | null): string | null {
 export function AdminCompetitionDesk(props: Props) {
   const shellRef = useRef<HTMLDivElement>(null);
   const selectedLeagueRef = useRef<string | null>(props.selectedLeagueId ?? null);
+  const resultsActiveRef = useRef(false);
   const [resultsActive, setResultsActive] = useState(false);
   const [activeResultsLeagueId, setActiveResultsLeagueId] = useState(props.selectedLeagueId ?? null);
 
   useEffect(() => {
     selectedLeagueRef.current = props.selectedLeagueId ?? selectedLeagueRef.current;
-    if (resultsActive && props.selectedLeagueId) setActiveResultsLeagueId(props.selectedLeagueId);
-  }, [props.selectedLeagueId, resultsActive]);
+    if (resultsActiveRef.current && props.selectedLeagueId) setActiveResultsLeagueId(props.selectedLeagueId);
+  }, [props.selectedLeagueId]);
 
   useEffect(() => {
     if (!resultsActive) return;
@@ -37,13 +38,16 @@ export function AdminCompetitionDesk(props: Props) {
   }, [resultsActive, activeResultsLeagueId]);
 
   const handleLeagueSelected = (league: LeagueSummary | null) => {
-    selectedLeagueRef.current = league?.id ?? null;
+    const leagueId = league?.id ?? null;
+    selectedLeagueRef.current = leagueId;
+    if (resultsActiveRef.current) setActiveResultsLeagueId(leagueId);
     props.onLeagueSelected?.(league);
   };
 
   const updateActiveTab = (name: string | null) => {
     if (!name) return;
     const nextResultsActive = name === 'Results';
+    resultsActiveRef.current = nextResultsActive;
     if (nextResultsActive) setActiveResultsLeagueId(selectedLeagueRef.current);
     setResultsActive(nextResultsActive);
   };
