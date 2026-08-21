@@ -1,6 +1,6 @@
 # Misfits Leagues v2 Design
 
-> **Historical:** The v2 behavior is implemented and retained as the previous release record. The current white-label ownership and visibility requirements are defined by [`2026-08-20-white-label-leagues-v3-design.md`](2026-08-20-white-label-leagues-v3-design.md).
+> **Historical:** The v2 behavior is implemented and retained as a previous release record. The current product authority is [`2026-08-20-misfits-501-club-v4-design.md`](2026-08-20-misfits-501-club-v4-design.md); v3 is historical context only.
 
 **Status:** Superseding design for implementation  
 **Date:** 20 August 2026  

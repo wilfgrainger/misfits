@@ -165,10 +165,21 @@ class MemoryD1 {
 
   private async all<T>(sql: string, values: unknown[]): Promise<{ results: T[] }> {
     if (sql.includes('FROM leagues')) {
-      const leagues = [...this.leagues.values()].filter((league) =>
-        (!sql.includes("visibility = 'PUBLIC'") || league.visibility === 'PUBLIC') &&
-        (!sql.includes('WHERE created_by = ?') || league.created_by === String(values[0]))
-      );
+      const leagues = [...this.leagues.values()].filter((league) => {
+        if (sql.includes("visibility = 'PUBLIC'") && league.visibility !== 'PUBLIC') return false;
+        if (sql.includes('JOIN league_players')) {
+          const userId = String(values[0]);
+          const key = `${league.id}:${userId}`;
+          const hasMembershipRow = this.memberships.has(key) || this.inactiveMemberships.has(key);
+          const matchesMembershipPredicate = sql.includes('league_players.active = 1')
+            ? this.memberships.has(key)
+            : hasMembershipRow;
+          return sql.includes('leagues.created_by = ?')
+            ? league.created_by === userId || matchesMembershipPredicate
+            : matchesMembershipPredicate;
+        }
+        return !sql.includes('WHERE created_by = ?') || league.created_by === String(values[0]);
+      });
       return { results: leagues as T[] };
     }
     if (sql.includes('FROM league_invites')) return { results: [...this.invites.values()] as T[] };
@@ -243,6 +254,17 @@ describe('league and invite routes', () => {
       method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
     }), env, {} as never);
     expect(otherOwnerInvite.status).toBe(201);
+  });
+
+  it('lists personal leagues by active membership, not retired ownership', async () => {
+    const { db, env, publicRoutes } = setup();
+    db.inactiveMemberships.add('league-private:player-2');
+    const response = await publicRoutes.fetch(new Request('https://misfits.test/api/me/leagues', {
+      headers: { Cookie: await cookieFor(db, 'player-2') },
+    }), env, {} as never);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ leagues: [] });
   });
 
   it('does not reduce a league below its active member count', async () => {

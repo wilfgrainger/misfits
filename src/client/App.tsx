@@ -57,7 +57,7 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
 
 export default function App() {
   const [view, setView] = useState<ViewState>('loading');
-  const [message, setMessage] = useState('Checking your league session...');
+  const [message, setMessage] = useState('Checking your Misfits 501 membership...');
   const [user, setUser] = useState<UserSummary | null>(null);
   const [username, setUsername] = useState('');
   const [signingIn, setSigningIn] = useState(false);
@@ -65,6 +65,7 @@ export default function App() {
   const [publicLeagueId, setPublicLeagueId] = useState<string | null>(null);
   const [myLeagues, setMyLeagues] = useState<LeagueSummary[]>([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
+  const [adminSelectedLeagueId, setAdminSelectedLeagueId] = useState<string | null>(null);
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const loadPublicLeagues = async () => {
@@ -116,7 +117,7 @@ export default function App() {
       return;
     }
     setView('signed-in');
-    setMessage('Your league workspace is ready.');
+    setMessage('Your Misfits 501 club workspace is ready.');
     const joinedLeagueId = await joinPendingInvite();
     await loadMyLeagues(joinedLeagueId);
   };
@@ -126,7 +127,7 @@ export default function App() {
     api.me().then((payload) => void applyAuth(payload)).catch((error: unknown) => {
       if (error instanceof ApiClientError && error.status === 401) {
         setView('signed-out');
-        setMessage('Sign in to join leagues and record games.');
+        setMessage('Sign in to enter the club and record games.');
       } else {
         setView('signed-out');
         setMessage('The league could not be reached. Try signing in again.');
@@ -184,6 +185,7 @@ export default function App() {
     setUser(null);
     setMyLeagues([]);
     setSelectedLeagueId(null);
+    setAdminSelectedLeagueId(null);
     setView('signed-out');
     setMessage('You are signed out.');
   };
@@ -193,6 +195,10 @@ export default function App() {
   const handleLeagueCreated = (league: LeagueSummary) => {
     setMyLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : [league, ...current]);
     setSelectedLeagueId(league.id);
+    setAdminSelectedLeagueId(league.id);
+  };
+  const handleLeagueChanged = (league: LeagueSummary) => {
+    setMyLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : current);
   };
   const selectedLeague = myLeagues.find((league) => league.id === selectedLeagueId) ?? null;
   const selectedPublicLeague = publicLeagues.find((league) => league.id === publicLeagueId) ?? null;
@@ -202,19 +208,19 @@ export default function App() {
       <section className={`shell-panel ${view === 'signed-in' ? 'shell-panel-wide' : ''}`}>
         <header className="brand-header">
           <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501" />
-          <div className="brand-meta"><p className="eyebrow">MISFITS 501</p><span className="online-label">We just can't hit 180</span></div>
+          <div className="brand-meta"><p className="eyebrow">THE MISFITS 501 CLUB</p><span className="online-label">We just can't hit 180</span></div>
           {user && <div className="header-user"><div className="avatar">{user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase()}</div><button className="header-signout" type="button" onClick={() => void logout()}>Sign out</button></div>}
         </header>
-        <div className="page-intro"><p className="hero-kicker">ONE CLUB. WEEKLY DARTS. ZERO NONSENSE.</p><h1>Club darts,<br /><em>properly settled.</em></h1><p className="intro">{message}</p><div className="club-links" aria-label="Club links"><a href="https://www.dartcounter.net/" target="_blank" rel="noreferrer">DartCounter</a><span aria-label="WhatsApp access is available to club members">WhatsApp for members</span></div></div>
+        <div className="page-intro"><p className="hero-kicker">ONE CLUB / WEEKLY DARTS / NO FUSS</p><h1>Club darts,<br /><em>beautifully settled.</em></h1><p className="intro">{message}</p><div className="club-links" aria-label="Club links"><a href="https://www.dartcounter.net/" target="_blank" rel="noreferrer">DartCounter</a><span>One club, well kept.</span></div></div>
 
         {view === 'signed-out' && <>
-          {publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><div className="section-heading"><div><p className="section-kicker">MISFITS LEAGUES</p><h2 id="public-leagues-title">The club board</h2></div><span className="count-label">{publicLeagues.length}</span></div><LeagueTabs leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
-          <div className="sign-in-panel"><p className="section-kicker">PLAYER ACCESS</p><h2>Sign in with Google</h2><p className="sign-in-copy">Use your Google account to join an invited league and keep your results attached to you.</p><div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} /></div>
+          {publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><div className="section-heading"><div><p className="section-kicker">THE CLUB TABLE</p><h2 id="public-leagues-title">Misfits 501 leagues</h2></div><span className="count-label">{publicLeagues.length}</span></div><LeagueTabs leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
+          <div className="sign-in-panel"><p className="section-kicker">MEMBERS' DOOR</p><h2>Enter the club</h2><p className="sign-in-copy">Use your Google account to join an invited Misfits 501 league and keep your results attached to you.</p><div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} /></div>
         </>}
 
         {view === 'onboarding' && <form className="onboarding-form" onSubmit={submitUsername}><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Continue</button></form>}
 
-        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.role === 'ADMIN' ? 'Club administrator' : 'Misfits 501 player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div>{user.role === 'ADMIN' && <AdminLeagueDesk user={user} selectedLeagueId={selectedLeagueId} onLeagueChanged={handleLeagueCreated} onLeagueSelected={(league) => { if (league) setSelectedLeagueId(league.id); }} />}<div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><p className="section-kicker">JOIN THE CLUB</p><h2>Open your Misfits invite.</h2><p>Use the shared club link, sign in with Google, then join a league when registrations open.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
+        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.role === 'ADMIN' ? 'Club administrator' : 'Misfits 501 player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'league' : 'leagues'}</span></div>{user.role === 'ADMIN' && <AdminLeagueDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => { setAdminSelectedLeagueId(league?.id ?? null); }} />}<div className="member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><p className="section-kicker">JOIN THE CLUB</p><h2>Open your Misfits invite.</h2><p>Use the shared club link, sign in with Google, then join a league when registrations open.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
 
         {view !== 'signed-in' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
       </section>

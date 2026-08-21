@@ -1,6 +1,6 @@
 # Misfits 501
 
-Misfits 501 is a private-club-first, mobile darts league application for one club. It gives members a polished home for weekly leagues, standings, results and player profiles while DartCounter remains the exclusive scoring surface and WhatsApp remains the club conversation. It is not a white-label league product.
+Misfits 501 is a private-club-first, mobile darts league application for one club. Its direction is a luxury, pristine Misfits 501 club UI; it is not a white-label league product. DartCounter remains the scoring surface: this application records league data and does not become a live scorer.
 
 The application runs entirely on Cloudflare's free-tier-capable stack: one Worker serves the Hono API and Vite/React static assets, and one D1 database stores club data. Google Identity Services is the only sign-in method.
 
@@ -9,14 +9,12 @@ The application runs entirely on Cloudflare's free-tier-capable stack: one Worke
 The current direction is defined in [`docs/superpowers/specs/2026-08-20-misfits-501-club-v4-design.md`](docs/superpowers/specs/2026-08-20-misfits-501-club-v4-design.md). In summary:
 
 - Misfits 501 is the only club and the product identity.
-- People arrive through a shared club or league invite, sign in with Google, and access only their own account.
-- Administrators approve league participation, run weekly seasons, maintain results, and can promote additional administrators. The initial master administrator is configured out of band.
-- Members can view current and previous leagues, click player cards from tables, and maintain a photo, nickname, bio and DartCounter link.
-- Games are played and scored in DartCounter (camera scoring supported; Omni optional). This site records the resulting league data rather than recreating a darts scorer.
-- WhatsApp and configured social links connect members to club conversation.
+- Google Identity Services is the only sign-in method; Worker-side checks protect accounts and mutations.
+- One Worker, static assets, and one D1 database are the free-tier-capable core path. Secrets stay in Wrangler configuration or `.dev.vars`, never source.
+- The current foundation slice preserves the existing club identity, Google-authenticated application boundary, D1-backed league data, and Worker-side security/privacy contract.
 - The service must remain within Cloudflare's no-cost allowances for normal club usage; no paid dependency is part of the core path.
 
-The existing code already provides Google sign-in, invite joins, league membership, public league views, configurable league rules, player result submission, confirmation/dispute, averages, standings, profiles, administrative result correction, and role controls. Join requests, bios, clickable public player cards, configured socials, scheduling/fixtures, richer statistics and a dedicated archive presentation are the next product increments recorded in the v4 plan.
+Membership requests, fixtures, archive presentation, player bios, configured social links, and richer statistics are gated follow-on work. They need the club owner’s open decisions on public visibility/location/time zone; official WhatsApp and social URLs; match night/day, season length, format, postponement window, and tie-breaks; bio/photo privacy; and whether any DartCounter integration is desired. Do not represent those capabilities as implemented until the v4-gated work is delivered.
 
 ## Local development
 
@@ -52,7 +50,7 @@ npx wrangler deploy --keep-vars
 
 Configure production values with Wrangler secrets. `MASTER_ADMIN_EMAIL` identifies the first master administrator; `BOOTSTRAP_ADMIN_EMAIL` is retained as a compatibility fallback. Administrators may then enable other administrators from the People controls. Keep administrator email configuration private.
 
-The free-tier guardrails are architectural: no object storage is required for Google profile photos, no scheduled polling is required, public reads can be cached, writes are user-driven, and DartCounter/WhatsApp remain external links rather than replicated services. Usage must still be monitored against Cloudflare's current published limits before growth or new background work.
+The free-tier guardrails are architectural: no object storage, scheduled polling, or paid service is required on the core path; writes are user-driven; and DartCounter remains external. Before a Wrangler deployment, record measured usage separately from Cloudflare's published limits using the [free-tier runbook](docs/operations/cloudflare-free-tier-runbook.md).
 
 ## Security and privacy
 

@@ -4,82 +4,67 @@
 
 **Date:** 20 August 2026  
 **Platform:** Cloudflare Worker + D1 + React/Vite  
-**Principle:** Prove one brilliant club end to end before considering anything broader.
+**Principle:** Establish one luxury, pristine Misfits 501 club foundation before considering anything broader.
 
 ## 1. Decision
 
-The product is **Misfits 501**, not a platform for arbitrary league owners. The attached circular artwork, near-black ground, aged cream type and dart red are the identity. The voice is confident and irreverent: “We don't follow the game” and “We just can't hit 180.” Accessibility and legibility take priority over novelty.
+The product is **Misfits 501**, not a platform for arbitrary league owners. The attached artwork, near-black ground, aged cream type and dart red are the identity. The experience is a luxury, pristine Misfits 501 club UI: confident and irreverent, but accessible and legible ahead of novelty.
 
-A club contains many weekly league seasons over time. Closed leagues remain visible as history. There is no user-created club, tenant selector, white-label shell or paid core dependency.
+A club can contain many weekly league seasons over time. Archive and history treatment, including whether or when closed leagues are visible, is gated until the club owner records that decision. There is no user-created club, tenant selector, white-label shell or paid core dependency.
 
 ## 2. Current-state review
 
-### Proven in the repository
+### Current foundation slice
 
-- Google-only sign-in with verified server-side identity and opaque sessions.
-- Nickname onboarding and Google profile image capture.
-- Hashed, revocable invite links and capacity-safe membership joins.
-- Current/public league directory, stable share URLs, league configuration and closed league states.
-- Player result entry restricted to the signed-in player, two-player confirmation/dispute, administrative correction and deletion.
-- Confirmed-result standings, wins/losses, legs, points and three-dart averages.
-- Administrator People controls, account suspension and administrator promotion by the master administrator.
-- Cloudflare Worker, D1 migrations, static assets, security headers and automated domain/server/client coverage.
+- A single Cloudflare Worker serves static assets and the application API; one D1 database stores club data.
+- Google Identity Services is the only sign-in method. Identity verification, authorization, privacy, same-origin mutation checks, and audit records remain server-side requirements.
+- DartCounter remains the scoring surface. The application records league data and does not become a live scorer.
+- Current invite-based league membership and existing administrator league operations are foundation capabilities. They remain subject to the existing Worker-side authorization, privacy, mutation, and audit boundaries.
+- The foundation does not add a runtime API, dependency, database table, scheduled job, queue, object store, or secret.
 
-### Incorrect for the new direction
+### Retired direction
 
 - The v3 shell and metadata are generic “League Board”.
-- Any authenticated user can create and own a league.
-- The UI frames every player as a possible league owner.
-- Administration is based on per-league ownership; promoted club administrators do not automatically share club operations.
-- Public profiles contain no bio and table names are not yet clickable player cards.
+- Historical materials may describe white-label or player-created league ownership. Those are not current product direction.
 
-### Missing product capability
+### Gated follow-on work
 
-- Shared club join landing and a distinct **request to join league** workflow with pending/approved/rejected states.
-- A deliberate archive view for previous seasons.
-- Weekly fixture generation, schedule, availability/postponement handling and reminders.
-- Rich league statistics: streaks, form, highest/lowest averages, head-to-head and player history.
-- Player bio, privacy choices and player detail surface.
-- Admin-configured WhatsApp and social links.
-- DartCounter workflow guidance (camera scoring, optional Omni, then result import/entry) without attempting to become a scorer.
-- Operational usage dashboard/alerts for Cloudflare free-tier headroom.
+- Membership-request capability.
+- Fixtures and league scheduling.
+- Archive presentation for previous seasons.
+- Player bios and detail surfaces.
+- Club social and WhatsApp connections.
+- Statistics such as form, streaks, averages, head-to-head, and player history.
+- Measured Cloudflare free-tier headroom and an operational response if it narrows.
 
 ## 3. Roles and access
 
-- **Visitor:** can see club identity and deliberately public current/archive tables; cannot see email or private member data.
-- **Signed-in person:** has exactly one Google-backed account and can edit only their own profile. A shared invite associates them with the club.
-- **Member:** can request a place in an open league, view member resources and WhatsApp access, and participate after approval.
-- **Administrator:** can approve requests, manage membership, leagues, fixtures and results, and enable or remove other non-master administrators.
-- **Master administrator:** initial out-of-band recovery authority. The configured account cannot be demoted by another admin.
+- **Visitor:** sees only deliberately public club material and never private member data.
+- **Signed-in person:** has one Google-backed account; Worker-side authorization determines what they may access or change.
+- **Member and administrator:** current invite-based league membership and existing administrator league operations are foundation capabilities. Membership-request workflows, fixtures/scheduling, and other listed follow-ons remain gated; their permissions must be enforced in the Worker when introduced.
+- **Master administrator:** remains out-of-band recovery authority; any later administrator-management work must preserve its protections.
 
 Every permission is checked in the Worker. The UI is not an authorization boundary.
 
 ## 4. Core journeys
 
-### Join the club
+### Foundation journey
 
-1. A person opens the shared Misfits link.
-2. The page explains the club and shows the official Google button.
-3. After verified sign-in, first-time users choose a unique club nickname and may add a bio/DartCounter link.
-4. The invite is redeemed idempotently and the member lands on the club home.
+1. A person reaches Misfits 501 and uses the official Google sign-in.
+2. The Worker verifies identity and enforces the server-side access contract.
+3. The application records league data while DartCounter remains the scoring surface.
 
-### Join a league
+### Gated follow-on membership journey
 
-1. A member opens **Leagues**, seeing open, active and previous seasons.
-2. They request an open league place; repeated requests are idempotent.
-3. Admins approve or reject from a single queue. Approval is capacity-safe and audited.
-4. The member receives an in-app state change; WhatsApp remains the human notification fallback in the first release.
+Membership requests must not be represented as complete until the club owner records the relevant club decisions.
 
-### Play weekly
+### Gated play journey
 
-1. The fixture identifies the opponent, week and format.
-2. Players arrange details in WhatsApp and play exclusively in DartCounter using camera scoring; Omni is optional.
-3. One player enters the final legs and both three-dart averages (or a later supported import).
-4. The opponent confirms or disputes. Confirmation updates table, form and player stats atomically.
+Fixtures and related league operation must wait for the club owner’s match-night, season, format, postponement, and tie-break decisions. DartCounter guidance or integration also requires an explicit club decision; do not invent any of these values.
 
-### Review history
+### Gated history journey
 
-Visitors/members can switch from the current season to closed seasons. The archive preserves final tables, results and player snapshots even when a member later changes their current profile.
+Archive behavior, player bios, social links, and statistics are follow-on work. Their visibility and source data must be decided before implementation.
 
 ## 5. Experience direction
 
@@ -87,8 +72,8 @@ Visitors/members can switch from the current season to closed seasons. The archi
 - Black header/hero, warm cream content, dart red for emphasis, muted bronze/grey dividers.
 - Use the supplied Misfits mark prominently but not as a low-contrast background behind text.
 - Home hierarchy: identity → current league status → next action → table/results → club links.
-- Table player names and avatars open an accessible player sheet/page with bio, season record, average, form and DartCounter link.
-- Social links are admin-configured; absent links are not rendered publicly. WhatsApp access is member-only to avoid exposing a group invitation.
+- Player bio and detail presentation is gated follow-on work; the club owner must decide its scope first.
+- Social links and WhatsApp access are gated follow-on work; the club owner must decide their scope first.
 - All state changes have explicit loading, success, empty and error states.
 
 ## 6. League capability benchmark
@@ -105,24 +90,19 @@ The goal is the useful club core associated with mature league products, not ind
 
 Tournaments, teams, payments, venue marketplace, live darts scoring and multi-club tenancy are excluded until the one-club weekly league is proven.
 
-## 7. Data additions (next increment)
+## 7. Gated implementation boundary
 
-- `users.bio`, with a short plain-text limit.
-- `club_memberships` if club membership needs to be distinct from league participation.
-- `league_join_requests` with unique `(league_id,user_id)`, state, reviewer and timestamps.
-- `fixtures` with week/date, two participants, state and optional result reference.
-- `club_links` with typed, ordered, admin-managed URLs and member/public visibility.
-- Snapshot fields or season-player records so archives do not silently change identity.
+Membership requests, fixtures, archive presentation, player bios, social connections, and statistics are capability outcomes only. No database schema, migration, API shape, workflow state, visibility rule, or identity-storage approach is approved for them until the relevant open club decisions are recorded and the capability has separate proof.
 
-All schema changes are additive D1 migrations. Photos continue to use the verified Google image initially, avoiding R2 cost and image-moderation scope.
+When a follow-on capability is approved, apply Cave Pony: choose the smallest additive change that meets the recorded decision, preserves existing server-side security and API compatibility, and is covered by a focused test. Do not reserve columns, tables, or endpoints in advance.
 
 ## 8. Free-at-club-scale constraint
 
-Core operation uses only Cloudflare free-tier-capable primitives already present: Workers/static assets and D1. Do not introduce queues, paid analytics, transactional email, hosted image uploads or background polling as a requirement. Cache safe public reads, paginate history, index join/fixture/result queries, and make writes event-driven. Before each release, compare actual D1 rows/reads/writes, Worker requests and CPU time with Cloudflare's current limits; “free forever” is a product constraint to monitor, not a guarantee any vendor contract can make.
+Core operation uses only Cloudflare free-tier-capable primitives already present: one Worker serving static assets and one D1 database. Do not require paid services, queues, object storage, scheduled work, or background polling. Writes remain user-driven. Before each release, compare actual D1 rows/reads/writes, Worker requests, and CPU time with Cloudflare's current limits. Capacity and query-shape safeguards are selected only with each approved follow-on design; “free forever” is a product constraint to monitor, not a guarantee any vendor contract can make.
 
-## 9. Acceptance bar
+## 9. Foundation acceptance bar
 
-The concept is proven when one invited person can complete the journey from Google sign-in through approved weekly league membership, profile setup, fixture discovery, DartCounter play, result confirmation and updated standings; an administrator can operate the entire journey on mobile; a closed season remains readable; private data is absent from public APIs; and measured usage remains comfortably inside free allowances.
+The foundation is proven when the luxury, pristine Misfits 501 club UI is clearly one-club; Google sign-in and Worker-side privacy/security boundaries remain intact; DartCounter stays the scoring surface; no paid Cloudflare dependency is required; and measured usage is reviewed against current published allowances. Membership requests, fixtures, archives, bios, socials, and statistics require their gated decisions and separate proof before they are called complete.
 
 ## 10. Open decisions for the club owner
 
