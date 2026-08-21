@@ -775,7 +775,9 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
                 <li key={member.userId}>
                   <div>
                     <strong>{member.username ?? 'Name pending'}</strong>
-                    <small>{member.active ? 'Active' : 'Inactive'}</small>
+                    <span className={member.active ? 'player-tag player-tag-active' : 'player-tag player-tag-suspended'}>
+                      {member.active ? 'Active member' : 'Inactive'}
+                    </span>
                   </div>
                   <button
                     className="action-button"

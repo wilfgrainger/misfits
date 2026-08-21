@@ -712,8 +712,19 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   color: var(--text-3);
   font-size: .82rem;
 }
-.google-button-slot { width: 100%; min-height: 44px; margin-top: .85rem; overflow: hidden; }
-.google-button-slot > div { max-width: 100%; }
+.google-button-slot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  margin-top: .85rem;
+  overflow: hidden;
+}
+.google-button-slot > div {
+  margin: 0 auto !important;
+  max-width: 100%;
+}
 
 /* ─── Public / signed-out ────────────────────────────────────────────────── */
 .shell[data-state="signed-out"] { background: var(--bg); }
