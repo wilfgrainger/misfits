@@ -1,8 +1,8 @@
 # Misfits 501 — Story-by-Story Delivery Audit
 
 **Started:** 21 August 2026
-**Branch:** `feat/story-by-story-audit-fix`
-**Base:** `main` at `f4b5eaaba9a43db1aed7e39f54f26d9c38084af6`
+**Current branch:** `feat/story-audit-chunk-2-leagues-memberships`
+**Current base:** `main` at `c2fd8599615b1687b5746b49ddd86cfd50263225`
 **Authority:** `docs/superpowers/specs/2026-08-21-user-stories.md`
 **Method:** Superpowers executing-plans + TDD + verification-before-completion.
 
@@ -33,12 +33,12 @@ When a story fails or has weak evidence:
 - PR verification run `32516031892`: Wrangler types, TypeScript, 171/171 tests across 37 files, and Vite production build passed.
 - That run was a pull-request run; `Deploy Worker` was skipped.
 - `migrations/0004_seasons_fixtures_promotion.sql` exists in `main`; remote production application is not assumed by this audit without evidence.
-- `PROGRESS.md` on `main` is stale: it still references draft PR #9 and obsolete resume instructions after PR #10 merged.
-- The planned `tests/release/user-story-ledger.test.ts` is absent, so the existing 150-story delivery labels are not a release gate.
+- `PROGRESS.md` on the original baseline was stale and is not accepted as story-level proof.
+- The planned `tests/release/user-story-ledger.test.ts` was absent, so the original 150-story delivery labels were not a release gate.
 
-## Chunk 1 — governance and season lifecycle
+## Chunk 1 — governance and season lifecycle — MERGED
 
-Full verification gate: run `32523186190` passed Wrangler types, TypeScript, the complete Vitest suite and the production build.
+Merged to `main` as `c2fd8599615b1687b5746b49ddd86cfd50263225` via PR #11. Final PR-head gate `32523295692` passed Wrangler types, TypeScript, the complete Vitest suite and production build.
 
 | Story | Audit state | Evidence / gap | Fix / CI |
 |---|---|---|---|
@@ -51,7 +51,7 @@ Full verification gate: run `32523186190` passed Wrangler types, TypeScript, the
 | ADM-007 | VERIFIED | Suspension is a status mutation, not deletion; suspended sessions fail resolution and sentinel competition history survives in focused governance test. | GREEN run `32521180737`. |
 | ADM-008 | VERIFIED | Reactivation reuses the same account record and preserves sentinel membership/result history in focused governance test. | GREEN run `32521180737`. |
 | ADM-009 | VERIFIED | Audit found a real UI/API gap: the directory omitted `isMasterAdmin`, so destructive controls were offered even though the DB correctly rejected them. RED run `32520800451` isolated the two failures. Directory payload and UI now expose/label the protected master and remove destructive controls. | GREEN run `32521180737`; `story-adm-009-server.test.ts` + `admin-access-protection.test.tsx`. |
-| ADM-010 | VERIFIED | Season creation generates a fresh stable ID and starts as DRAFT; it does not copy fixtures/results and leaves prior seasons untouched. Direct creation as OPEN is now rejected so preparation cannot be bypassed. | `competition-routes.test.ts`; GREEN run `32523186190`. |
+| ADM-010 | VERIFIED | Season creation generates a fresh stable ID and starts as DRAFT; it does not copy fixtures/results and leaves prior seasons untouched. Direct creation as OPEN is rejected so preparation cannot be bypassed. | `competition-routes.test.ts`; GREEN run `32523186190`. |
 | ADM-011 | VERIFIED | Season name/current metadata persists through the stable season ID; invalid input is rejected by `validateSeasonInput`; league/history references remain attached by ID. | `competition-routes.test.ts`; GREEN run `32523186190`. |
 | ADM-012 | VERIFIED | DRAFT/OPEN/CLOSED is persisted and backend-enforced. League status follows lifecycle transitions; player result submission paths reject closed leagues. | `season-lifecycle.ts`, `results.ts`, `fixture-results.ts`; GREEN run `32523186190`. |
 | ADM-013 | VERIFIED | Audit found a real opening defect: an unprepared DRAFT season returned 200 and its leagues remained CLOSED. RED run `32521461832` isolated this. Opening now requires at least one league and at least two active players in every league, then opens prepared leagues. | `season-lifecycle.ts` + `competition-routes.test.ts`; GREEN run `32523186190`. |
@@ -60,8 +60,15 @@ Full verification gate: run `32523186190` passed Wrangler types, TypeScript, the
 | ADM-016 | VERIFIED | `is_current` is explicit persistent state. Setting one season current clears the flag from other seasons, and client selection defaults to `isCurrent` rather than inferring from a name. | `createSeason`/`updateSeason`, `AdminCompetitionDesk`; GREEN run `32523186190`. |
 | ADM-017 | VERIFIED | Only an empty DRAFT season can be deleted; any league/fixture competition data blocks deletion. The admin UI exposes an explicit confirmation flow. | `deleteEmptyDraftSeason`, `competition-routes.test.ts`, `AdminCompetitionDesk`; GREEN run `32523186190`. |
 | ADM-018 | VERIFIED | Audit found no previous-season structural clone operation. RED run `32521461832` proved the endpoint was absent; RED run `32522707299` proved the admin control was absent. The new clone creates a fresh DRAFT season and fresh league IDs/slugs, copies structure/rules only, and copies no memberships/results/fixtures/invites. The Season workspace now exposes the operation. | `season-lifecycle.ts`, clone route, `season-clone.ts`, `admin-season-clone.test.tsx`; GREEN run `32523186190`. |
-| ADM-019 | NOT REVIEWED | Next story and start of Chunk 2. | — |
+
+## Chunk 2 — leagues, memberships and invitations — IN PROGRESS
+
+Branch starts from merged Chunk 1 commit `c2fd8599615b1687b5746b49ddd86cfd50263225`. Scope is ADM-019 through ADM-045.
+
+| Story | Audit state | Evidence / gap | Fix / CI |
+|---|---|---|---|
+| ADM-019 | NOT REVIEWED | Start Chunk 2 here. | — |
 
 ## Resume instruction
 
-Chunk 1 ends at ADM-018. After it is merged to `main`, create the next branch from fresh `main` and continue strictly from ADM-019. Do not skip ahead because the broad suite is green. Update this file after every story-level RED/GREEN checkpoint.
+Continue strictly from ADM-019 on `feat/story-audit-chunk-2-leagues-memberships`. Complete ADM-019–ADM-045 in canonical order, merge this chunk to `main` only after focused evidence and the full repository gate are green, then branch the next chunk from fresh `main`.
