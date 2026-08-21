@@ -111,7 +111,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const effectiveLeagueId = selectedLeagueId && leagues.some((league) => league.id === selectedLeagueId) ? selectedLeagueId : selectedId;
   const selectedLeague = leagues.find((league) => league.id === effectiveLeagueId) ?? null;
   const memberLeague = selectedLeague ?? orderedLeagues[0] ?? null;
-  const leagueSummaryComplete = leagueSummariesReady && orderedLeagues.every((league) => Object.prototype.hasOwnProperty.call(membersByLeague, league.id));
+  const leagueSummaryComplete = orderedLeagues.length > 0 && leagueSummariesReady && orderedLeagues.every((league) => Object.prototype.hasOwnProperty.call(membersByLeague, league.id));
 
   const clear = () => { setMessage(''); setError(''); };
 
