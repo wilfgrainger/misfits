@@ -1,6 +1,6 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026, 17:22 BST  
+**Updated:** 21 August 2026, 17:30 BST  
 **Current branch:** `feat/master-user-stories-100`  
 **Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**  
 **Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
@@ -136,16 +136,36 @@ Fresh evidence from CI:
 
 Task 5 is therefore GREEN and checkpointed. No production deployment or remote D1 migration has been performed.
 
+### Task 6 — Promotion/relegation + next-season placement — IN PROGRESS
+
+#### RED
+
+Commit `2c34c67e6bb88bf7f2473a580d40e31e211c2b73` added `tests/server/promotion.test.ts` before promotion/relegation routes existed.
+
+Actions run `32503035206`: **FAILURE**, as intended for the new slice.
+
+Verified RED evidence:
+
+- Wrangler types: success;
+- TypeScript: success;
+- all **6/6** new promotion tests failed because the expected promotion endpoints returned `404`;
+- the tests cover adjacent promotion/relegation with safe top/bottom edges, unresolved tie blocking, unresolved fixture/result blocking, audited override, idempotent next-season apply, source-history preservation and target-capacity prevalidation;
+- production build was skipped after the test failure;
+- deploy was skipped correctly on the PR branch.
+
+The same CI run also showed one unrelated failure in `tests/client/app-league-create.test.tsx` (`keeps the player workspace selection separate from the league desk`). That test passed in the immediately preceding Task 5 green run. It must be re-checked on the Task 6 green candidate and must not have its assertion weakened to obtain green.
+
 ### Story ledger status
 
 Backend prerequisites now exist for season/division management, explicit league placement, fixture generation, fixture-authoritative result settlement and much of ADM-010–ADM-059. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
 
 ## Exact next actions
 
-1. **Task 6 now:** promotion/relegation projection, review, override and next-season application. Start with RED tests for top/bottom zones, highest/lowest division zero movement, unresolved tie blocking, override, idempotent apply and history preservation.
-2. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public competition view.
-3. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
-4. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
+1. **Task 6 GREEN now:** implement promotion projection/ambiguity detection, closed-season proposal, audited override, target-capacity validation, idempotent next-season placement and history preservation; make the six RED tests pass without weakening them.
+2. Re-check the unrelated `app-league-create` failure. If it repeats, diagnose it separately under Superpowers systematic debugging rather than changing its contract opportunistically.
+3. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public competition view.
+4. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
+5. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
 
 ## Resume instructions for a new agent
 
@@ -154,7 +174,7 @@ If this session dies:
 1. Use branch `feat/master-user-stories-100` / draft PR #9.
 2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, canonical user-stories spec, implementation plan, then this file.
 3. Use Superpowers `executing-plans`, TDD and verification-before-completion.
-4. Resume at **Task 6** unless a newer checkpoint supersedes this one.
+4. Resume at **Task 6 GREEN** unless a newer checkpoint supersedes this one.
 5. Do not infer completion. Require code + focused test/evidence.
 6. Update this file after every red/green/CI checkpoint.
 7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level only when the full story is delivered.
