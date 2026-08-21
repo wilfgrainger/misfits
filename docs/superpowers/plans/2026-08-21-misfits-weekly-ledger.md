@@ -150,6 +150,7 @@ git commit -m "feat: lead Misfits with the club table"
 - Modify: `src/client/App.tsx`
 - Modify: `src/client/styles.css`
 - Modify: `tests/client/app-league-create.test.tsx`
+- Modify: `tests/client/account-profile.test.tsx`
 
 **Interfaces:**
 - Consumes: `user`, `myLeagues`, `selectedLeague`, and the existing `AdminLeagueDesk`/`PlayerLeague` props.
@@ -178,6 +179,8 @@ Expected: FAIL because the signed-in route still renders `page-intro` and does n
 - [ ] **Step 3: Implement the signed-in context**
 
 Render the marketing introduction only for `signed-out`. Add a small account-context element after the account heading when `selectedLeague` exists, with the literal state order from the test. Do not fabricate a season for users without one; preserve the invite/profile empty state.
+
+Update the account-profile preservation assertions to the new shared-header copy and explicitly reject the retired slogan. Keep the existing profile-management assertions; Task 4 will separately update its temporary `League desk` / `People` admin assertions when it changes those controls.
 
 - [ ] **Step 4: Remove obsolete signed-in hero CSS and polish account context**
 
