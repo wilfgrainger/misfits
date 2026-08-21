@@ -76,6 +76,7 @@ function installApi(config: FixtureConfig = {}) {
       { league_id: 'l1', season_id: 's1', user_id: 'u2', active: 1, joined_at: '2026-08-01T00:00:00.000Z', username: 'Bravo', profile_image_url: null, email: 'bravo@example.com', status: 'ACTIVE' },
     ] }), { status: 200 });
     if (path === '/api/admin/competition/leagues/l2/members') return new Response(JSON.stringify({ members: [] }), { status: 200 });
+    if (path === '/api/admin/competition/leagues/l3/members') return new Response(JSON.stringify({ members: [] }), { status: 200 });
     if (path === '/api/admin/seasons/s1/members/u3/assign' && method === 'POST') return new Response(JSON.stringify({ membership: { seasonId: 's1', leagueId: 'l2', userId: 'u3', active: true } }), { status: 200 });
     if (path === '/api/admin/seasons/s1/members/u1/move' && method === 'POST') return new Response(JSON.stringify({ membership: { seasonId: 's1', leagueId: 'l2', userId: 'u1', active: true } }), { status: 200 });
 
@@ -240,7 +241,7 @@ describe('administrator competition workspace', () => {
     const { fetchMock } = renderDesk();
     fireEvent.click(await screen.findByRole('tab', { name: 'Results' }));
     expect(await screen.findByText(/Alpha 3 - 1 Bravo/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Edit result' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Edit result Alpha vs Bravo' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Club access' }));
     expect(await screen.findByText(/delta@example\.com/)).toBeTruthy();
