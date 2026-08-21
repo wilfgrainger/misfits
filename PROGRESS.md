@@ -1,111 +1,59 @@
 # Misfits 501 Progress
 
 **Updated:** 21 August 2026
-**Current branch:** `feat/story-audit-chunk-3-fixtures`
-**Pull request:** `#13` — fixture generation and management audit
-**Current base:** `main` at `e1c3957c06d78da782fe865f1015c2898c9a01c9`
-**Current scope:** ADM-046 through ADM-059 — **VERIFIED, awaiting final docs-head CI**
+**Current branch:** `feat/story-audit-chunk-4-results-standings`
+**Current base:** `main` at `b1b68d215180951b016f6638a68dedc48a46eed1`
+**Current scope:** ADM-060 through ADM-069 — results, disputes and standings integrity
 
 ## Authority
 
 - Product truth: `PRODUCT.md`.
 - Strategic/platform guardrail: `VISION.md`.
 - UI authority: `DESIGN.md` and the repo-local Impeccable skill.
-- Canonical functional backlog: `docs/superpowers/specs/2026-08-21-user-stories.md` — 150 stories: 88 Admin, 55 Player, 7 Public.
-- Story-level verification ledger: `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
+- Canonical backlog: `docs/superpowers/specs/2026-08-21-user-stories.md`.
+- Story-level evidence: `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
 - Delivery authority: Superpowers with TDD, systematic debugging and verification-before-completion.
-
-## Delivery model
-
-`Season → League → League Membership → persisted Fixture → Result settlement → Standings → Promotion/Relegation → Next Season`
-
-Work proceeds as small audited story-ID chunks from fresh `main`. A catalogue label is not completion evidence by itself.
 
 ## Completed audited chunks
 
-### Chunk 1 — ADM-001 through ADM-018 — MERGED
+- **Chunk 1, ADM-001–ADM-018:** PR #11 merged as `c2fd8599615b1687b5746b49ddd86cfd50263225`; final gate `32523295692` green.
+- **Chunk 2, ADM-019–ADM-045:** PR #12 merged as `e1c3957c06d78da782fe865f1015c2898c9a01c9`; final gate `32527554443` green with 191/191 tests.
+- **Chunk 3, ADM-046–ADM-059:** PR #13 merged as `b1b68d215180951b016f6638a68dedc48a46eed1`; exact final head `3e6a92a0933685cd7e0d9e4c08b5cd78094a0f19`; final gate `32528766451` green with **196/196 tests across 48 files**, Wrangler types, TypeScript and production build.
 
-- PR #11 merged to `main` as `c2fd8599615b1687b5746b49ddd86cfd50263225`.
-- Final PR-head gate `32523295692` passed Wrangler types, TypeScript, full Vitest and production build.
+Chunk 3 fixed the ADM-058 fixture restoration integrity defect and strengthened deterministic fixture, preview, regeneration, state-filter and uniqueness evidence. Full story-level proof is in the audit ledger.
 
-### Chunk 2 — ADM-019 through ADM-045 — MERGED
+## Current Chunk 4 — ADM-060 through ADM-069
 
-- PR #12 merged to `main` as `e1c3957c06d78da782fe865f1015c2898c9a01c9`.
-- Exact final PR head: `8979543a09119909eefde3424abe459b0a4721d8`.
-- Final PR-head CI `32527554443`: Wrangler types PASS, TypeScript PASS, **191/191 tests across 48 files PASS**, Vite production build PASS.
+Audit in strict ID order:
 
-## Current Chunk 3 — ADM-046 through ADM-059 — VERIFIED
+- ADM-060 official results settle an existing fixture exactly once;
+- ADM-061 admin manual/historical result is entered against an outstanding fixture with fixed participants;
+- ADM-062 pending-result queue exposes fixture, actors, score, averages and status/age;
+- ADM-063 disputed results/notes do not affect standings and expose resolution context;
+- ADM-064 admin confirmation settles unresolved result exactly once and is audited;
+- ADM-065 result correction validates data, preserves fixture coherence and recalculates standings;
+- ADM-066 invalid result deletion reverses standings and restores correct fixture state;
+- ADM-067 result mutations are reconstructably audited;
+- ADM-068 standings are derived only from confirmed official results;
+- ADM-069 standings are scoped to one season + league.
 
-Fresh branch: `feat/story-audit-chunk-3-fixtures` from the verified Chunk 2 merge.
-
-Verified scope:
-
-- ADM-046 complete round-robin generation;
-- ADM-047 non-mutating preview;
-- ADM-048 durable all-or-safe fixture commit;
-- ADM-049 duplicate-generation protection;
-- ADM-050 deterministic rounds/order and odd-roster byes;
-- ADM-051 distinct repeated meetings;
-- ADM-052 complete scoped fixture list;
-- ADM-053 fixture-state filtering;
-- ADM-054 outstanding-fixture count;
-- ADM-055 safe pre-play regeneration;
-- ADM-056 regeneration block once competition/result history exists;
-- ADM-057 explicit audited fixture voiding;
-- ADM-058 safe audited fixture restoration;
-- ADM-059 invalid-roster validation before generation.
-
-### Important audit finding
-
-ADM-058 exposed a real state-transition defect. The generic fixture PATCH path allowed `CONFIRMED → OUTSTANDING`, which could contradict official result state. RED CI run `32528138189` isolated exactly that failure at 193/194 tests.
-
-Fix commit `de2be81ba4d0ef6cd8f19384486107e5ecfcd480` now enforces:
-
-- void only from `OUTSTANDING`;
-- restore only from `VOID`;
-- active-result contradiction blocks both operations;
-- valid transitions continue to write fixture-status audit history.
-
-GREEN fix run `32528291927` passed 194/194 tests, Wrangler types, TypeScript and production build.
-
-### Strengthened fixture proof
-
-Further regression evidence pins:
-
-- preview metadata with no writes;
-- invalid/suspended roster rejection before generation;
-- repeated meetings with separate IDs/meeting numbers/rounds;
-- deterministic same-input scheduling and odd-player byes;
-- full persisted fixture listing and status filters;
-- safe reset then regeneration from the changed roster;
-- database `UNIQUE(league_id, pair_key, meeting_number)` duplicate fence.
-
-Evidence head `58d066ba1279b6d37e2defe73c337a27ec65c35a` passed CI `32528529664`:
-
-- Wrangler types: PASS
-- TypeScript: PASS
-- Vitest: **196/196 tests across 48 files PASS**
-- Vite production build: PASS
-- Deploy Worker: skipped because this is a pull-request run
-
-The audit ledger and this handoff were updated after that code/evidence gate. The **latest documentation head must receive its own full GREEN PR CI before PR #13 is merged**.
+**Boundary:** ADM-070 is canonical `GATED · P0` because the club has not approved the equal-points tie-break order. Do not invent that rule. Finish and merge ADM-060–ADM-069 first, then stop at ADM-070 for a product decision before proceeding in strict ID order.
 
 ## Superseded delivery line
 
-- PR #9 is **closed, not merged** and must not be reopened.
-- `feat/master-user-stories-100` is stale/superseded.
-- `feat/master-user-stories-100-5652729088464527970` is stale and had no unique work remaining when reconciled.
-- The connected GitHub tool available in this session does **not expose branch-ref deletion**, so those remote refs cannot be physically deleted from this chat. They are explicitly retired and non-authoritative.
+- PR #9 is closed, not merged, and retired.
+- `feat/master-user-stories-100` and `feat/master-user-stories-100-5652729088464527970` remain stale/non-authoritative.
+- The connected GitHub API in this chat does not expose branch-ref deletion, so those remote refs cannot be physically removed here. Do not resume them.
 
-## Next actions
+## Resume instructions
 
-1. Wait for full CI on the latest PR #13 documentation head.
-2. If Wrangler types, TypeScript, all tests and production build remain green, mark PR #13 ready and merge with expected-head protection.
-3. Verify the resulting `main` merge commit.
-4. Start the next audited chunk from fresh `main` at **ADM-060**.
-5. Continue story-by-story; do not infer completion from old `DELIVERED` labels.
-6. Keep this file and the audit ledger current at every durable checkpoint.
+1. Resume `feat/story-audit-chunk-4-results-standings` at ADM-060.
+2. Treat existing `DELIVERED` labels as hypotheses until acceptance criteria have focused evidence.
+3. Add RED evidence first for genuine gaps, then implement the smallest correct fix.
+4. Require a complete GREEN PR-head gate before merge.
+5. Stop at ADM-070 and request the approved tie-break rule rather than guessing.
+6. Keep this file and the story audit current at every durable checkpoint.
 
 ## Known operational constraint
 
-The chat container cannot resolve GitHub DNS. GitHub repository actions and GitHub Actions are the execution/verification environment. Do not claim local command evidence that did not run.
+The chat container cannot resolve GitHub DNS. GitHub repository actions and GitHub Actions are the execution/verification environment.
