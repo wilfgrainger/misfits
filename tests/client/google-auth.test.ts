@@ -33,7 +33,7 @@ describe('Google Identity Services client', () => {
     await expect(new GoogleAuth('client-id').signIn()).rejects.toThrow('Google sign-in is not enabled for this site');
   });
 
-  it('renders the official Google sign-in button and forwards its credential', async () => {
+  it('renders the official Google sign-in button in English and forwards its credential', async () => {
     const google = window.google!;
     const container = document.createElement('div');
     Object.defineProperty(container, 'getBoundingClientRect', { value: () => ({ width: 320 }) });
@@ -47,6 +47,7 @@ describe('Google Identity Services client', () => {
       text: 'signin_with',
       shape: 'rectangular',
       logo_alignment: 'left',
+      locale: 'en',
       width: '320',
     }));
     const config = vi.mocked(google.accounts.id.initialize).mock.calls.at(-1)?.[0];

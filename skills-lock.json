@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "cave-pony": {
+      "source": "wilfgrainger/cave-pony",
+      "ref": "main",
+      "sourceType": "github",
+      "skillPath": "skills/cave-pony/SKILL.md",
+      "computedHash": "b6d90d434c4ef5cdfc3ce1d5da60fc6011a4cbc59df6464887d649168d4792a2"
+    }
+  }
+}

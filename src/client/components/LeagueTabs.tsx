@@ -4,12 +4,13 @@ interface LeagueTabsProps {
   leagues: LeagueSummary[];
   selectedId: string | null;
   onSelect: (leagueId: string) => void;
+  ariaLabel?: string;
 }
 
-export function LeagueTabs({ leagues, selectedId, onSelect }: LeagueTabsProps) {
+export function LeagueTabs({ leagues, selectedId, onSelect, ariaLabel = 'Leagues' }: LeagueTabsProps) {
   if (leagues.length === 0) return null;
   return (
-    <nav className="league-tabs" aria-label="Leagues">
+    <nav className="league-tabs" aria-label={ariaLabel}>
       {leagues.map((league) => (
         <button
           className={`league-tab ${league.id === selectedId ? 'league-tab-active' : ''}`}
