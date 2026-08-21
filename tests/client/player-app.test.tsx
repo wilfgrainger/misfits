@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayerLeague } from '../../src/client/components/PlayerLeague';
 import { AdminLeagueDesk } from '../../src/client/components/AdminLeagueDesk';
@@ -140,24 +140,31 @@ describe('mobile league workspaces', () => {
     });
     const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const, isMasterAdmin: true };
     render(<AdminLeagueDesk user={admin} selectedLeagueId="league-1" />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
-    await waitFor(() => expect((screen.getAllByLabelText('Season name')[1] as HTMLInputElement).value).toBe('Misfits 501'));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Season admin' })).toBeTruthy());
+    await waitFor(() => expect((screen.getByLabelText('Club name', { selector: '#edit-league-name' }) as HTMLInputElement).value).toBe('Misfits 501'));
     expect(screen.getByRole('heading', { name: 'Your leagues' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Create a season' })).toBeTruthy();
-    expect(screen.getAllByLabelText('Season name')).toHaveLength(2);
-    expect(screen.getAllByLabelText('Season')).toHaveLength(2);
-    expect(screen.getByLabelText('Player capacity')).toBeTruthy();
-    expect(screen.getAllByLabelText('Games per pair')).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Create season' })).toBeTruthy();
-    expect(screen.getAllByLabelText('Target legs')).toHaveLength(2);
-    expect(screen.getAllByLabelText('Points per win')).toHaveLength(2);
-    expect(screen.getAllByLabelText('Visibility')).toHaveLength(2);
+    expect(screen.getByText('Current season: Misfits 501 · 2026 · Open · Public')).toBeTruthy();
+    const disclosure = screen.getByText('Create a new season').closest('details') as HTMLDetailsElement;
+    expect(disclosure.open).toBe(false);
+    fireEvent.click(screen.getByText('Create a new season'));
+    const createForm = within(disclosure);
+    expect(createForm.getByRole('group', { name: 'Identity' })).toBeTruthy();
+    expect(createForm.getByRole('group', { name: 'Rules' })).toBeTruthy();
+    expect(createForm.getByRole('group', { name: 'Access' })).toBeTruthy();
+    expect(createForm.getByLabelText('Club name')).toBeTruthy();
+    expect(createForm.getByLabelText('Season')).toBeTruthy();
+    expect(createForm.getByLabelText('Player capacity')).toBeTruthy();
+    expect(createForm.getByLabelText('Games per pair')).toBeTruthy();
+    expect(createForm.getByRole('button', { name: 'Create season' })).toBeTruthy();
+    expect(createForm.getByLabelText('Target legs')).toBeTruthy();
+    expect(createForm.getByLabelText('Points per win')).toBeTruthy();
+    expect(createForm.getByLabelText('Visibility')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Manage Misfits 501' })).toBeTruthy();
     expect(screen.getByText('Season settings')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Share season' }));
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('League link copied.'));
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/league/misfits-501`);
-    fireEvent.click(screen.getByRole('button', { name: 'Members & invites' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Members & invites' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Revoke invite' })).toBeTruthy());
     expect(screen.getByRole('button', { name: 'Create invite link' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Create invite link' }));
@@ -166,9 +173,9 @@ describe('mobile league workspaces', () => {
     fireEvent.click((await screen.findAllByRole('button', { name: 'Revoke invite' }))[0]);
     await waitFor(() => expect(screen.getByText('Invite revoked.')).toBeTruthy());
     expect(confirm).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Results' }));
-    expect(screen.getByRole('heading', { name: 'Enter historical result' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Record confirmed result' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'Results' }));
+    expect(screen.getByRole('heading', { name: 'Record a result' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Record result' })).toBeTruthy();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Edit result' })).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Edit result' }));
     expect(screen.getByRole('button', { name: 'Save result' })).toBeTruthy();
@@ -176,7 +183,7 @@ describe('mobile league workspaces', () => {
     await waitFor(() => expect(screen.getByText('Result updated.')).toBeTruthy());
   });
 
-  it('shows one admin control-room task group at a time', async () => {
+  it('uses accessible season-admin tabs and exposes club access without a hidden mobile strip', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input);
       if (path.endsWith('/api/admin/leagues')) return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
@@ -189,14 +196,57 @@ describe('mobile league workspaces', () => {
     const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const, isMasterAdmin: true };
 
     render(<AdminLeagueDesk user={admin} selectedLeagueId="league-1" />);
-    await screen.findByRole('heading', { name: 'League desk' });
-    expect(screen.getByRole('navigation', { name: 'Admin workspace' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Season' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Members & invites' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Create a season' })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Result queue' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Results' }));
-    expect(await screen.findByRole('heading', { name: 'Result queue' })).toBeTruthy();
+    const tabs = await screen.findByRole('tablist', { name: 'Season admin tasks' });
+    const season = within(tabs).getByRole('tab', { name: 'Season' });
+
+    expect(season.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(season, { key: 'ArrowLeft' });
+    expect(within(tabs).getByRole('tab', { name: 'Club access' }).getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(within(tabs).getByRole('tab', { name: 'Club access' }), { key: 'ArrowRight' });
+    expect(season.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(season, { key: 'End' });
+    expect(screen.getByRole('tab', { name: 'Club access' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tabpanel', { name: 'Club access' })).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Club access' }), { key: 'Home' });
+    expect(season.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('starts browser new-season visibility as private before any changes', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input);
+      if (path.endsWith('/api/admin/leagues')) return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
+      if (path.endsWith('/api/admin/players')) return new Response(JSON.stringify({ players: [] }), { status: 200 });
+      if (path.endsWith('/members')) return new Response(JSON.stringify({ members: [] }), { status: 200 });
+      if (path.endsWith('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/invites')) return new Response(JSON.stringify({ invites: [] }), { status: 200 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+    const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const, isMasterAdmin: true };
+
+    render(<AdminLeagueDesk user={admin} selectedLeagueId="league-1" />);
+
+    expect((screen.getByLabelText('Visibility', { selector: '#new-visibility' }) as HTMLSelectElement).value).toBe('PRIVATE');
+  });
+
+  it('starts a new season private and leaves an existing public season public until saved otherwise', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input);
+      if (path.endsWith('/api/admin/leagues')) return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
+      if (path.endsWith('/api/admin/players')) return new Response(JSON.stringify({ players: [] }), { status: 200 });
+      if (path.endsWith('/members')) return new Response(JSON.stringify({ members: [] }), { status: 200 });
+      if (path.endsWith('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/invites')) return new Response(JSON.stringify({ invites: [] }), { status: 200 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+    const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const, isMasterAdmin: true };
+
+    render(<AdminLeagueDesk user={admin} selectedLeagueId="league-1" />);
+    const disclosure = (await screen.findByText('Create a new season')).closest('details') as HTMLDetailsElement;
+    expect(disclosure.open).toBe(false);
+    fireEvent.click(within(disclosure).getByText('Create a new season'));
+    expect((within(disclosure).getByLabelText('Visibility') as HTMLSelectElement).value).toBe('PRIVATE');
+    expect((screen.getByLabelText('Visibility', { selector: '#edit-visibility' }) as HTMLSelectElement).value).toBe('PUBLIC');
+    expect(screen.getByText('Current season: Misfits 501 · 2026 · Open · Public')).toBeTruthy();
   });
 
   it('does not claim an invite was copied when clipboard access is denied', async () => {
@@ -215,8 +265,8 @@ describe('mobile league workspaces', () => {
     const admin = { ...user, id: 'admin-1', username: 'Admin', role: 'ADMIN' as const, isMasterAdmin: true };
 
     render(<AdminLeagueDesk user={admin} />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Members & invites' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Season admin' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('tab', { name: 'Members & invites' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create invite link' }));
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Invite link ready to copy.'));

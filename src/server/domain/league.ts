@@ -28,7 +28,7 @@ function integerInRange(value: unknown, min: number, max: number): value is numb
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 }
 
-export function validateLeagueInput(input: unknown, _mode: 'create' | 'edit'): LeagueValidation {
+export function validateLeagueInput(input: unknown, mode: 'create' | 'edit'): LeagueValidation {
   if (!input || typeof input !== 'object') return { ok: false, reason: 'INPUT' };
   const value = input as Record<string, unknown>;
   if (typeof value.name !== 'string' || value.name.trim().length < 2 || value.name.trim().length > 80) return { ok: false, reason: 'NAME' };
@@ -41,7 +41,7 @@ export function validateLeagueInput(input: unknown, _mode: 'create' | 'edit'): L
   if (!integerInRange(value.targetLegs ?? 3, 1, 20)) return { ok: false, reason: 'TARGET_LEGS' };
   const status = value.status ?? 'OPEN';
   if (status !== 'OPEN' && status !== 'CLOSED') return { ok: false, reason: 'STATUS' };
-  const visibility = value.visibility ?? 'PUBLIC';
+  const visibility = value.visibility ?? (mode === 'create' ? 'PRIVATE' : 'PUBLIC');
   if (visibility !== 'PUBLIC' && visibility !== 'PRIVATE') return { ok: false, reason: 'VISIBILITY' };
   return {
     ok: true,
