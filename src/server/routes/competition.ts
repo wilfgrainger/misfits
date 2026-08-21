@@ -3,12 +3,16 @@ import { requireAdmin, requireSameOrigin, requireUser, type AuthAppEnv } from '.
 import { validateCompetitionLeagueInput, validateSeasonInput } from '../domain/competition';
 import { AppError, jsonError } from '../errors';
 import {
+  assignUserToLeague,
   createSeason,
   deleteEmptyDraftSeason,
   getCompetitionLeague,
   getSeason,
+  listCompetitionMemberships,
   listSeasonLeagues,
   listSeasons,
+  listUnassignedUsers,
+  moveUserBetweenLeagues,
   updateSeason,
 } from '../db/competition';
 import { createSeasonLeague, deleteEmptySeasonLeague, updateSeasonLeague } from '../db/competition-leagues';
@@ -121,6 +125,44 @@ export function createCompetitionRoutes(dependencies: CompetitionRouteDependenci
       return c.json({ ok: true }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       return failure(c, error, 'League could not be deleted');
+    }
+  });
+
+  routes.get('/api/admin/seasons/:seasonId/unassigned', async (c) => {
+    const season = await getSeason(c.env.DB, c.req.param('seasonId'));
+    if (!season) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'Season was not found', 404));
+    const users = await listUnassignedUsers(c.env.DB, season.id);
+    return c.json({ users }, 200, { 'Cache-Control': 'private, no-store' });
+  });
+
+  routes.get('/api/admin/competition/leagues/:leagueId/members', async (c) => {
+    const league = await getCompetitionLeague(c.env.DB, c.req.param('leagueId'));
+    if (!league) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404));
+    const members = await listCompetitionMemberships(c.env.DB, league.id);
+    return c.json({ members }, 200, { 'Cache-Control': 'private, no-store' });
+  });
+
+  routes.post('/api/admin/seasons/:seasonId/members/:userId/assign', requireSameOrigin, async (c) => {
+    const body = await c.req.json().catch(() => null) as { leagueId?: unknown } | null;
+    if (typeof body?.leagueId !== 'string' || !body.leagueId) return jsonError(c, new AppError('VALIDATION_ERROR', 'Target league is required', 400));
+    try {
+      await assignUserToLeague(c.env.DB, c.get('user').id, c.req.param('seasonId'), body.leagueId, c.req.param('userId'), now());
+      return c.json({ membership: { seasonId: c.req.param('seasonId'), leagueId: body.leagueId, userId: c.req.param('userId'), active: true } }, 200, { 'Cache-Control': 'private, no-store' });
+    } catch (error) {
+      return failure(c, error, 'Player could not be assigned');
+    }
+  });
+
+  routes.post('/api/admin/seasons/:seasonId/members/:userId/move', requireSameOrigin, async (c) => {
+    const body = await c.req.json().catch(() => null) as { fromLeagueId?: unknown; toLeagueId?: unknown } | null;
+    if (typeof body?.fromLeagueId !== 'string' || typeof body?.toLeagueId !== 'string' || !body.fromLeagueId || !body.toLeagueId) {
+      return jsonError(c, new AppError('VALIDATION_ERROR', 'Source and target leagues are required', 400));
+    }
+    try {
+      await moveUserBetweenLeagues(c.env.DB, c.get('user').id, c.req.param('seasonId'), body.fromLeagueId, body.toLeagueId, c.req.param('userId'), now());
+      return c.json({ membership: { seasonId: c.req.param('seasonId'), leagueId: body.toLeagueId, userId: c.req.param('userId'), active: true } }, 200, { 'Cache-Control': 'private, no-store' });
+    } catch (error) {
+      return failure(c, error, 'Player could not be moved');
     }
   });
 
