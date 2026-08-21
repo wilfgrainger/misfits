@@ -25,6 +25,18 @@ describe('mobile league workspaces', () => {
     expect(screen.getByRole('button', { name: 'Profile' })).toBeTruthy();
   });
 
+  it('marks the signed-in player in the accessible member standings table', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({ standings: [{ rank: 1, playerId: 'player-a', username: 'Alpha', played: 1, won: 1, lost: 0, legsFor: 3, legsAgainst: 1, legDifference: 2, points: 2, average: 51.24 }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ league, players: [{ id: 'player-a', username: 'Alpha', profileImageUrl: null }, { id: 'player-b', username: 'Bravo', profileImageUrl: null }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }));
+
+    render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
+
+    const table = await screen.findByRole('table', { name: 'Misfits 501 2026 standings' });
+    expect(table.querySelector('tr.standing-row-you')?.textContent).toContain('Alpha');
+  });
+
   it('submits a player result with both players and averages', async () => {
     const resultPayload = { result: { id: 'result-1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5, submittedBy: 'player-a', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null } };
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {

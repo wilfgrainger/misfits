@@ -103,6 +103,13 @@ textarea { min-height: 7rem; resize: vertical; }
 .standing-player small, .standing-record, .result-meta, .result-winner, .dispute-note { color: var(--muted); font-size: .8rem; }
 .standing-points, .standing-record { font-variant-numeric: tabular-nums; }
 .standing-points { color: var(--ink); text-align: right; font-size: 1.1rem; }
+.standings-scroll { margin-top: 1rem; overflow-x: auto; }
+.standings-table { width: 100%; min-width: 34rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.standings-table th, .standings-table td { padding: .75rem .5rem; text-align: right; border-bottom: 1px solid var(--rule); }
+.standings-table th { color: var(--muted); font-size: .76rem; font-weight: 850; }
+.standings-table th:nth-child(2), .standings-table th[scope="row"] { text-align: left; }
+.standings-table th[scope="row"] { color: var(--ink); font-size: .9rem; }
+.standings-table .standing-row-you { background: #e8ddcc; }
 .public-results, .result-feed, .result-form { margin-top: 1.4rem; }
 .public-results h3, .result-feed h3 { margin-bottom: .7rem; }
 .result-list, .club-player-list, .admin-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
