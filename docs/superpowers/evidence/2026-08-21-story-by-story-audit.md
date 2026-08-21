@@ -36,7 +36,9 @@ When a story fails or has weak evidence:
 - `PROGRESS.md` on `main` is stale: it still references draft PR #9 and obsolete resume instructions after PR #10 merged.
 - The planned `tests/release/user-story-ledger.test.ts` is absent, so the existing 150-story delivery labels are not a release gate.
 
-## Story audit
+## Chunk 1 — governance and season lifecycle
+
+Full verification gate: run `32523186190` passed Wrangler types, TypeScript, the complete Vitest suite and the production build.
 
 | Story | Audit state | Evidence / gap | Fix / CI |
 |---|---|---|---|
@@ -48,9 +50,18 @@ When a story fails or has weak evidence:
 | ADM-006 | VERIFIED | Authorised non-protected ADMIN→PLAYER mutation with active-admin recovery invariant; `story-admin-governance.test.ts` directly exercises demotion and audit. | GREEN run `32521180737`. |
 | ADM-007 | VERIFIED | Suspension is a status mutation, not deletion; suspended sessions fail resolution and sentinel competition history survives in focused governance test. | GREEN run `32521180737`. |
 | ADM-008 | VERIFIED | Reactivation reuses the same account record and preserves sentinel membership/result history in focused governance test. | GREEN run `32521180737`. |
-| ADM-009 | VERIFIED | Existing DB guard already blocked removal/suspension of protected master and final active admin, but audit found UI/API gap: directory omitted `isMasterAdmin`, so destructive controls were offered. RED run `32520800451` had exactly the two ADM-009 contract failures. Fixed directory payload and admin UI to label the protected master and remove destructive controls. | GREEN run `32521180737`; `story-adm-009-server.test.ts` + `admin-access-protection.test.tsx`. |
-| ADM-010 | NOT REVIEWED | Next story. | — |
+| ADM-009 | VERIFIED | Audit found a real UI/API gap: the directory omitted `isMasterAdmin`, so destructive controls were offered even though the DB correctly rejected them. RED run `32520800451` isolated the two failures. Directory payload and UI now expose/label the protected master and remove destructive controls. | GREEN run `32521180737`; `story-adm-009-server.test.ts` + `admin-access-protection.test.tsx`. |
+| ADM-010 | VERIFIED | Season creation generates a fresh stable ID and starts as DRAFT; it does not copy fixtures/results and leaves prior seasons untouched. Direct creation as OPEN is now rejected so preparation cannot be bypassed. | `competition-routes.test.ts`; GREEN run `32523186190`. |
+| ADM-011 | VERIFIED | Season name/current metadata persists through the stable season ID; invalid input is rejected by `validateSeasonInput`; league/history references remain attached by ID. | `competition-routes.test.ts`; GREEN run `32523186190`. |
+| ADM-012 | VERIFIED | DRAFT/OPEN/CLOSED is persisted and backend-enforced. League status follows lifecycle transitions; player result submission paths reject closed leagues. | `season-lifecycle.ts`, `results.ts`, `fixture-results.ts`; GREEN run `32523186190`. |
+| ADM-013 | VERIFIED | Audit found a real opening defect: an unprepared DRAFT season returned 200 and its leagues remained CLOSED. RED run `32521461832` isolated this. Opening now requires at least one league and at least two active players in every league, then opens prepared leagues. | `season-lifecycle.ts` + `competition-routes.test.ts`; GREEN run `32523186190`. |
+| ADM-014 | VERIFIED | Closing marks season and leagues CLOSED. Both free-form and fixture-first normal player submissions check league OPEN status and are blocked; admin result correction/entry paths remain available. | `results.ts`, `fixture-results.ts`, lifecycle regression test; GREEN run `32523186190`. |
+| ADM-015 | VERIFIED | Close operations update status/timestamps only; no leagues, memberships, fixtures or results are deleted, and closed records remain queryable. | `competition.ts` + lifecycle regression test; GREEN run `32523186190`. |
+| ADM-016 | VERIFIED | `is_current` is explicit persistent state. Setting one season current clears the flag from other seasons, and client selection defaults to `isCurrent` rather than inferring from a name. | `createSeason`/`updateSeason`, `AdminCompetitionDesk`; GREEN run `32523186190`. |
+| ADM-017 | VERIFIED | Only an empty DRAFT season can be deleted; any league/fixture competition data blocks deletion. The admin UI exposes an explicit confirmation flow. | `deleteEmptyDraftSeason`, `competition-routes.test.ts`, `AdminCompetitionDesk`; GREEN run `32523186190`. |
+| ADM-018 | VERIFIED | Audit found no previous-season structural clone operation. RED run `32521461832` proved the endpoint was absent; RED run `32522707299` proved the admin control was absent. The new clone creates a fresh DRAFT season and fresh league IDs/slugs, copies structure/rules only, and copies no memberships/results/fixtures/invites. The Season workspace now exposes the operation. | `season-lifecycle.ts`, clone route, `season-clone.ts`, `admin-season-clone.test.tsx`; GREEN run `32523186190`. |
+| ADM-019 | NOT REVIEWED | Next story and start of Chunk 2. | — |
 
 ## Resume instruction
 
-Continue strictly in canonical story order from the first row not marked `VERIFIED` or deliberately classified `GATED`. Do not skip ahead because a broad test suite is green. Update this file after every story-level RED/GREEN checkpoint.
+Chunk 1 ends at ADM-018. After it is merged to `main`, create the next branch from fresh `main` and continue strictly from ADM-019. Do not skip ahead because the broad suite is green. Update this file after every story-level RED/GREEN checkpoint.
