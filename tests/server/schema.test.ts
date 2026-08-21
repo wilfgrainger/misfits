@@ -27,4 +27,25 @@ describe('D1 schema', () => {
     expect(sql).toContain("visibility TEXT NOT NULL DEFAULT 'PUBLIC'");
     expect(sql).toContain("CHECK(visibility IN ('PUBLIC', 'PRIVATE'))");
   });
+
+  it('defines the additive v4 competition model without editing prior migrations', () => {
+    const sql = readFileSync('migrations/0004_seasons_fixtures_promotion.sql', 'utf8');
+    for (const fragment of [
+      'CREATE TABLE IF NOT EXISTS seasons',
+      'ALTER TABLE leagues ADD COLUMN season_id',
+      'hierarchy_position',
+      'promotion_places',
+      'relegation_places',
+      'ALTER TABLE league_players ADD COLUMN season_id',
+      'idx_league_players_one_active_per_season',
+      'CREATE TABLE IF NOT EXISTS fixtures',
+      'meeting_number',
+      'PENDING_CONFIRMATION',
+      'ALTER TABLE matches ADD COLUMN fixture_id',
+      'idx_matches_one_active_result_per_fixture',
+      'CREATE TABLE IF NOT EXISTS season_movements',
+    ]) {
+      expect(sql).toContain(fragment);
+    }
+  });
 });
