@@ -45,11 +45,7 @@ h3 { font-size: 1.2rem; line-height: 1.1; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-large { width: 4rem; height: 4rem; font-size: 1.5rem; }
 
-.page-intro { padding: 3rem 1rem 2rem; background: #101311; border-bottom: 1px solid var(--dark-rule); }
-.intro { max-width: 38rem; margin: 1.2rem 0 0; color: #d7cbb7; line-height: 1.45; }
 .section-kicker, .workspace-kicker { margin: 0 0 .4rem; color: var(--club-red); font-size: .74rem; font-weight: 850; letter-spacing: .12em; }
-.club-links { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.4rem; }
-.club-links a, .club-links span { padding: .5rem .7rem; color: #f4eddf; border: 1px solid #716755; border-radius: 999px; font-size: .78rem; font-weight: 800; text-decoration: none; }
 .google-button-slot { width: 100%; min-height: 44px; margin-top: 1rem; overflow: hidden; }
 .google-button-slot > div { max-width: 100%; }
 
@@ -134,10 +130,11 @@ textarea { min-height: 7rem; resize: vertical; }
 .loading-message, .empty-message { color: var(--muted); }
 
 .account-panel { margin-top: 0; padding: 1.5rem 1rem 3rem; }
-.account-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: 1.15rem; border-bottom: 1px solid var(--rule); }
+.account-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: .75rem; }
 .account-name { margin: 0; color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 2rem; font-weight: 700; letter-spacing: -.035em; }
 .account-role, .account-status { margin: .25rem 0 0; color: var(--muted); }
 .account-status { align-self: center; font-size: .85rem; font-weight: 750; }
+.account-context { margin: 0; padding: .75rem 0; color: var(--ink); border-block: 1px solid var(--rule); font-size: .9rem; font-weight: 750; line-height: 1.4; }
 .admin-workbench, .member-workbench { margin-top: 2.5rem; border-top: 1px solid var(--rule); }
 .admin-desk, .player-workspace, .member-area { margin-top: 0; padding: 1.65rem 0 0; border-top: 0; }
 .workspace-heading, .league-heading { padding-bottom: 1rem; border-bottom: 1px solid var(--rule); }
@@ -190,7 +187,6 @@ textarea { min-height: 7rem; resize: vertical; }
   .shell-panel { width: min(100%, 68rem); min-height: calc(100dvh - 4rem); padding: 0 1.5rem 2.5rem; border: 1px solid #3f453e; border-radius: 8px; box-shadow: 0 22px 55px rgb(0 0 0 / 35%); }
   .shell-panel-wide { width: min(100%, 76rem); }
   .brand-header { position: static; margin: 0 -1.5rem; padding: 1rem 1.5rem; }
-  .page-intro { padding-inline: 0; }
   .onboarding-form { max-width: 32rem; margin-inline: 0; }
   .public-home, .member-area, .admin-desk, .player-workspace { padding-inline: 0; }
   .modal-backdrop { align-items: center; justify-items: center; padding: 1rem; }
