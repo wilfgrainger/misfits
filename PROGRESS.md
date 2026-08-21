@@ -1,6 +1,6 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026, 17:15 BST  
+**Updated:** 21 August 2026, 17:22 BST  
 **Current branch:** `feat/master-user-stories-100`  
 **Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**  
 **Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
@@ -101,17 +101,51 @@ Fresh evidence from CI:
 - production Vite build: success;
 - deploy: skipped correctly on PR branch.
 
+### Task 5 — Fixture-based result settlement — COMPLETE AS BACKEND SLICE
+
+#### RED
+
+Commit `f85706d922b2a559f05e7ca7a367c13f13a915c7` added `tests/server/fixture-results.test.ts` before fixture-authoritative result settlement existed.
+
+Actions run `32501821200`: **FAILURE**, as intended.
+
+#### GREEN
+
+Latest green candidate commit: `29104c11000cdb21f3ffae8ea273c76c4e4bd822`.
+
+Implemented:
+
+- `src/server/db/fixture-results.ts` fixture-based submission and exactly-one-active-result-per-fixture protection;
+- fixture state synchronization through submission, confirmation, dispute, correction and deletion;
+- admin fixture result entry and correction safeguards;
+- `src/server/routes/results.ts` uses `fixtureId` where persisted fixtures exist and prevents arbitrary-opponent bypass in fixture-backed leagues;
+- legacy fixture-less leagues remain compatible;
+- `src/server/routes/admin-leagues.ts` preserves fixture integrity for admin creation/correction and restores deleted fixture results to OUTSTANDING.
+
+Actions run `32502161438`: **SUCCESS**.
+
+Fresh evidence from CI:
+
+- Wrangler types: success;
+- TypeScript: success;
+- **35 test files / 154 tests passed**;
+- `tests/server/fixture-results.test.ts`: **5/5 passed**;
+- production Vite build: success;
+- deploy: skipped correctly on PR branch;
+- `npm ci` audit reported **0 vulnerabilities**.
+
+Task 5 is therefore GREEN and checkpointed. No production deployment or remote D1 migration has been performed.
+
 ### Story ledger status
 
-Backend prerequisites now exist for season/division management, explicit league placement, fixture generation and much of ADM-010–ADM-059. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
+Backend prerequisites now exist for season/division management, explicit league placement, fixture generation, fixture-authoritative result settlement and much of ADM-010–ADM-059. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
 
 ## Exact next actions
 
-1. **Task 5 now:** fixture-based result settlement. Add red tests proving an outstanding fixture is required, duplicate settlement is impossible, submission changes fixture to PENDING_CONFIRMATION, confirm → CONFIRMED, dispute → DISPUTED, admin deletion/correction restores/synchronizes fixture correctly.
-2. Task 6: promotion/relegation projection, review, override and next-season application.
-3. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public competition view.
-4. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
-5. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
+1. **Task 6 now:** promotion/relegation projection, review, override and next-season application. Start with RED tests for top/bottom zones, highest/lowest division zero movement, unresolved tie blocking, override, idempotent apply and history preservation.
+2. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public competition view.
+3. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
+4. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
 
 ## Resume instructions for a new agent
 
@@ -120,7 +154,7 @@ If this session dies:
 1. Use branch `feat/master-user-stories-100` / draft PR #9.
 2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, canonical user-stories spec, implementation plan, then this file.
 3. Use Superpowers `executing-plans`, TDD and verification-before-completion.
-4. Resume at **Task 5** unless a newer checkpoint supersedes this one.
+4. Resume at **Task 6** unless a newer checkpoint supersedes this one.
 5. Do not infer completion. Require code + focused test/evidence.
 6. Update this file after every red/green/CI checkpoint.
 7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level only when the full story is delivered.
