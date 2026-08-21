@@ -134,7 +134,7 @@ textarea { min-height: 7rem; resize: vertical; }
 .account-name { margin: 0; color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 2rem; font-weight: 700; letter-spacing: -.035em; }
 .account-role, .account-status { margin: .25rem 0 0; color: var(--muted); }
 .account-status { align-self: center; font-size: .85rem; font-weight: 750; }
-.account-context { margin: 0; padding: .75rem 0; color: var(--ink); border-block: 1px solid var(--rule); font-size: .9rem; font-weight: 750; line-height: 1.4; }
+.account-context { margin: 0; padding: .75rem 0; color: var(--ink); border-block: 1px solid var(--rule); overflow-wrap: anywhere; font-size: .9rem; font-weight: 750; line-height: 1.4; }
 .admin-workbench, .member-workbench { margin-top: 2.5rem; border-top: 1px solid var(--rule); }
 .admin-desk, .player-workspace, .member-area { margin-top: 0; padding: 1.65rem 0 0; border-top: 0; }
 .workspace-heading, .league-heading { padding-bottom: 1rem; border-bottom: 1px solid var(--rule); }
