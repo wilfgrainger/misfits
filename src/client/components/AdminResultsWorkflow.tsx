@@ -71,6 +71,7 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<ResultSummary | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [ready, setReady] = useState(false);
 
   const outstanding = useMemo(() => fixtures.filter((fixture) => fixture.status === 'OUTSTANDING'), [fixtures]);
   const pending = useMemo(() => results.filter((result) => result.status === 'PENDING'), [results]);
@@ -78,6 +79,7 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
   const confirmed = useMemo(() => results.filter((result) => result.status === 'CONFIRMED'), [results]);
 
   const load = async () => {
+    setReady(false);
     setError('');
     try {
       const [fixturePayload, resultPayload, memberPayload] = await Promise.all([
@@ -90,6 +92,8 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
       setMembers(memberPayload.members);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Official result workspace could not be loaded.');
+    } finally {
+      setReady(true);
     }
   };
 
@@ -155,7 +159,7 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
     {queue.length === 0 ? <p className="empty-message">Nothing in this queue.</p> : <ul className="admin-list">
       {queue.map((result) => <li key={result.id}>
         <div>
-          <strong>{displayName(result, 'A')} {result.playerALegs} - {result.playerBLegs} {displayName(result, 'B')}</strong>
+          <strong>{displayName(result, 'A')} vs {displayName(result, 'B')} · {result.playerALegs}–{result.playerBLegs}</strong>
           <small>{resultContext(result, members)}</small>
           <small>{result.playerAAverage.toFixed(2)} / {result.playerBAverage.toFixed(2)} avg</small>
           {result.disputeNote && <span className="dispute-note">{result.disputeNote}</span>}
@@ -168,6 +172,8 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
       </li>)}
     </ul>}
   </section>;
+
+  if (!ready) return <p className="loading-message" role="status">Loading official results…</p>;
 
   return <div className="admin-results-workflow">
     {message && <p className="success-message" role="status">{message}</p>}
