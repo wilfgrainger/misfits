@@ -46,7 +46,7 @@ describe('public league sharing', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
 
     expect(screen.getByRole('heading', { name: 'The club table' })).toBeTruthy();
-    expect(screen.getByText('Standings and confirmed results for the current season.')).toBeTruthy();
+    expect(screen.getByText('Club darts, properly settled. Standings and confirmed results for the current season.')).toBeTruthy();
     expect(screen.getByText('Sign in to record a result or confirm one.')).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy();
     for (const heading of ['Pos', 'Player', 'P', 'W-L', 'Avg', 'Pts']) {
