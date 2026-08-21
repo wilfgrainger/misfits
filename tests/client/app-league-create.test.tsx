@@ -103,14 +103,22 @@ describe('club administration visibility', () => {
     state.multipleLeagues = true;
     state.user.role = 'ADMIN';
     render(<App />);
+    
+    // Switch to player view to verify initial workspace rendering
+    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
 
+    // Switch to admin view to select Thursday Club
+    fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
     const adminRegion = screen.getByRole('region', { name: 'Season admin' });
     await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
     fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
-    expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy();
+    
+    // Switch back to player view to check that Tuesday Club standings are still displayed
+    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
+    await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
     expect(screen.queryByRole('table', { name: 'Thursday Club 2026 standings' })).toBeNull();
   });
 
@@ -129,11 +137,21 @@ describe('club administration visibility', () => {
     ];
     render(<App />);
 
+    // Switch to player view to check initial standings
+    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
     await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
-    fireEvent.click(within(screen.getByRole('region', { name: 'Season admin' })).getByRole('button', { name: /Thursday Club/ }));
+    
+    // Switch to admin view and change selected league
+    fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
+    const adminRegion = screen.getByRole('region', { name: 'Season admin' });
+    await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
+    fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
-    expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy();
+    
+    // Switch back to player view to verify standings did not change
+    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
+    await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
     expect(screen.queryByRole('table', { name: 'Thursday Club 2026 standings' })).toBeNull();
   });
 
@@ -152,15 +170,24 @@ describe('club administration visibility', () => {
     ];
     render(<App />);
 
+    // Switch to player view to verify initial standings
+    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
     await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
+    
+    // Switch to admin view to select and save Thursday Club
+    fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
     const adminRegion = screen.getByRole('region', { name: 'Season admin' });
+    await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
     fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
 
     fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     await waitFor(() => expect(screen.getByText('League settings saved.')).toBeTruthy());
-    expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy();
+    
+    // Switch to player view to confirm Thursday Club was not added
+    fireEvent.click(screen.getByRole('button', { name: 'Club table' }));
+    await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
     expect(screen.queryByRole('table', { name: 'Thursday Club 2026 standings' })).toBeNull();
   });
 

@@ -47,7 +47,10 @@ describe('account profile access', () => {
     expect(screen.getByAltText('Misfits 501 club seal')).toBeTruthy();
     expect(screen.queryByText(/Current season:/)).toBeNull();
     expect(screen.getByRole('status').textContent).toBe('Your Misfits 501 club workspace is ready.');
-    expect(screen.getByRole('heading', { name: 'Player card' })).toBeTruthy();
+    
+    // Switch to Club table mode to view profile panel
+    fireEvent.click(screen.getByRole('button', { name: 'Club table' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Player card' })).toBeTruthy());
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });
 
