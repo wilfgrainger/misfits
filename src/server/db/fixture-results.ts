@@ -57,15 +57,15 @@ export async function leagueHasPersistedFixtures(db: D1Database, leagueId: strin
 
 export async function getFixtureResultById(db: D1Database, resultId: string): Promise<FixtureResultRecord | null> {
   return (await db.prepare(
-    `SELECT m.id, m.fixture_id, m.league_id, m.player_a_id, m.player_b_id,
-            m.player_a_legs, m.player_b_legs, m.player_a_average, m.player_b_average,
-            m.submitted_by, m.status, m.confirmed_by, m.dispute_note, m.created_at,
-            m.updated_at, m.confirmed_at, m.deleted_at,
+    `SELECT matches.id, matches.fixture_id, matches.league_id, matches.player_a_id, matches.player_b_id,
+            matches.player_a_legs, matches.player_b_legs, matches.player_a_average, matches.player_b_average,
+            matches.submitted_by, matches.status, matches.confirmed_by, matches.dispute_note, matches.created_at,
+            matches.updated_at, matches.confirmed_at, matches.deleted_at,
             a.username AS player_a_username, b.username AS player_b_username
-       FROM matches m
-       JOIN users a ON a.id = m.player_a_id
-       JOIN users b ON b.id = m.player_b_id
-      WHERE m.id = ? AND m.fixture_id IS NOT NULL`,
+       FROM matches
+       JOIN users a ON a.id = matches.player_a_id
+       JOIN users b ON b.id = matches.player_b_id
+      WHERE matches.id = ? AND matches.fixture_id IS NOT NULL`,
   ).bind(resultId).first<FixtureResultRecord>()) ?? null;
 }
 
