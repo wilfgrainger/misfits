@@ -4,12 +4,14 @@ import { createCompetitionRoutes } from '../../src/server/routes/competition';
 
 type User = { id: string; username: string | null; email: string; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE' | 'SUSPENDED'; is_master_admin: number; profile_image_url: string | null };
 type Session = { token_hash: string; user_id: string; created_at: string; expires_at: string };
+type Season = { id: string; name: string; status: 'DRAFT' | 'OPEN' | 'CLOSED'; is_current: number; created_at: string; updated_at: string; closed_at: string | null };
 type League = { id: string; season_id: string; name: string; slug: string; season_name: string; status: 'OPEN' | 'CLOSED'; points_per_win: number; target_legs: number; created_at: string; updated_at: string; created_by: string; max_players: number; matches_per_pair: number; visibility: 'PUBLIC' | 'PRIVATE'; hierarchy_position: number; promotion_places: number; relegation_places: number };
 type Membership = { league_id: string; season_id: string; user_id: string; active: number; joined_at: string };
 
 class MemoryD1 {
   users = new Map<string, User>();
   sessions = new Map<string, Session>();
+  seasons = new Map<string, Season>();
   leagues = new Map<string, League>();
   memberships = new Map<string, Membership>();
   fixtureLeagues = new Set<string>();
@@ -45,6 +47,7 @@ class MemoryD1 {
       if (!session || !user || session.expires_at <= String(values[1])) return null;
       return { ...user, ...session } as T;
     }
+    if (sql.includes('FROM seasons WHERE id')) return (this.seasons.get(String(values[0])) ?? null) as T;
     if (sql.includes('FROM leagues WHERE id')) return (this.leagues.get(String(values[0])) ?? null) as T;
     if (sql.includes('FROM users WHERE id')) return (this.users.get(String(values[0])) ?? null) as T;
     if (sql.includes('SELECT league_id FROM league_players WHERE season_id')) {
@@ -81,6 +84,7 @@ function setup() {
   const db = new MemoryD1();
   db.users.set('admin', { id: 'admin', username: 'Admin', email: 'admin@example.com', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1, profile_image_url: null });
   db.users.set('p1', { id: 'p1', username: 'One', email: 'one@example.com', role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0, profile_image_url: null });
+  db.seasons.set('s1', { id: 's1', name: '2026/27', status: 'OPEN', is_current: 1, created_at: now.toISOString(), updated_at: now.toISOString(), closed_at: null });
   for (const [id, name, position] of [['l1', 'Premier', 1], ['l2', 'Division One', 2]] as const) db.leagues.set(id, { id, season_id: 's1', name, slug: id, season_name: '2026/27', status: 'OPEN', points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'admin', max_players: 8, matches_per_pair: 1, visibility: 'PRIVATE', hierarchy_position: position, promotion_places: position === 1 ? 0 : 2, relegation_places: position === 1 ? 2 : 0 });
   const env = { DB: db as never, ASSETS: {} as never, APP_ORIGIN: 'https://misfits.test' };
   return { db, env, routes: createCompetitionRoutes({ now: () => now }) };
