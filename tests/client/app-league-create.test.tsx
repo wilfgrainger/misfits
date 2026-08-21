@@ -114,7 +114,7 @@ describe('club administration visibility', () => {
     await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
     fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
+    await waitFor(() => expect(within(adminRegion).getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
     
     // Switch back to player view to check that Tuesday Club standings are still displayed
     fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
