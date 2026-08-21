@@ -1,5 +1,8 @@
+import { normalizeSlug } from './league';
+
 export type SeasonStatus = 'DRAFT' | 'OPEN' | 'CLOSED';
 export type FixtureStatus = 'OUTSTANDING' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'DISPUTED' | 'VOID';
+export type CompetitionVisibility = 'PUBLIC' | 'PRIVATE';
 
 export interface SeasonInput {
   name: string;
@@ -10,6 +13,23 @@ export interface SeasonInput {
 export type SeasonValidation =
   | { ok: true; value: SeasonInput }
   | { ok: false; reason: 'INPUT' | 'NAME' | 'STATUS' | 'CURRENT' };
+
+export interface CompetitionLeagueInput {
+  name: string;
+  slug: string;
+  maxPlayers: number;
+  matchesPerPair: number;
+  pointsPerWin: number;
+  targetLegs: number;
+  visibility: CompetitionVisibility;
+  hierarchyPosition: number;
+  promotionPlaces: number;
+  relegationPlaces: number;
+}
+
+export type CompetitionLeagueValidation =
+  | { ok: true; value: CompetitionLeagueInput }
+  | { ok: false; reason: 'INPUT' | 'NAME' | 'SLUG' | 'MAX_PLAYERS' | 'MATCHES_PER_PAIR' | 'POINTS_PER_WIN' | 'TARGET_LEGS' | 'VISIBILITY' | 'HIERARCHY' | 'PROMOTION' | 'RELEGATION' | 'MOVEMENT_OVERLAP' };
 
 export interface GeneratedFixture {
   playerAId: string;
@@ -48,6 +68,10 @@ export interface PromotionMovement {
   kind: 'PROMOTED' | 'RELEGATED';
 }
 
+function integerInRange(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
+}
+
 export function validateSeasonInput(input: unknown): SeasonValidation {
   if (!input || typeof input !== 'object') return { ok: false, reason: 'INPUT' };
   const value = input as Record<string, unknown>;
@@ -66,6 +90,42 @@ export function validateSeasonInput(input: unknown): SeasonValidation {
       name: value.name.trim(),
       status: value.status,
       isCurrent: value.isCurrent ?? false,
+    },
+  };
+}
+
+export function validateCompetitionLeagueInput(input: unknown): CompetitionLeagueValidation {
+  if (!input || typeof input !== 'object') return { ok: false, reason: 'INPUT' };
+  const value = input as Record<string, unknown>;
+  if (typeof value.name !== 'string' || value.name.trim().length < 2 || value.name.trim().length > 80) return { ok: false, reason: 'NAME' };
+  const slug = normalizeSlug(typeof value.slug === 'string' && value.slug.trim() ? value.slug : value.name);
+  if (!slug) return { ok: false, reason: 'SLUG' };
+  if (!integerInRange(value.maxPlayers ?? 32, 2, 1000)) return { ok: false, reason: 'MAX_PLAYERS' };
+  if (!integerInRange(value.matchesPerPair ?? 1, 1, 20)) return { ok: false, reason: 'MATCHES_PER_PAIR' };
+  if (!integerInRange(value.pointsPerWin ?? 2, 1, 100)) return { ok: false, reason: 'POINTS_PER_WIN' };
+  if (!integerInRange(value.targetLegs ?? 3, 1, 20)) return { ok: false, reason: 'TARGET_LEGS' };
+  const visibility = value.visibility ?? 'PRIVATE';
+  if (visibility !== 'PUBLIC' && visibility !== 'PRIVATE') return { ok: false, reason: 'VISIBILITY' };
+  if (!integerInRange(value.hierarchyPosition ?? 1, 1, 100)) return { ok: false, reason: 'HIERARCHY' };
+  if (!integerInRange(value.promotionPlaces ?? 0, 0, 1000)) return { ok: false, reason: 'PROMOTION' };
+  if (!integerInRange(value.relegationPlaces ?? 0, 0, 1000)) return { ok: false, reason: 'RELEGATION' };
+  const maxPlayers = Number(value.maxPlayers ?? 32);
+  const promotionPlaces = Number(value.promotionPlaces ?? 0);
+  const relegationPlaces = Number(value.relegationPlaces ?? 0);
+  if (promotionPlaces + relegationPlaces > maxPlayers) return { ok: false, reason: 'MOVEMENT_OVERLAP' };
+  return {
+    ok: true,
+    value: {
+      name: value.name.trim(),
+      slug,
+      maxPlayers,
+      matchesPerPair: Number(value.matchesPerPair ?? 1),
+      pointsPerWin: Number(value.pointsPerWin ?? 2),
+      targetLegs: Number(value.targetLegs ?? 3),
+      visibility,
+      hierarchyPosition: Number(value.hierarchyPosition ?? 1),
+      promotionPlaces,
+      relegationPlaces,
     },
   };
 }
