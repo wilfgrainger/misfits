@@ -1,6 +1,6 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026, 17:35 BST  
+**Updated:** 21 August 2026, 17:39 BST  
 **Current branch:** `feat/master-user-stories-100`  
 **Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**  
 **Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
@@ -187,13 +187,33 @@ Fresh evidence from CI:
 
 Task 6 is therefore GREEN and checkpointed. No production deployment or remote D1 migration has been performed.
 
+### Task 7 — Typed competition client API — IN PROGRESS
+
+#### RED
+
+Commit `337174655f8140e24c399f3d00910e148a6f45c8` expanded `tests/client/api.test.ts` before the typed competition client methods existed.
+
+Actions run `32503840028`: **FAILURE**, as intended.
+
+Verified RED evidence:
+
+- Wrangler types: success;
+- TypeScript: success;
+- all **160 pre-existing tests passed**;
+- the four new client contract groups failed only because `adminSeasons`, `seasonUnassigned`, `fixturePreview` and `promotionPreview` (and their sibling methods) do not exist yet;
+- total: **35 test files passed / 1 failed; 160 tests passed / 4 failed**;
+- build skipped after the expected test failure;
+- deploy skipped correctly.
+
+The new contract tests cover season/league administration, season-scoped membership placement, fixture administration + fixture-first result submission, and promotion preview/proposal/override/apply, including normalization of D1-style snake_case records into stable client camelCase models.
+
 ### Story ledger status
 
 Backend prerequisites now exist for season/division management, explicit league placement, fixture generation, fixture-authoritative result settlement, standings-driven movement projection and safe next-season rollover. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
 
 ## Exact next actions
 
-1. **Task 7 now:** typed client API and competition selectors/contracts for seasons, leagues, memberships, fixtures, promotion preview/proposal/override/apply.
+1. **Task 7 GREEN now:** implement typed client models, backward-compatible competition record normalization and all tested season/league/membership/fixture/promotion methods without changing existing UI behavior.
 2. Tasks 8–10: Admin UI, Player fixture-first UI, Public competition view.
 3. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
 4. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
@@ -205,7 +225,7 @@ If this session dies:
 1. Use branch `feat/master-user-stories-100` / draft PR #9.
 2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, canonical user-stories spec, implementation plan, then this file.
 3. Use Superpowers `executing-plans`, TDD and verification-before-completion.
-4. Resume at **Task 7** unless a newer checkpoint supersedes this one.
+4. Resume at **Task 7 GREEN** unless a newer checkpoint supersedes this one.
 5. Do not infer completion. Require code + focused test/evidence.
 6. Update this file after every red/green/CI checkpoint.
 7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level only when the full story is delivered.
