@@ -23,7 +23,11 @@ Misfits 501 is one private club, not a white-label platform. Do not add tenancy,
 
 Follow Cave Pony: make the smallest honest change, reuse current helpers, avoid speculative schema or runtime features, and prove each behavior change with the smallest decisive test. Start with a failing focused test for behavior changes, implement only enough to pass it, then run the relevant regression checks. Documentation changes must distinguish implemented behavior from gated follow-on work.
 
+`.github/workflows/ci.yml` is the release gate. Pull requests and ordinary pushes run verification; a push to `main` (including a merged pull request) deploys the Worker only after verification succeeds. The deploy job uses a pinned `cloudflare/wrangler-action` release with the repository Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Never place either value in source, workflow text, logs, fixtures, or documentation.
+
 For D1 changes, add an additive migration; do not rewrite, delete, or mutate an already-applied migration. Keep migrations compatible with deployed code during rollout, apply remote migrations before dependent deploys, and do not introduce a table merely for a possible future feature.
+
+The automatic deploy job deliberately does not run remote D1 migrations. A schema-dependent change must have its additive remote migration applied and verified before the dependent code is merged to `main`; a code-only change can merge directly through the normal verification-to-deploy path.
 
 Before handing off a change, run the applicable focused tests and then:
 

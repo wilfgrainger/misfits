@@ -48,6 +48,17 @@ npm run build
 npx wrangler deploy --keep-vars
 ```
 
+### Automatic deployment after merge
+
+`.github/workflows/ci.yml` keeps pull requests and non-production pushes on verification only. A push to `main`—including the push created by merging a pull request—runs the same verification job and then deploys the Worker with Wrangler after verification succeeds. The deploy uses the official Cloudflare Wrangler action and preserves dashboard-managed variables with `--keep-vars`.
+
+Add these repository Actions secrets before merging a deployable change:
+
+- `CLOUDFLARE_API_TOKEN` — a narrowly scoped Cloudflare API token that can deploy Workers for this account.
+- `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare account containing the `darts-501` Worker and `misfits` D1 database.
+
+The workflow does not apply remote D1 migrations automatically. For a schema-dependent change, apply and verify its additive migration first, then merge the code so the main-branch deployment remains safe and repeatable. See the [Cloudflare free-tier runbook](docs/operations/cloudflare-free-tier-runbook.md) for the release boundary.
+
 Configure production values with Wrangler secrets. `MASTER_ADMIN_EMAIL` identifies the first master administrator; `BOOTSTRAP_ADMIN_EMAIL` is retained as a compatibility fallback. Administrators may then enable other administrators from the People controls. Keep administrator email configuration private.
 
 The free-tier guardrails are architectural: no object storage, scheduled polling, or paid service is required on the core path; writes are user-driven; and DartCounter remains external. Before a Wrangler deployment, record measured usage separately from Cloudflare's published limits using the [free-tier runbook](docs/operations/cloudflare-free-tier-runbook.md).

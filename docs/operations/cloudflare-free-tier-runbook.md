@@ -47,6 +47,17 @@ npx wrangler deploy --keep-vars
 
 7. After deployment, smoke-test Google Identity sign-in at the authorized production origin and confirm public responses disclose no private member data.
 
+## Automatic main-branch deployment
+
+`.github/workflows/ci.yml` deploys the Worker after a push to `main` only when its verification job has passed. This includes the push GitHub creates when a pull request is merged. The workflow uses the official [`cloudflare/wrangler-action`](https://github.com/cloudflare/wrangler-action) and runs `wrangler deploy --keep-vars` against the production `wrangler.jsonc` configuration.
+
+Configure these GitHub Actions repository secrets before relying on the merge path:
+
+- `CLOUDFLARE_API_TOKEN`: narrowly scoped to deploy Workers in the target Cloudflare account.
+- `CLOUDFLARE_ACCOUNT_ID`: the account containing the `darts-501` Worker and `misfits` D1 database.
+
+The workflow intentionally does not run `wrangler d1 migrations apply --remote`. Apply and verify an additive migration before merging code that depends on it; this keeps schema rollout explicit and prevents a code deployment from racing an unreviewed database mutation. A missing deployment secret fails the deploy job with an explicit error rather than silently leaving production unchanged.
+
 ## Escalation
 
 Pause the release if actual measurements approach a published allowance, a new feature needs a paid dependency, or Cloudflare's published terms differ from the assumptions above. Choose a smaller club-scale design or obtain an explicit product decision; do not silently add infrastructure.
