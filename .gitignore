@@ -22,3 +22,9 @@ worker-configuration.d.ts
 .impeccable/live/pending-manual-edits.json
 .impeccable/live/deferred-svelte-component-accepts.json
 .impeccable/live/*.png
+
+# Local development and test logs
+*.log
+.playwright-cli/
+.codex-remote-attachments/
+output/

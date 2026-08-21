@@ -39,23 +39,25 @@ describe('account profile access', () => {
 
   it('keeps profile management available to a signed-in user without memberships', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
-    expect(screen.getByRole('heading', { name: 'Club darts, properly settled.' })).toBeTruthy();
-    expect(screen.getByText('THE MISFITS 501 CLUB')).toBeTruthy();
-    expect(screen.getByText('One club, well kept.')).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Season admin' })).toBeTruthy());
+    expect(screen.getByText('The Misfits 501 Club')).toBeTruthy();
+    expect(screen.getByText('Darts club')).toBeTruthy();
+    expect(screen.queryByText('Club darts, properly settled.')).toBeNull();
     expect(screen.queryByText('WhatsApp for members')).toBeNull();
     expect(screen.getByAltText('Misfits 501 club seal')).toBeTruthy();
+    expect(screen.queryByText(/Current season:/)).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('Your Misfits 501 club workspace is ready.');
     expect(screen.getByRole('heading', { name: 'Player card' })).toBeTruthy();
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });
 
-  it('shows People controls to promoted administrators', async () => {
+  it('shows Club access controls to promoted administrators', async () => {
     user.isMasterAdmin = false;
     render(<App />);
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'People' })).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'People' }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'People' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Club access' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('tab', { name: 'Club access' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Club access' })).toBeTruthy());
     await waitFor(() => expect(screen.getByRole('button', { name: 'Make admin' })).toBeTruthy());
   });
 });

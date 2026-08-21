@@ -6,6 +6,13 @@ describe('league rules', () => {
     expect(normalizeSlug('  Friday Night 501! ')).toBe('friday-night-501');
   });
 
+  it('defaults an omitted create visibility to private without changing an explicit public choice', () => {
+    const base = { name: 'Friday Club', seasonName: '2027', maxPlayers: 8, matchesPerPair: 1, targetLegs: 3, pointsPerWin: 2 };
+
+    expect(validateLeagueInput(base, 'create')).toMatchObject({ ok: true, value: { visibility: 'PRIVATE' } });
+    expect(validateLeagueInput({ ...base, visibility: 'PUBLIC' }, 'create')).toMatchObject({ ok: true, value: { visibility: 'PUBLIC' } });
+  });
+
   it('accepts default league settings', () => {
     expect(validateLeagueInput({ name: 'Friday Night 501', seasonName: '2026', maxPlayers: 16 }, 'create')).toEqual({
       ok: true,
@@ -18,7 +25,7 @@ describe('league rules', () => {
       pointsPerWin: 2,
       targetLegs: 3,
       status: 'OPEN',
-      visibility: 'PUBLIC',
+      visibility: 'PRIVATE',
       },
     });
   });

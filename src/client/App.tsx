@@ -3,6 +3,7 @@ import { AdminLeagueDesk } from './components/AdminLeagueDesk';
 import { LeagueTabs } from './components/LeagueTabs';
 import { PlayerLeague } from './components/PlayerLeague';
 import { ProfilePanel } from './components/ProfilePanel';
+import { StandingsTable } from './components/StandingsTable';
 import { ApiClient, ApiClientError, type AuthPayload, type LeagueDetail, type LeagueSummary, type StandingRow, type ResultSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
 import { shareLeague, publicLeagueKey } from './share';
@@ -45,11 +46,12 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
 
   return (
     <section className="public-league" aria-labelledby="public-league-title">
-      <div className="section-heading"><div><p className="section-kicker">PUBLIC TABLE / {league.seasonName}</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>Share league</button></div></div>
+      <div className="season-record-heading"><div><p className="season-context">{league.seasonName} season</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>Share season</button></div></div>
       {shareMessage && <p className="success-message" role="status">{shareMessage}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
-      <div className="standings-list">{standings.map((row) => <div className="standing-row" key={row.playerId}><span className="standing-rank">{row.rank}</span><div className="standing-player"><strong>{row.username}</strong><small>{row.played} played / {row.average.toFixed(2)} avg</small></div><span className="standing-record">{row.won}-{row.lost}</span><strong className="standing-points">{row.points}</strong></div>)}{standings.length === 0 && <p className="empty-message">No confirmed games yet.</p>}</div>
-      {detail && <p className="public-meta">{detail.players.length} active {detail.players.length === 1 ? 'player' : 'players'} / first to {detail.targetLegs} legs</p>}
+      <p className="season-rules">First to {league.targetLegs} legs · {league.pointsPerWin} points per win</p>
+      <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} />
+      {standings.length === 0 && <p className="empty-message">No confirmed results yet.</p>}
       {results.length > 0 && <div className="public-results"><h3>Latest results</h3><ul className="result-list">{results.slice(0, 5).map((result) => <li className="result-row" key={result.id}><div className="result-main"><strong>{result.playerAUsername} <span>{result.playerALegs}</span></strong><span className="result-divider">-</span><strong>{result.playerBUsername} <span>{result.playerBLegs}</span></strong></div><div className="result-meta"><span>{result.playerAAverage.toFixed(2)} / {result.playerBAverage.toFixed(2)} avg</span></div></li>)}</ul></div>}
     </section>
   );
@@ -208,26 +210,17 @@ export default function App() {
       <section className={`shell-panel ${view === 'signed-in' ? 'shell-panel-wide' : ''}`}>
         <header className="brand-header">
           <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501 club seal" />
-          <div className="brand-meta"><p className="eyebrow">THE MISFITS 501 CLUB</p><span className="online-label">We just can't hit 180</span></div>
+          <div className="brand-meta"><p className="brand-name">The Misfits 501 Club</p><span className="online-label">Darts club</span></div>
           {user && <div className="header-user"><div className="avatar">{user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase()}</div><button className="header-signout" type="button" onClick={() => void logout()}>Sign out</button></div>}
         </header>
-        <section className={`page-intro ${view === 'signed-out' ? 'landing-hero' : ''}`} aria-labelledby={view === 'signed-out' ? 'landing-title' : undefined}>
-          <div className="landing-hero-inner">
-            <p className="hero-kicker">{view === 'signed-out' ? 'MISFITS 501' : 'ONE CLUB / WEEKLY DARTS / NO FUSS'}</p>
-            <h1 id={view === 'signed-out' ? 'landing-title' : undefined}>Club darts, <br /><span>properly settled.</span></h1>
-            <p className="intro">{message}</p>
-            {view === 'signed-out' ? <div className="landing-entry" role="group" aria-label="Sign in with Google"><p className="section-kicker">MEMBERS' DOOR</p><div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} /></div> : <div className="club-links" aria-label="Club links"><a href="https://www.dartcounter.net/" target="_blank" rel="noreferrer">DartCounter</a><span>One club, well kept.</span></div>}
-          </div>
-          {view === 'signed-out' && <img className="landing-seal" src="/brand/misfits-501.jpg" alt="" />}
-        </section>
-
         {view === 'signed-out' && <>
-          {publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><div className="section-heading"><div><p className="section-kicker">THE CLUB TABLE</p><h2 id="public-leagues-title">Club table</h2></div></div><LeagueTabs ariaLabel="Club seasons" leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
+          <section className="public-intro" aria-labelledby="public-leagues-title"><div><h1 id="public-leagues-title">The club table</h1><p>Standings and confirmed results for the current season.</p></div><div className="public-entry" role="group" aria-label="Sign in with Google"><p>Sign in to record a result or confirm one.</p><div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} /></div></section>
+          {publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><LeagueTabs ariaLabel="Club seasons" leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
         </>}
 
         {view === 'onboarding' && <form className="onboarding-form" onSubmit={submitUsername}><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Continue</button></form>}
 
-        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.role === 'ADMIN' ? 'Club administrator' : 'Misfits 501 player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'season' : 'seasons'}</span></div>{user.role === 'ADMIN' && <div className="admin-workbench"><AdminLeagueDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => { setAdminSelectedLeagueId(league?.id ?? null); }} /></div>}<div className="member-workbench member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Member seasons" />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><h2>Open your Misfits invite.</h2><p>Use the shared club link, sign in with Google, then join a season when registrations open.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
+        {view === 'signed-in' && user && <div className="account-panel"><div className="account-heading"><div><p className="account-name">{user.username ?? 'Player'}</p><p className="account-role">{user.role === 'ADMIN' ? 'Club administrator' : 'Misfits 501 player'}</p></div><span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'season' : 'seasons'}</span></div>{selectedLeague && <p className="account-context">Current season: {selectedLeague.name} · {selectedLeague.seasonName} · {selectedLeague.status === 'OPEN' ? 'Open' : 'Closed'} · {selectedLeague.visibility === 'PUBLIC' ? 'Public' : 'Private'}</p>}{message && <p className="success-message" role="status">{message}</p>}{user.role === 'ADMIN' && <div className="admin-workbench"><AdminLeagueDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => { setAdminSelectedLeagueId(league?.id ?? null); }} /></div>}<div className="member-workbench member-area">{myLeagues.length > 0 ? <><LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Member seasons" />{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member"><h2>Open your Misfits invite.</h2><p>Use the shared club link, sign in with Google, then join a season when registrations open.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}</div></div>}
 
         {view !== 'signed-in' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
       </section>

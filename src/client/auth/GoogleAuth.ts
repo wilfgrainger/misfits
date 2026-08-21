@@ -63,7 +63,7 @@ export class GoogleAuth {
         if (active && credential) onCredential(credential);
       },
     });
-    const width = Math.max(200, Math.min(400, Math.floor(parent.getBoundingClientRect().width || 400)));
+    const width = Math.max(200, Math.min(400, parent.parentElement?.clientWidth || 400));
     parent.replaceChildren();
     window.google!.accounts.id.renderButton(parent, {
       type: 'standard',

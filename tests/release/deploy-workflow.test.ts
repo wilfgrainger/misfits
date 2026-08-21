@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const workflow = readFileSync(resolve(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
+const workflow = readFileSync(resolve(process.cwd(), '.github/workflows/ci.yml'), 'utf8').replace(/\r\n/g, '\n');
 const workflowLines = workflow.split('\n');
 
 function jobBlock(jobName: string): string {

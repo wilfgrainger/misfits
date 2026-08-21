@@ -216,6 +216,25 @@ async function cookieFor(db: MemoryD1, userId: string) {
 }
 
 describe('league and invite routes', () => {
+  it('creates an omitted visibility as private and keeps the new season out of the public list', async () => {
+    const { db, env, adminRoutes, publicRoutes } = setup();
+    const adminCookie = await cookieFor(db, 'admin-1');
+    const response = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', {
+      method: 'POST',
+      headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Friday Club', seasonName: '2027', maxPlayers: 8, matchesPerPair: 1, targetLegs: 3, pointsPerWin: 2 }),
+    }), env, {} as never);
+
+    expect(response.status).toBe(201);
+    const created = await response.json() as { league: { id: string; visibility: 'PUBLIC' | 'PRIVATE' } };
+    expect(created.league.visibility).toBe('PRIVATE');
+    expect(db.leagues.get(created.league.id)?.visibility).toBe('PRIVATE');
+
+    const publicList = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues'), env, {} as never);
+    const publicLeagues = (await publicList.json() as { leagues: Array<{ id: string }> }).leagues;
+    expect(publicLeagues.map((league) => league.id)).not.toContain(created.league.id);
+  });
+
   it('reserves every league management operation for club administrators', async () => {
     const { db, env, adminRoutes } = setup();
     const playerCookie = await cookieFor(db, 'player-1');

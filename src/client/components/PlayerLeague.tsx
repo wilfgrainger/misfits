@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, type LeagueDetail, type LeagueSummary, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
 import { ProfilePanel } from './ProfilePanel';
+import { StandingsTable } from './StandingsTable';
 
 const api = new ApiClient();
 type PlayerView = 'table' | 'results' | 'players' | 'record' | 'profile';
@@ -189,10 +190,10 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
       {loading && <p className="loading-message">Loading league data...</p>}
 
       {!loading && view === 'table' && (
-        <div className="standings-list" aria-label={`${league.name} table`}>
-          {standings.map((row) => <div className={`standing-row ${row.playerId === user.id ? 'standing-row-you' : ''}`} key={row.playerId}><span className="standing-rank">{row.rank}</span><div className="standing-player"><strong>{row.username}</strong><small>{row.played} played / {row.average.toFixed(2)} avg</small></div><span className="standing-record">{row.won}-{row.lost}</span><strong className="standing-points">{row.points}</strong></div>)}
+        <>
+          <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} highlightPlayerId={user.id} />
           {standings.length === 0 && <p className="empty-message">No active players yet.</p>}
-        </div>
+        </>
       )}
 
       {!loading && view === 'results' && (

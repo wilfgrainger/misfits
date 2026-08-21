@@ -57,12 +57,19 @@ describe('Misfits platform assets', () => {
     expect(document).toContain('luxury private-club darts league');
   });
 
-  it('keeps the small red accents at WCAG AA contrast on both dark surfaces', () => {
+  it('keeps rendered text at WCAG AA contrast on the remaining dark surfaces', () => {
     const styles = readFileSync(resolve(process.cwd(), 'src/client/styles.css'), 'utf8');
-    const foreground = lastHexDeclaration(styles, '.hero-kicker', 'color');
-    expect(foreground).toBe(lastHexDeclaration(styles, '.eyebrow', 'color'));
+    const darkText = [
+      ['.brand-header', '.brand-name'],
+      ['.brand-header', '.online-label'],
+      ['.brand-header', '.header-signout'],
+      ['.public-intro', '.public-intro h1'],
+      ['.public-intro', '.public-intro p'],
+    ] as const;
 
-    for (const background of [lastHexDeclaration(styles, '.brand-header', 'background'), lastHexDeclaration(styles, '.page-intro', 'background')]) {
+    for (const [surface, text] of darkText) {
+      const foreground = lastHexDeclaration(styles, text, 'color');
+      const background = lastHexDeclaration(styles, surface, 'background');
       expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
     }
   });
