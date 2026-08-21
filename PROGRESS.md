@@ -2,8 +2,9 @@
 
 **Updated:** 21 August 2026
 **Current branch:** `feat/story-audit-chunk-3-fixtures`
+**Pull request:** `#13` — fixture generation and management audit
 **Current base:** `main` at `e1c3957c06d78da782fe865f1015c2898c9a01c9`
-**Current scope:** ADM-046 through ADM-059 — fixture generation and management
+**Current scope:** ADM-046 through ADM-059 — **VERIFIED, awaiting final docs-head CI**
 
 ## Authority
 
@@ -31,19 +32,13 @@ Work proceeds as small audited story-ID chunks from fresh `main`. A catalogue la
 
 - PR #12 merged to `main` as `e1c3957c06d78da782fe865f1015c2898c9a01c9`.
 - Exact final PR head: `8979543a09119909eefde3424abe459b0a4721d8`.
-- Final PR-head CI run `32527554443` passed:
-  - Wrangler types;
-  - TypeScript;
-  - **191/191 tests across 48 files**;
-  - Vite production build.
-- `Deploy Worker` was skipped because that was a pull-request run.
-- Story-level evidence for ADM-019–ADM-045 is recorded in the audit ledger.
+- Final PR-head CI `32527554443`: Wrangler types PASS, TypeScript PASS, **191/191 tests across 48 files PASS**, Vite production build PASS.
 
-## Current Chunk 3 — ADM-046 through ADM-059
+## Current Chunk 3 — ADM-046 through ADM-059 — VERIFIED
 
 Fresh branch: `feat/story-audit-chunk-3-fixtures` from the verified Chunk 2 merge.
 
-Canonical scope:
+Verified scope:
 
 - ADM-046 complete round-robin generation;
 - ADM-047 non-mutating preview;
@@ -55,31 +50,61 @@ Canonical scope:
 - ADM-053 fixture-state filtering;
 - ADM-054 outstanding-fixture count;
 - ADM-055 safe pre-play regeneration;
-- ADM-056 regeneration block once result history exists;
+- ADM-056 regeneration block once competition/result history exists;
 - ADM-057 explicit audited fixture voiding;
 - ADM-058 safe audited fixture restoration;
 - ADM-059 invalid-roster validation before generation.
 
-The original implementation plan already contains a Task 4 fixture engine/API slice, but this audit does not accept that earlier completion claim without checking each canonical acceptance criterion against current code and focused automated evidence.
+### Important audit finding
+
+ADM-058 exposed a real state-transition defect. The generic fixture PATCH path allowed `CONFIRMED → OUTSTANDING`, which could contradict official result state. RED CI run `32528138189` isolated exactly that failure at 193/194 tests.
+
+Fix commit `de2be81ba4d0ef6cd8f19384486107e5ecfcd480` now enforces:
+
+- void only from `OUTSTANDING`;
+- restore only from `VOID`;
+- active-result contradiction blocks both operations;
+- valid transitions continue to write fixture-status audit history.
+
+GREEN fix run `32528291927` passed 194/194 tests, Wrangler types, TypeScript and production build.
+
+### Strengthened fixture proof
+
+Further regression evidence pins:
+
+- preview metadata with no writes;
+- invalid/suspended roster rejection before generation;
+- repeated meetings with separate IDs/meeting numbers/rounds;
+- deterministic same-input scheduling and odd-player byes;
+- full persisted fixture listing and status filters;
+- safe reset then regeneration from the changed roster;
+- database `UNIQUE(league_id, pair_key, meeting_number)` duplicate fence.
+
+Evidence head `58d066ba1279b6d37e2defe73c337a27ec65c35a` passed CI `32528529664`:
+
+- Wrangler types: PASS
+- TypeScript: PASS
+- Vitest: **196/196 tests across 48 files PASS**
+- Vite production build: PASS
+- Deploy Worker: skipped because this is a pull-request run
+
+The audit ledger and this handoff were updated after that code/evidence gate. The **latest documentation head must receive its own full GREEN PR CI before PR #13 is merged**.
 
 ## Superseded delivery line
 
 - PR #9 is **closed, not merged** and must not be reopened.
 - `feat/master-user-stories-100` is stale/superseded.
 - `feat/master-user-stories-100-5652729088464527970` is stale and had no unique work remaining when reconciled.
-- The connected GitHub tool available in this session does **not expose branch-ref deletion**, so those remote refs cannot be physically deleted from this chat. They remain explicitly retired and non-authoritative.
+- The connected GitHub tool available in this session does **not expose branch-ref deletion**, so those remote refs cannot be physically deleted from this chat. They are explicitly retired and non-authoritative.
 
-## Resume instructions
+## Next actions
 
-If this session stops:
-
-1. Resume `feat/story-audit-chunk-3-fixtures` from ADM-046.
-2. Read this file, the canonical user-story catalogue and the story-by-story audit ledger.
-3. Audit each story in ID order. Existing code/status labels are hypotheses, not proof.
-4. For a gap, create or strengthen focused RED evidence first, then implement the smallest correct fix.
-5. Do not weaken assertions to achieve GREEN.
-6. Run the full repository CI gate before marking the chunk verified or merging.
-7. Keep this file and the audit ledger current at every durable checkpoint.
+1. Wait for full CI on the latest PR #13 documentation head.
+2. If Wrangler types, TypeScript, all tests and production build remain green, mark PR #13 ready and merge with expected-head protection.
+3. Verify the resulting `main` merge commit.
+4. Start the next audited chunk from fresh `main` at **ADM-060**.
+5. Continue story-by-story; do not infer completion from old `DELIVERED` labels.
+6. Keep this file and the audit ledger current at every durable checkpoint.
 
 ## Known operational constraint
 
