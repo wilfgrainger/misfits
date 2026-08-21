@@ -54,7 +54,6 @@ export function AdminCompetitionDesk(props: Props) {
   >
     <CompetitionDeskV2
       {...props}
-      selectedLeagueId={activeLeagueId}
       onLeagueSelected={handleLeagueSelected}
     />
     {resultsActive && activeLeagueId && <AdminResultsWorkflow leagueId={activeLeagueId} />}
