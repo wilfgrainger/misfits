@@ -33,7 +33,7 @@ describe('ADM-028 league overview', () => {
     render(<AdminCompetitionDesk user={admin} />);
     fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
     const structure = await screen.findByRole('list', { name: 'Ordered league structure' });
-    const rows = within(structure).getAllByRole('button').map((button) => button.textContent ?? '');
+    const rows = (await within(structure).findAllByRole('button')).map((button) => button.textContent ?? '');
 
     expect(rows[0]).toContain('1 Premier');
     expect(rows[0]).toContain('OPEN');
