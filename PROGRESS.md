@@ -1,55 +1,140 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026
-**Current branch:** `main` (all changes merged and pushed)
-**Base visibility:** origin/main is fetched and synchronized.
+**Updated:** 21 August 2026, 16:58 BST  
+**Current branch:** `feat/master-user-stories-100`  
+**Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**  
+**Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
 
 ## Authority
 
 - Product truth: `PRODUCT.md`.
-- Strategic and platform guardrail: `VISION.md`.
-- UI authority and implementation rules: `DESIGN.md` and the repo-local Impeccable skill.
+- Strategic/platform guardrail: `VISION.md`.
+- UI authority: `DESIGN.md` and the repo-local Impeccable skill.
+- Canonical functional backlog: `docs/superpowers/specs/2026-08-21-user-stories.md` — **150 stories: 88 Admin, 55 Player, 7 Public**.
+- Active implementation plan: `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`.
 - Delivery authority: Superpowers. Simplicity/review gate: Cave Pony.
-- Active implementation plan: `docs/superpowers/plans/2026-08-21-repository-simplification-and-release.md`.
 
-## Current state
+## Current delivery goal
 
-- One private Misfits club; many seasons over time; DartCounter remains the scoring surface.
-- One Cloudflare Worker, static assets and D1; Google-only authentication; remote D1 migrations remain manual.
-- The signed-out entrance uses the supplied Misfits seal and the approved line: "Club darts, properly settled."
-- Member and administrator workspaces are mobile-first, with deliberate desktop rails at 960px and above.
+Deliver **100% of the canonical 150-story backlog** through one draft PR, using story/epic-level TDD and preserving the one-club architecture:
 
-## This release branch
+`Season → League → League Membership → persisted Fixture → Result settlement → Standings → Promotion/Relegation → Next Season`
 
-- Added a durable agent entry point, product/vision/design records, review template and agent skills.
-- Fixed the result-dispute P1: labelled dialog, focus placement/trap, Escape/Cancel and return focus. Result lists are no longer nested incorrectly.
-- Simplified the administrator desk by keeping its state local and task-oriented: no prop-drilled component forest.
-- Replaced native `window.confirm` in AdminLeagueDesk.tsx with custom styled confirmation modals.
-- **Full dark theme redesign:** replaced parchment/ledger aesthetic with a premium dark sports club UI — deep charcoal surfaces (`--bg: #0d1110`), warm cream text (`--text: #eeeae0`), vivid red accent (`--red: #d44040`), gold first-place markers (`--gold: #c4a96c`). DESIGN.md updated to reflect the new visual world.
-- Segmented pill tab controls: workspace switcher (Season admin / Club table) and member workspace navigation (Table / Results / Players / Add result / Profile) now use `.segmented-tabs` / `.segmented-tab` / `.segmented-tab-active` — red fill with white text on active.
-- Standings table: contained with border-radius, gold first-place rank, red top-points value, bold scan-first numbers.
-- Desktop rails redesigned: left sidebar rail now uses right-border active indicator instead of bottom-border, appropriate for vertical orientation.
-- All tests updated to match new design semantics: contract test checks new token names (`--bg`, `--surface`, `--red`); contrast test verifies new palette pairs directly; account-profile and create-season tests account for default Club table mode.
+The PR must remain draft until all 150 stories have implementation + evidence and the release ledger test proves none remain `MISSING`, `PARTIAL`, `GATED`, or `CURRENT/PARTIAL`.
 
-## Audit decisions
+## Non-negotiable boundaries
 
-- **Actioned:** full dark theme replacing parchment — user explicitly approved abandoning old palette.
-- **Actioned:** no new dependency, service, schema or Worker boundary was introduced.
-- **Actioned:** replaced native confirmations for invite revocation and result deletion with custom accessible modals.
-- **Actioned:** segmented tab controls replace plain underline tab nav throughout.
-- **Deferred:** authenticated mobile and desktop browser walkthrough (cloud browser blocks localhost).
-- **Blocked externally:** `npm audit`, `wrangler types` and `wrangler deploy --dry-run` require network approval.
+- Misfits 501 remains one club, not white-label or multi-tenant.
+- DartCounter remains the live scorer; Misfits records and settles club competition data.
+- Google Identity Services remains the only sign-in method.
+- Core runtime remains one Cloudflare Worker, static assets and one D1 database.
+- No paid Cloudflare service, queue, R2, Durable Object, scheduled job or background polling.
+- D1 migrations are additive only. Never edit already-applied migrations.
+- Worker-side auth, authorization, same-origin mutation checks, privacy and audit requirements remain intact.
+- Production deploy occurs only after the complete PR is verified, required remote additive migration is manually applied, and the merged `main` deployment is observed.
 
-## Fresh verification
+## Execution status
 
-- `./node_modules/.bin/vitest run`: **29 files / 127 tests passed**.
-- `./node_modules/.bin/tsc -p tsconfig.client.json --noEmit` and `./node_modules/.bin/tsc -p tsconfig.worker.json --noEmit`: passed.
-- `./node_modules/.bin/vite build`: passed.
-- `git diff --check`: passed.
+### Task 0 — Branch, PR and plan — COMPLETE
 
-## Before release
+- Created branch `feat/master-user-stories-100` from `main`.
+- Opened draft PR **#9**.
+- Added Superpowers implementation plan: `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`.
+- PR completion gate explicitly requires 88/88 Admin + 55/55 Player + 7/7 Public stories delivered with evidence.
 
-1. Review the PR diff and the audit evidence.
-2. Complete an authenticated mobile and desktop walkthrough on an authorized origin.
-3. If a future change needs D1 schema, apply and verify its additive remote migration manually before merging dependent code.
-4. Rerun Wrangler type/deploy checks in an environment with Cloudflare network access.
+### Task 1 — Competition schema/domain spine — IN PROGRESS
+
+#### Red evidence
+
+Commit `8971e846cadde0d5a26525b4125ae844cbecbfac` added `tests/domain/competition.test.ts` before the implementation existed.
+
+GitHub Actions run `32500303728` failed at `npm test` exactly as expected:
+
+- existing suite: **127 tests passed**;
+- new competition suite: failed to import missing `src/server/domain/competition`;
+- build was skipped after the deliberate red failure.
+
+This is the recorded TDD RED checkpoint.
+
+#### Green implementation added
+
+- `src/server/domain/competition.ts`
+  - `SeasonStatus` / `FixtureStatus`;
+  - season validation;
+  - deterministic circle-method round-robin generation;
+  - odd-player bye handling;
+  - repeated-meeting numbering;
+  - no-self-pairing / unique-player validation;
+  - promotion/relegation zone calculation;
+  - promotion movement calculation helpers.
+- `migrations/0004_seasons_fixtures_promotion.sql`
+  - additive `seasons` table;
+  - backfill from current `leagues.season_name`;
+  - `leagues.season_id`, hierarchy, promotion/relegation settings;
+  - season-aware `league_players` mapping + active uniqueness index;
+  - persisted `fixtures` with round, meeting number and lifecycle state;
+  - optional `matches.fixture_id` + one-active-result-per-fixture uniqueness;
+  - `season_movements` audit/history structure.
+- `src/server/db/competition.ts`
+  - season persistence helpers;
+  - season league reads;
+  - explicit league membership assignment/movement helpers;
+  - unassigned-player query;
+  - fixture preview/commit/list/status/reset helpers;
+  - season health query.
+- `tests/server/schema.test.ts` extended to verify migration 0004 remains additive and contains the required competition structures.
+
+#### Green evidence
+
+Latest checkpoint commit: `9091d31625c1051d6f8e9fe2ea8494e9cb1df35c`.
+
+GitHub Actions run `32500530742`: **SUCCESS**.
+
+Verified steps:
+
+- `npm ci` — success;
+- `npx wrangler types` — success;
+- `npm run typecheck` — success;
+- `npm test` — success;
+- `npm run build` — success;
+- production deploy — correctly **skipped** because this is not `main`.
+
+### Story ledger status
+
+No story is being prematurely marked `DELIVERED` merely because the domain/schema foundation exists. Story-level status in `docs/superpowers/specs/2026-08-21-user-stories.md` changes only when the full acceptance behaviour for that story is implemented and evidenced.
+
+Task 1 currently establishes prerequisites/invariants for stories including season identity, league hierarchy, explicit season+league membership, persisted fixtures and promotion/relegation, but API/UI acceptance is still unfinished.
+
+## Exact next actions
+
+1. Finish Task 1 by adding focused persistence/schema integration coverage where D1 test harness allows it.
+2. Task 2: implement season + season-scoped league administration APIs with failing route tests first.
+3. Task 3: implement season-aware membership assignment/move and invite join behaviour with red/green tests.
+4. Task 4: expose fixture preview/commit/list/void/regeneration APIs and prove fixture counts/idempotency.
+5. Task 5: convert normal result submission from arbitrary opponent selection to fixture settlement while preserving legacy reads during migration.
+6. Task 6: implement projection/review/override/apply promotion and relegation flow.
+7. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public league/fixture view.
+8. Task 11: update every story in `2026-08-21-user-stories.md` with `DELIVERED` + evidence and add a release parser test that requires exactly 150 unique delivered stories.
+9. Task 12: full verification, Superpowers completion review, Cave Pony review, PR readiness, manual remote D1 migration, merge, observe production deployment and smoke-test production.
+
+## Resume instructions for a new agent
+
+If this session dies, do **not** restart discovery from scratch.
+
+1. Checkout/read branch `feat/master-user-stories-100` and PR #9.
+2. Read in this order:
+   - `AGENTS.md`
+   - `PRODUCT.md`
+   - `VISION.md`
+   - `docs/superpowers/specs/2026-08-21-user-stories.md`
+   - `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`
+   - this `PROGRESS.md`
+3. Use Superpowers `executing-plans` + TDD + verification-before-completion.
+4. Start at **Task 2 unless Task 1 has acquired a new failing CI checkpoint after this update**.
+5. Never mark stories complete from inference. Require implementation and test evidence.
+6. Keep this file updated after every meaningful red/green/CI checkpoint.
+7. Keep `docs/superpowers/specs/2026-08-21-user-stories.md` updated at story level whenever a story moves to `DELIVERED`.
+
+## Known operational constraint
+
+This chat environment could not clone GitHub into the local container because external GitHub DNS/network access failed. GitHub repository tools and GitHub Actions are therefore being used as the isolated execution/verification environment. Do not claim local command evidence that was not actually run.
