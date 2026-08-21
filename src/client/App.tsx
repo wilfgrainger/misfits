@@ -68,7 +68,7 @@ export default function App() {
   const [myLeagues, setMyLeagues] = useState<LeagueSummary[]>([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [adminSelectedLeagueId, setAdminSelectedLeagueId] = useState<string | null>(null);
-  const [adminMode, setAdminMode] = useState<'admin' | 'player'>('admin');
+  const [adminMode, setAdminMode] = useState<'admin' | 'player'>('player');
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const loadPublicLeagues = async () => {
