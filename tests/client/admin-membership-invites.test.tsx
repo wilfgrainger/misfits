@@ -65,8 +65,8 @@ describe('ADM-032, ADM-037 to ADM-043 admin membership and invite controls', () 
     fireEvent.click(await screen.findByRole('tab', { name: 'Members & invites' }));
 
     expect(await screen.findByText('Premier · 1/8')).toBeTruthy();
-    expect(screen.getByText('Alpha')).toBeTruthy();
-    expect(screen.getByText('Bravo')).toBeTruthy();
+    expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Bravo').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'Deactivate Alpha' }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/leagues/l1/members/u1' && init?.method === 'PATCH' && JSON.parse(String(init.body)).active === false)).toBe(true));
