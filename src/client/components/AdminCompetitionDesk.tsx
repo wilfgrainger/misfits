@@ -15,6 +15,7 @@ import {
   type UnassignedPlayer,
   type UserSummary,
 } from '../api';
+import { cloneSeasonStructure } from '../season-clone';
 
 const api = new ApiClient();
 
@@ -123,6 +124,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [newSeasonName, setNewSeasonName] = useState('');
+  const [cloneSeasonName, setCloneSeasonName] = useState('');
   const [seasonName, setSeasonName] = useState('');
   const [seasonStatus, setSeasonStatus] = useState<SeasonSummary['status']>('DRAFT');
   const [seasonCurrent, setSeasonCurrent] = useState(false);
@@ -322,6 +324,20 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       setNewSeasonName('');
       setMessage('Season created.');
     } catch (cause) { setError(errorMessage(cause, 'Season could not be created.')); }
+    finally { setBusy(null); }
+  };
+
+  const cloneSelectedSeason = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!selectedSeason) return;
+    clearFeedback();
+    setBusy('clone-season');
+    try {
+      const payload = await cloneSeasonStructure(selectedSeason.id, cloneSeasonName);
+      setSeasons((current) => [...current, payload.season]);
+      setCloneSeasonName('');
+      setMessage('Season structure copied.');
+    } catch (cause) { setError(errorMessage(cause, 'Season structure could not be copied.')); }
     finally { setBusy(null); }
   };
 
@@ -589,6 +605,12 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
           <label htmlFor="new-competition-season">New season name<input id="new-competition-season" value={newSeasonName} onChange={(event) => setNewSeasonName(event.target.value)} placeholder="2028/29" required /></label>
           <button className="primary-button" type="submit" disabled={busy === 'create-season'}>Create season</button>
         </form>
+        {selectedSeason && <form className="admin-block stack-form" onSubmit={cloneSelectedSeason}>
+          <h3>Copy season structure</h3>
+          <p className="form-help">Copy leagues and competition rules only. Players, fixtures and results are not copied.</p>
+          <label htmlFor="clone-competition-season">Copy structure into season<input id="clone-competition-season" value={cloneSeasonName} onChange={(event) => setCloneSeasonName(event.target.value)} placeholder="2028/29" required /></label>
+          <button className="secondary-button" type="submit" disabled={busy === 'clone-season'}>Copy league structure</button>
+        </form>}
       </div>
 
       <div id="competition-leagues-panel" role="tabpanel" aria-labelledby="competition-admin-tab-leagues" hidden={task !== 'leagues'}>
