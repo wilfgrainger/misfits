@@ -39,7 +39,8 @@ describe('account profile access', () => {
 
   it('keeps profile management available to a signed-in user without memberships', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Season admin' })).toBeTruthy());
+    // Workspace switcher shows Season admin / Club table as buttons (not headings)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Season admin' })).toBeTruthy());
     expect(screen.getByText('The Misfits 501 Club')).toBeTruthy();
     expect(screen.getByText('Darts club')).toBeTruthy();
     expect(screen.queryByText('Club darts, properly settled.')).toBeNull();
@@ -47,9 +48,7 @@ describe('account profile access', () => {
     expect(screen.getByAltText('Misfits 501 club seal')).toBeTruthy();
     expect(screen.queryByText(/Current season:/)).toBeNull();
     expect(screen.getByRole('status').textContent).toBe('Your Misfits 501 club workspace is ready.');
-    
-    // Switch to Club table mode to view profile panel
-    fireEvent.click(screen.getByRole('button', { name: 'Club table' }));
+    // Default mode is player/Club table — profile panel is already visible
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Player card' })).toBeTruthy());
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });
@@ -57,6 +56,10 @@ describe('account profile access', () => {
   it('shows Club access controls to promoted administrators', async () => {
     user.isMasterAdmin = false;
     render(<App />);
+
+    // Default mode is Club table; switch to Season admin to expose the admin desk tabs
+    const adminTabButton = await screen.findByRole('button', { name: 'Season admin' });
+    fireEvent.click(adminTabButton);
 
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Club access' })).toBeTruthy());
     fireEvent.click(screen.getByRole('tab', { name: 'Club access' }));

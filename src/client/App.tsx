@@ -234,16 +234,16 @@ export default function App() {
               <span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'season' : 'seasons'}</span>
             </div>
             {user.role === 'ADMIN' && (
-              <nav className="content-tabs" aria-label="Admin views">
+              <nav className="segmented-tabs" aria-label="Admin views">
                 <button
-                  className={adminMode === 'admin' ? 'content-tab content-tab-active' : 'content-tab'}
+                  className={adminMode === 'admin' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'}
                   type="button"
                   onClick={() => setAdminMode('admin')}
                 >
                   Season admin
                 </button>
                 <button
-                  className={adminMode === 'player' ? 'content-tab content-tab-active' : 'content-tab'}
+                  className={adminMode === 'player' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'}
                   type="button"
                   onClick={() => setAdminMode('player')}
                 >

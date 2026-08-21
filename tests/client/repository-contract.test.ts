@@ -21,9 +21,9 @@ describe('repository operating contract', () => {
 
   it('defines distinct member and admin desktop workbenches in the club visual system', () => {
     const css = readFileSync('src/client/styles.css', 'utf8');
-    expect(css).toContain('--ink:');
-    expect(css).toContain('--paper:');
-    expect(css).toContain('--club-red:');
+    expect(css).toContain('--bg:');
+    expect(css).toContain('--surface:');
+    expect(css).toContain('--red:');
     expect(css).not.toContain('Club record redesign');
     expect(css).not.toContain('Misfits 501 club finish');
     expect(css).toContain('.member-workbench');

@@ -2,35 +2,72 @@
 
 ## Visual world
 
-Misfits 501 is a well-kept club record: black ink and midnight rooms, warm paper, old brass and a single worn red mark. It is quiet enough to use weekly and specific enough that it cannot be mistaken for a generic league dashboard.
+Misfits 501 is a private darts club app: dark, precise, and confident. The interface
+is full dark — deep charcoal surfaces, warm cream text, a vivid club-red accent, and
+brass-gold for season/rank markers. It is quiet enough to use weekly and specific enough
+that it cannot be mistaken for a generic league dashboard or a government form.
+
+The club seal anchors the header. Every other surface recedes to let the standings
+and results be the thing you see first.
+
+## Palette
+
+| Token        | Value     | Role                                     |
+|---|---|---|
+| `--bg`       | `#0d1110` | App background / dark chrome             |
+| `--surface`  | `#151a17` | Panel background                         |
+| `--surface-2`| `#1c2320` | Elevated cards, input fields             |
+| `--surface-3`| `#232b27` | Active picker rows, hovered surfaces     |
+| `--border`   | `#2a332f` | Hairlines, dividers                      |
+| `--border-mid`| `#364039`| Stronger borders, input outlines         |
+| `--text`     | `#eeeae0` | Primary text (warm white, not clinical)  |
+| `--text-2`   | `#a8b0aa` | Secondary text, labels                   |
+| `--text-3`   | `#687068` | Muted text, timestamps, placeholders     |
+| `--red`      | `#d44040` | Primary accent — action, emphasis, rank  |
+| `--gold`     | `#c4a96c` | First-place rank, season markers         |
+| `--success`  | `#4a9b6a` | Confirmed results, open status           |
+| `--danger`   | `#c04040` | Errors, disputed, closed                 |
 
 ## Type
 
-- Display: a self-hosted, condensed club-display face when one is supplied; until then use the serif display fallback only for editorial statements and major route titles.
-- Operational text: a robust system sans stack for dense, legible table and form work. Never restore Inter as a project default.
-- Numbers: tabular where scores, positions, legs and averages align.
+- System sans-serif stack throughout — `ui-sans-serif, system-ui, -apple-system` etc.
+- Never restore Inter as a project default. No web font imports.
+- Numbers: `font-variant-numeric: tabular-nums` for all scores, positions, legs and averages.
+- Points column in standings table: larger, bolder, scan-first (1.15rem, 800 weight).
+- First-place points: `--red` accent. First-place rank: `--gold`.
 
 ## Surfaces and hierarchy
 
-- The signed-out entrance is dark and persuasive: promise, genuine club seal, then the public record.
-- Member and admin views are operational parchment desks within a dark surrounding shell. They use rails, ruled lists and generous whitespace instead of grids of cards.
-- The current season is an explicit piece of navigation, never a decorative badge.
-- Red identifies action, exception or confirmed emphasis; it is not a blanket highlight colour.
+- **Header**: sticky dark chrome (`--bg`) with the club seal, brand name, avatar, sign-out.
+- **Account panel**: user name hero at 1.9rem/800 weight, role line below, season count badge.
+- **Workspace switcher** (admin only): segmented pill selector — ink fill with cream text on active.
+- **Player workspace**: league-heading block gives the season name/status, then a segmented tab row.
+- **Standings**: contained table with `--border` outline, banded header, gold first-place rank.
+- **Results**: clean list rows with generous vertical padding and subtle hover state.
+- **Admin desk**: vertical rail on desktop (960px+), horizontal scroll tabs on mobile.
 
 ## Responsive rules
 
-- Mobile is a single-column record book with full-width controls and horizontal navigation only when necessary.
-- At desktop width, member work gains a season rail and a main record column. Admin work gains a persistent task rail and a workbench; content does not merely widen.
-- Keep real tables and forms readable at 320px and give desktop operational pages a deliberate 960px-plus composition.
+- Mobile (`≤680px`): single column, full-width segmented tabs scroll horizontally, standings scroll.
+- Tablet (`681–959px`): panel gains border-radius and border; public intro goes two-column.
+- Desktop (`≥960px`): member workspace gets a 15rem sticky season rail; admin desk gets a 14rem
+  sticky task rail. Content widens into the freed space, does not merely stretch.
+- 320px minimum — tables and forms must remain readable.
 
 ## Interaction and accessibility
 
-- Controls use a 44px minimum target, visible focus and direct action language.
-- Statuses use text plus colour. Destructive actions require a clear confirmation.
-- Motion is limited to one entrance/reveal moment per surface and respects reduced-motion preferences.
+- 44px minimum touch target on all interactive controls.
+- Visible `:focus-visible` ring: 2px `--red`, offset 3px.
+- Active segmented tab: red background + white text + subtle glow shadow.
+- Active desktop rail tab: red right-border + `--surface-2` background.
+- Destructive actions: custom modal sheet, never `window.confirm`.
+- Motion: one entrance animation per surface (`club-arrive`). `prefers-reduced-motion` respected.
 
 ## Anti-patterns
 
-- No generic dashboard cards, promotional metrics, pill overload, side accents or fake imagery.
-- No decorative section eyebrows. A small red identity or state line may remain only where it carries real club, season or workflow context; never add one merely to decorate a heading.
-- No artwork behind text, no gradient text and no default browser-looking operational furniture.
+- No parchment, no beige paper background, no ledger-sheet aesthetic.
+- No generic dashboard cards, promotional metrics, or pill overload.
+- No decorative section eyebrows or gradient text.
+- No artwork behind copy. No default browser-looking form furniture.
+- No Inter. No external font imports.
+- No white background surfaces inside the signed-in shell.

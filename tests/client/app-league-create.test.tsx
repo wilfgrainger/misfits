@@ -195,6 +195,10 @@ describe('club administration visibility', () => {
     state.user.role = 'ADMIN';
     render(<App />);
 
+    // Default mode is Club table; switch to Season admin to reveal the admin workbench
+    const adminTabButton = await screen.findByRole('button', { name: 'Season admin' });
+    fireEvent.click(adminTabButton);
+
     const adminRegion = (await screen.findAllByRole('region')).find((region) => within(region).queryAllByText(/Create (a new )?season/).length > 0);
     expect(adminRegion).toBeTruthy();
     const summary = within(adminRegion as HTMLElement).getByText('Create a new season');

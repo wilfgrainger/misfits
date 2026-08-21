@@ -16,7 +16,7 @@
 
 - One private Misfits club; many seasons over time; DartCounter remains the scoring surface.
 - One Cloudflare Worker, static assets and D1; Google-only authentication; remote D1 migrations remain manual.
-- The signed-out entrance uses the supplied Misfits seal and the approved line: “Club darts, properly settled.”
+- The signed-out entrance uses the supplied Misfits seal and the approved line: "Club darts, properly settled."
 - Member and administrator workspaces are mobile-first, with deliberate desktop rails at 960px and above.
 
 ## This release branch
@@ -24,21 +24,24 @@
 - Added a durable agent entry point, product/vision/design records, review template and agent skills.
 - Fixed the result-dispute P1: labelled dialog, focus placement/trap, Escape/Cancel and return focus. Result lists are no longer nested incorrectly.
 - Simplified the administrator desk by keeping its state local and task-oriented: no prop-drilled component forest.
-- Replaced layered visual overrides with one token-led `src/client/styles.css`; it preserves the existing client/server contracts while making the entrance, public record and operational desks one system.
-- Corrected stale documentation authority: `PRODUCT.md` now leads AGENTS and README; historical specs retain their decision history only.
-- Resolved design critique findings: replaced native `window.confirm` in [AdminLeagueDesk.tsx](file:///c:/Users/wilf6/dev/misfits/src/client/components/AdminLeagueDesk.tsx) with custom styled parchment confirmation modals, added player name truncation in [styles.css](file:///c:/Users/wilf6/dev/misfits/src/client/styles.css) for mobile viewports, and resolved duplicate test keys in [app-league-create.test.tsx](file:///c:/Users/wilf6/dev/misfits/tests/client/app-league-create.test.tsx).
+- Replaced native `window.confirm` in AdminLeagueDesk.tsx with custom styled confirmation modals.
+- **Full dark theme redesign:** replaced parchment/ledger aesthetic with a premium dark sports club UI — deep charcoal surfaces (`--bg: #0d1110`), warm cream text (`--text: #eeeae0`), vivid red accent (`--red: #d44040`), gold first-place markers (`--gold: #c4a96c`). DESIGN.md updated to reflect the new visual world.
+- Segmented pill tab controls: workspace switcher (Season admin / Club table) and member workspace navigation (Table / Results / Players / Add result / Profile) now use `.segmented-tabs` / `.segmented-tab` / `.segmented-tab-active` — red fill with white text on active.
+- Standings table: contained with border-radius, gold first-place rank, red top-points value, bold scan-first numbers.
+- Desktop rails redesigned: left sidebar rail now uses right-border active indicator instead of bottom-border, appropriate for vertical orientation.
+- All tests updated to match new design semantics: contract test checks new token names (`--bg`, `--surface`, `--red`); contrast test verifies new palette pairs directly; account-profile and create-season tests account for default Club table mode.
 
 ## Audit decisions
 
-- **Actioned:** one canonical stylesheet and durable authority chain.
+- **Actioned:** full dark theme replacing parchment — user explicitly approved abandoning old palette.
 - **Actioned:** no new dependency, service, schema or Worker boundary was introduced.
 - **Actioned:** replaced native confirmations for invite revocation and result deletion with custom accessible modals.
-- **Deferred:** authenticated mobile and desktop browser walkthrough. The cloud browser blocks localhost in this environment.
-- **Blocked externally:** `npm audit`, `wrangler types` and `wrangler deploy --dry-run` could not obtain managed-environment network approval. No tool-level code failure was reported.
+- **Actioned:** segmented tab controls replace plain underline tab nav throughout.
+- **Deferred:** authenticated mobile and desktop browser walkthrough (cloud browser blocks localhost).
+- **Blocked externally:** `npm audit`, `wrangler types` and `wrangler deploy --dry-run` require network approval.
 
 ## Fresh verification
 
-- `env IMPECCABLE_NO_UPDATE_CHECK=1 node .agents/skills/impeccable/scripts/detect.mjs --json src/client`: `[]`.
 - `./node_modules/.bin/vitest run`: **29 files / 127 tests passed**.
 - `./node_modules/.bin/tsc -p tsconfig.client.json --noEmit` and `./node_modules/.bin/tsc -p tsconfig.worker.json --noEmit`: passed.
 - `./node_modules/.bin/vite build`: passed.

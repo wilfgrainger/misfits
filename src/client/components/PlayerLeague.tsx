@@ -182,8 +182,8 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         </div>
         <button className="refresh-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Loading' : 'Refresh'}</button>
       </div>
-      <nav className="content-tabs" aria-label="Member workspace">
-        {([['table', 'Table'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'content-tab content-tab-active' : 'content-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
+      <nav className="segmented-tabs" aria-label="Member workspace">
+        {([['table', 'Table'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
       </nav>
       {notice && <p className="success-message" role="status">{notice}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
