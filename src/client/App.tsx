@@ -21,6 +21,7 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
   const [results, setResults] = useState<ResultSummary[]>([]);
   const [error, setError] = useState('');
   const [shareMessage, setShareMessage] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -38,6 +39,10 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
     setShareMessage('');
     try {
       const mode = await shareLeague(navigator, league.name, league.slug, window.location.origin);
+      if (mode === 'copied') {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
       setShareMessage(mode === 'shared' ? 'Share sheet opened.' : 'League link copied.');
     } catch (cause) {
       setShareMessage(messageFor(cause, 'League link could not be shared.'));
@@ -46,7 +51,7 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
 
   return (
     <section className="public-league" aria-labelledby="public-league-title">
-      <div className="season-record-heading"><div><p className="season-context">{league.seasonName} season</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>Share season</button></div></div>
+      <div className="season-record-heading"><div><p className="season-context">{league.seasonName} season</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>{copied ? 'Copied! ✓' : 'Share season'}</button></div></div>
       {shareMessage && <p className="success-message" role="status">{shareMessage}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
       <p className="season-rules">First to {league.targetLegs} legs · {league.pointsPerWin} points per win</p>
