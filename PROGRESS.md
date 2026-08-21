@@ -1,6 +1,6 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026, 17:41 BST  
+**Updated:** 21 August 2026, 17:47 BST  
 **Current branch:** `feat/master-user-stories-100`  
 **Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**  
 **Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
@@ -61,87 +61,68 @@ PR #9 remains draft until all 150 stories have implementation + evidence and the
 
 ### Task 4 — Persisted fixture engine + admin APIs — COMPLETE AS BACKEND SLICE
 
-#### RED
-
-Commit `fc9496f9ce4347c69e5617b61bc11b54708c225e` added `tests/server/fixtures.test.ts` before fixture administration endpoints existed.
-
-Actions run `32501571588`: **FAILURE**, as intended.
-
-#### GREEN
-
-`src/server/routes/competition.ts` now exposes persisted fixture preview/list/commit/reset/status administration. The backend proves deterministic preview, stable IDs, idempotent generation, round identity, state filtering, audited void/restore and destructive-reset guards after play.
-
-Latest checkpoint commit: `e5f3b897c5c94dc9934b1ee22999623e57aa5469`.
-
-Actions run `32501634814`: **SUCCESS** — Wrangler + TypeScript + **34 test files / 149 tests** + production build.
+- **RED:** commit `fc9496f9ce4347c69e5617b61bc11b54708c225e`, run `32501571588` **FAILURE** as intended.
+- **GREEN:** fixture preview/list/commit/reset/status APIs with deterministic IDs/order and protected regeneration.
+- Run `32501634814`: **SUCCESS** — Wrangler + TypeScript + **34 test files / 149 tests** + production build.
 
 ### Task 5 — Fixture-based result settlement — COMPLETE AS BACKEND SLICE
 
 - **RED:** commit `f85706d922b2a559f05e7ca7a367c13f13a915c7`, run `32501821200` **FAILURE** as intended.
 - **GREEN candidate:** `29104c11000cdb21f3ffae8ea273c76c4e4bd822`.
 - Implemented fixture-authoritative result submission, exactly-one-active-result protection, fixture state synchronization, admin correction/delete integrity and legacy compatibility.
-- Run `32502161438`: **SUCCESS** — Wrangler + TypeScript + **35 test files / 154 tests** + production build; 0 npm audit vulnerabilities; deploy skipped.
+- Run `32502161438`: **SUCCESS** — Wrangler + TypeScript + **35 test files / 154 tests** + production build; 0 vulnerabilities; deploy skipped.
 
 ### Task 6 — Promotion/relegation + next-season placement — COMPLETE AS BACKEND SLICE
 
-- **RED:** commit `2c34c67e6bb88bf7f2473a580d40e31e211c2b73`, run `32503035206` **FAILURE** as intended; 6/6 new tests failed on absent routes.
+- **RED:** commit `2c34c67e6bb88bf7f2473a580d40e31e211c2b73`, run `32503035206` **FAILURE** as intended.
 - **GREEN candidate:** `3449f75f90fb418d900b896a513f07f1677c7d22`.
-- Implemented competitive tie ambiguity detection, safe hierarchy edges, closed/unresolved finalisation gates, durable proposals, audited overrides, target hierarchy/capacity/conflict prevalidation, idempotent rollover and history preservation.
-- Run `32503576294`: **SUCCESS** — `promotion.test.ts` 6/6, **36 test files / 160 tests**, Wrangler + TypeScript + production build; prior client flake cleared without weakening; deploy skipped; 0 vulnerabilities.
+- Implemented tie ambiguity detection, safe hierarchy edges, finalisation gates, durable proposals, audited overrides, target hierarchy/capacity/conflict prevalidation, idempotent rollover and history preservation.
+- Run `32503576294`: **SUCCESS** — **36 test files / 160 tests**, promotion 6/6, Wrangler + TypeScript + build, 0 vulnerabilities; deploy skipped.
 
 ### Task 7 — Typed competition client API — COMPLETE
 
+- **RED:** commit `337174655f8140e24c399f3d00910e148a6f45c8`, run `32503840028` **FAILURE** as intended. All 160 pre-existing tests passed; four new client groups failed on missing methods.
+- **GREEN candidate:** `fb22f4c7bf9acc87e2441d10bc66ee3404d53f90`.
+- Added typed season/league/fixture/membership/promotion models, boundary normalization, season/league/member/fixture/promotion methods and fixture-first result contract.
+- Run `32504086471`: **SUCCESS** — `api.test.ts` 10/10, **36 test files / 164 tests**, Wrangler + TypeScript + production build, 0 vulnerabilities; deploy skipped.
+
+### Task 8 — Administrator competition experience — IN PROGRESS
+
 #### RED
 
-Commit `337174655f8140e24c399f3d00910e148a6f45c8` expanded `tests/client/api.test.ts` before the typed competition client methods existed.
+Commit `231b4ab64ddc35dcf6c2fcd0cd194954d7694193` added `tests/client/admin-competition.test.tsx` before `AdminCompetitionDesk` exists.
 
-Actions run `32503840028`: **FAILURE**, as intended:
+Actions run `32504586084`: **FAILURE**, as intended.
 
-- Wrangler types: success;
-- TypeScript: success;
-- all **160 pre-existing tests passed**;
-- four new contract groups failed only because the new competition client methods were absent;
-- build skipped after the expected test failure; deploy skipped.
-
-#### GREEN
-
-Green candidate commit: `fb22f4c7bf9acc87e2441d10bc66ee3404d53f90`.
-
-Implemented:
-
-- typed season, expanded league, fixture, membership/placement, competition-health and promotion client models;
-- backward-compatible snake_case/camelCase normalization at the HTTP boundary;
-- season and competition-league administration methods;
-- season-scoped unassigned/assign/move member methods;
-- fixture preview/list/commit/reset/status methods;
-- fixture-first result submission contract;
-- promotion preview/proposal/override/apply methods;
-- invite join season context support while preserving legacy client operations.
-
-Actions run `32504086471`: **SUCCESS**.
-
-Fresh evidence from CI:
+Verified RED evidence:
 
 - Wrangler types: success;
 - TypeScript: success;
-- `tests/client/api.test.ts`: **10/10 passed**;
-- **36 test files / 164 tests passed**;
-- production Vite build: success;
-- deploy: skipped correctly on the PR branch;
-- `npm ci` audit reported **0 vulnerabilities**.
+- **all 164 pre-existing tests still passed**;
+- the new admin competition suite failed at import because the planned `AdminCompetitionDesk` production component does not exist yet;
+- build skipped after the expected test failure;
+- deploy skipped correctly;
+- `npm ci` audit reported 0 vulnerabilities.
 
-Task 7 is GREEN and checkpointed. No production deployment or remote D1 migration has been performed.
+The six new UI contracts cover:
+
+1. the seven-task accessible admin rail + durable season creation;
+2. ordered league structure and rule/movement configuration;
+3. season-scoped unassigned assignment, pre-fixture move and season-league invites;
+4. persisted fixture health, preview, commit and void workflow;
+5. promotion preview, proposal, audited override and next-season apply;
+6. retained result-correction and club-access operations inside the unified admin workspace.
 
 ### Story ledger status
 
-Backend and typed-client prerequisites now exist for season/division management, explicit league placement, fixture generation and settlement, promotion/relegation and safe next-season rollover. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
+Backend and typed-client prerequisites now exist for the main competition lifecycle. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
 
 ## Exact next actions
 
-1. **Task 8 now:** administrator experience for Season / Leagues / Members & invites / Fixtures / Results / Promotion / Club access. Preserve current result/invite/account operations and existing DESIGN.md authority.
+1. **Task 8 GREEN now:** create the canonical `AdminCompetitionDesk`, integrate it into the signed-in admin workspace, preserve existing invite/result/access capabilities, and apply the `DESIGN.md` desktop rail/mobile horizontal-tab rules. Make all six new contracts pass without weakening them.
 2. Task 9: Player fixture-first UI.
 3. Task 10: Public competition view.
-4. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
+4. Task 11: full 150-story gap audit + implementation of any still-missing acceptance criteria, then story-level `DELIVERED` evidence and release parser.
 5. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
 
 ## Resume instructions for a new agent
@@ -151,11 +132,11 @@ If this session dies:
 1. Use branch `feat/master-user-stories-100` / draft PR #9.
 2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, canonical user-stories spec, implementation plan, then this file.
 3. Use Superpowers `executing-plans`, TDD and verification-before-completion.
-4. Resume at **Task 8** unless a newer checkpoint supersedes this one.
+4. Resume at **Task 8 GREEN** unless a newer checkpoint supersedes this one.
 5. Do not infer completion. Require code + focused test/evidence.
 6. Update this file after every red/green/CI checkpoint.
 7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level only when the full story is delivered.
 
 ## Known operational constraint
 
-The chat container could not clone GitHub because external GitHub DNS/network access failed. GitHub repository actions and GitHub Actions are the isolated execution/verification environment. Do not claim local command evidence that did not run.
+The chat container cannot resolve GitHub DNS. GitHub repository actions and GitHub Actions remain the isolated execution/verification environment. Do not claim local command evidence that did not run.
