@@ -19,12 +19,14 @@ function tabName(target: EventTarget | null): string | null {
 
 export function AdminCompetitionDesk(props: Props) {
   const shellRef = useRef<HTMLDivElement>(null);
+  const selectedLeagueRef = useRef<string | null>(props.selectedLeagueId ?? null);
   const [resultsActive, setResultsActive] = useState(false);
-  const [activeLeagueId, setActiveLeagueId] = useState(props.selectedLeagueId ?? null);
+  const [activeResultsLeagueId, setActiveResultsLeagueId] = useState(props.selectedLeagueId ?? null);
 
   useEffect(() => {
-    if (props.selectedLeagueId) setActiveLeagueId(props.selectedLeagueId);
-  }, [props.selectedLeagueId]);
+    selectedLeagueRef.current = props.selectedLeagueId ?? selectedLeagueRef.current;
+    if (resultsActive && props.selectedLeagueId) setActiveResultsLeagueId(props.selectedLeagueId);
+  }, [props.selectedLeagueId, resultsActive]);
 
   useEffect(() => {
     if (!resultsActive) return;
@@ -32,15 +34,18 @@ export function AdminCompetitionDesk(props: Props) {
     if (!panel) return;
     panel.hidden = true;
     return () => { panel.hidden = false; };
-  }, [resultsActive, activeLeagueId]);
+  }, [resultsActive, activeResultsLeagueId]);
 
   const handleLeagueSelected = (league: LeagueSummary | null) => {
-    setActiveLeagueId(league?.id ?? null);
+    selectedLeagueRef.current = league?.id ?? null;
     props.onLeagueSelected?.(league);
   };
 
   const updateActiveTab = (name: string | null) => {
-    if (name) setResultsActive(name === 'Results');
+    if (!name) return;
+    const nextResultsActive = name === 'Results';
+    if (nextResultsActive) setActiveResultsLeagueId(selectedLeagueRef.current);
+    setResultsActive(nextResultsActive);
   };
 
   const handleClickCapture = (event: MouseEvent<HTMLDivElement>) => updateActiveTab(tabName(event.target));
@@ -56,6 +61,6 @@ export function AdminCompetitionDesk(props: Props) {
       {...props}
       onLeagueSelected={handleLeagueSelected}
     />
-    {resultsActive && activeLeagueId && <AdminResultsWorkflow leagueId={activeLeagueId} />}
+    {resultsActive && activeResultsLeagueId && <AdminResultsWorkflow leagueId={activeResultsLeagueId} />}
   </div>;
 }
