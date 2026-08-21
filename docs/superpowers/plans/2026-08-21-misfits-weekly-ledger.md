@@ -207,6 +207,7 @@ git commit -m "feat: show current season after sign-in"
 - Modify: `src/client/styles.css`
 - Modify: `tests/client/player-app.test.tsx`
 - Modify: `tests/client/app-league-create.test.tsx`
+- Modify: `tests/client/account-profile.test.tsx`
 - Modify: `tests/domain/league.test.ts`
 - Modify: `tests/server/league-routes.test.ts`
 
@@ -275,6 +276,8 @@ Expected: FAIL because buttons use `aria-current`, `People` is the label, creati
 - [ ] **Step 7: Implement explicit task tabs**
 
 Replace the `nav` of ordinary buttons with a `role="tablist"` labelled `Season admin tasks`. Give each tab an ID, `aria-controls`, `aria-selected`, and roving keyboard selection for `ArrowLeft`, `ArrowRight`, `Home`, and `End`. Give every matching panel `role="tabpanel"`, matching ID, and `aria-labelledby`. Make `Club access` the final label and include its whole-club scope sentence.
+
+Update the account-profile preservation test from the temporary `League desk` / `People` text to the final `Season admin` / `Club access` labels while retaining its promoted-administrator behaviour check.
 
 - [ ] **Step 8: Make current-season work first and creation deliberate**
 
