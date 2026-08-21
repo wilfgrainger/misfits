@@ -57,7 +57,7 @@ describe('invite onboarding', () => {
     fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'New Player' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() => expect(state.joined).toEqual(['season-token']));
-    expect(screen.getByText('You joined the league.')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('You joined the league.');
   });
 
   it('selects the league that was just joined when another membership already exists', async () => {
