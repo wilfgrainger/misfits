@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { issueSession } from '../../src/server/auth/session';
-import { createCompetitionRoutes } from '../../src/server/routes/competition';
+import { createSeasonMembershipRoutes } from '../../src/server/routes/season-memberships';
 
 type Season = { id: string; name: string; status: 'DRAFT' | 'OPEN' | 'CLOSED'; is_current: number; created_at: string; updated_at: string; closed_at: string | null };
 type League = { id: string; season_id: string; name: string; slug: string; season_name: string; status: 'OPEN' | 'CLOSED'; points_per_win: number; target_legs: number; created_at: string; updated_at: string; created_by: string; max_players: number; matches_per_pair: number; visibility: 'PUBLIC' | 'PRIVATE'; hierarchy_position: number; promotion_places: number; relegation_places: number };
@@ -74,7 +74,7 @@ const now = new Date('2026-08-21T20:50:00.000Z');
 
 function league(id: string, seasonId: string, position: number, name: string): League {
   return {
-    id, season_id: seasonId, name, slug: id, season_name: seasonId === 's1' ? '2026/27' : '2027/28', status: seasonId === 's1' ? 'CLOSED' : 'CLOSED',
+    id, season_id: seasonId, name, slug: id, season_name: seasonId === 's1' ? '2026/27' : '2027/28', status: 'CLOSED',
     points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'admin', max_players: 8,
     matches_per_pair: 1, visibility: 'PRIVATE', hierarchy_position: position, promotion_places: position === 1 ? 0 : 1, relegation_places: position === 1 ? 1 : 0,
   };
@@ -93,7 +93,7 @@ describe('ADM-039 copy previous-season placements as a draft baseline', () => {
     db.memberships.set('l2:u2', { league_id: 'l2', season_id: 's1', user_id: 'u2', active: 1, joined_at: now.toISOString() });
 
     const session = await issueSession(db as never, 'admin', now);
-    const routes = createCompetitionRoutes({ now: () => now });
+    const routes = createSeasonMembershipRoutes({ now: () => now });
     const response = await routes.fetch(new Request('https://misfits.test/api/admin/seasons/s1/members/copy', {
       method: 'POST',
       headers: { Cookie: `misfits_session=${session.token}`, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
