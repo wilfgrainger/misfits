@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import type { LeagueSummary, UserSummary } from '../api';
 import { AdminCompetitionDesk as CompetitionDeskV2 } from './AdminCompetitionDeskV2';
 import { AdminResultsWorkflow } from './AdminResultsWorkflow';
@@ -18,12 +18,21 @@ function tabName(target: EventTarget | null): string | null {
 }
 
 export function AdminCompetitionDesk(props: Props) {
+  const shellRef = useRef<HTMLDivElement>(null);
   const [resultsActive, setResultsActive] = useState(false);
   const [activeLeagueId, setActiveLeagueId] = useState(props.selectedLeagueId ?? null);
 
   useEffect(() => {
     if (props.selectedLeagueId) setActiveLeagueId(props.selectedLeagueId);
   }, [props.selectedLeagueId]);
+
+  useEffect(() => {
+    if (!resultsActive) return;
+    const panel = shellRef.current?.querySelector<HTMLElement>('.admin-competition-desk > [role="tabpanel"]:not([hidden])');
+    if (!panel) return;
+    panel.hidden = true;
+    return () => { panel.hidden = false; };
+  }, [resultsActive, activeLeagueId]);
 
   const handleLeagueSelected = (league: LeagueSummary | null) => {
     setActiveLeagueId(league?.id ?? null);
@@ -38,6 +47,7 @@ export function AdminCompetitionDesk(props: Props) {
   const handleKeyUpCapture = (_event: KeyboardEvent<HTMLDivElement>) => updateActiveTab(tabName(document.activeElement));
 
   return <div
+    ref={shellRef}
     className={resultsActive ? 'competition-desk-shell competition-desk-shell-results' : 'competition-desk-shell'}
     onClickCapture={handleClickCapture}
     onKeyUpCapture={handleKeyUpCapture}
