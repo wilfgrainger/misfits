@@ -1,6 +1,6 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026, 17:39 BST  
+**Updated:** 21 August 2026, 17:41 BST  
 **Current branch:** `feat/master-user-stories-100`  
 **Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**  
 **Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
@@ -69,154 +69,80 @@ Actions run `32501571588`: **FAILURE**, as intended.
 
 #### GREEN
 
-`src/server/routes/competition.ts` now exposes:
-
-- `GET /api/admin/competition/leagues/:leagueId/fixtures/preview`;
-- `GET /api/admin/competition/leagues/:leagueId/fixtures?status=...`;
-- `POST /api/admin/competition/leagues/:leagueId/fixtures`;
-- `DELETE /api/admin/competition/leagues/:leagueId/fixtures`;
-- `PATCH /api/admin/competition/fixtures/:fixtureId` for controlled VOID/OUTSTANDING administration.
-
-The backend proves:
-
-- preview has no database side effect;
-- expected fixture count is deterministic;
-- generated fixtures have stable persisted IDs;
-- repeated generation is idempotent;
-- round/meeting identity is preserved;
-- state filtering works;
-- exceptional fixture void/restore is auditable;
-- reset/regeneration works before play;
-- destructive reset is blocked after any fixture leaves OUTSTANDING or has an active result.
+`src/server/routes/competition.ts` now exposes persisted fixture preview/list/commit/reset/status administration. The backend proves deterministic preview, stable IDs, idempotent generation, round identity, state filtering, audited void/restore and destructive-reset guards after play.
 
 Latest checkpoint commit: `e5f3b897c5c94dc9934b1ee22999623e57aa5469`.
 
-Actions run `32501634814`: **SUCCESS**.
-
-Fresh evidence from CI:
-
-- Wrangler types: success;
-- TypeScript: success;
-- **34 test files / 149 tests passed**;
-- production Vite build: success;
-- deploy: skipped correctly on PR branch.
+Actions run `32501634814`: **SUCCESS** — Wrangler + TypeScript + **34 test files / 149 tests** + production build.
 
 ### Task 5 — Fixture-based result settlement — COMPLETE AS BACKEND SLICE
 
-#### RED
-
-Commit `f85706d922b2a559f05e7ca7a367c13f13a915c7` added `tests/server/fixture-results.test.ts` before fixture-authoritative result settlement existed.
-
-Actions run `32501821200`: **FAILURE**, as intended.
-
-#### GREEN
-
-Latest green candidate commit: `29104c11000cdb21f3ffae8ea273c76c4e4bd822`.
-
-Implemented:
-
-- `src/server/db/fixture-results.ts` fixture-based submission and exactly-one-active-result-per-fixture protection;
-- fixture state synchronization through submission, confirmation, dispute, correction and deletion;
-- admin fixture result entry and correction safeguards;
-- `src/server/routes/results.ts` uses `fixtureId` where persisted fixtures exist and prevents arbitrary-opponent bypass in fixture-backed leagues;
-- legacy fixture-less leagues remain compatible;
-- `src/server/routes/admin-leagues.ts` preserves fixture integrity for admin creation/correction and restores deleted fixture results to OUTSTANDING.
-
-Actions run `32502161438`: **SUCCESS**.
-
-Fresh evidence from CI:
-
-- Wrangler types: success;
-- TypeScript: success;
-- **35 test files / 154 tests passed**;
-- `tests/server/fixture-results.test.ts`: **5/5 passed**;
-- production Vite build: success;
-- deploy: skipped correctly on PR branch;
-- `npm ci` audit reported **0 vulnerabilities**.
-
-Task 5 is therefore GREEN and checkpointed. No production deployment or remote D1 migration has been performed.
+- **RED:** commit `f85706d922b2a559f05e7ca7a367c13f13a915c7`, run `32501821200` **FAILURE** as intended.
+- **GREEN candidate:** `29104c11000cdb21f3ffae8ea273c76c4e4bd822`.
+- Implemented fixture-authoritative result submission, exactly-one-active-result protection, fixture state synchronization, admin correction/delete integrity and legacy compatibility.
+- Run `32502161438`: **SUCCESS** — Wrangler + TypeScript + **35 test files / 154 tests** + production build; 0 npm audit vulnerabilities; deploy skipped.
 
 ### Task 6 — Promotion/relegation + next-season placement — COMPLETE AS BACKEND SLICE
 
-#### RED
+- **RED:** commit `2c34c67e6bb88bf7f2473a580d40e31e211c2b73`, run `32503035206` **FAILURE** as intended; 6/6 new tests failed on absent routes.
+- **GREEN candidate:** `3449f75f90fb418d900b896a513f07f1677c7d22`.
+- Implemented competitive tie ambiguity detection, safe hierarchy edges, closed/unresolved finalisation gates, durable proposals, audited overrides, target hierarchy/capacity/conflict prevalidation, idempotent rollover and history preservation.
+- Run `32503576294`: **SUCCESS** — `promotion.test.ts` 6/6, **36 test files / 160 tests**, Wrangler + TypeScript + production build; prior client flake cleared without weakening; deploy skipped; 0 vulnerabilities.
 
-Commit `2c34c67e6bb88bf7f2473a580d40e31e211c2b73` added `tests/server/promotion.test.ts` before promotion/relegation routes existed.
-
-Actions run `32503035206`: **FAILURE**, as intended for the new slice.
-
-Verified RED evidence:
-
-- Wrangler types: success;
-- TypeScript: success;
-- all **6/6** new promotion tests failed because the expected promotion endpoints returned `404`;
-- the tests cover adjacent promotion/relegation with safe top/bottom edges, unresolved tie blocking, unresolved fixture/result blocking, audited override, idempotent next-season apply, source-history preservation and target-capacity prevalidation;
-- production build was skipped after the test failure;
-- deploy was skipped correctly on the PR branch.
-
-That RED run also showed one unrelated `app-league-create` client failure which had passed in the Task 5 green run.
-
-#### GREEN
-
-Green candidate commit: `3449f75f90fb418d900b896a513f07f1677c7d22`.
-
-Implemented:
-
-- competitive-metric tie ambiguity detection without silently using username ordering at a movement boundary;
-- safe top-division promotion and bottom-division relegation edges;
-- closed-season + unresolved-state finalisation gates;
-- persisted promotion/relegation proposals using the existing additive `season_movements` schema;
-- explicit, reasoned, audited movement overrides;
-- target-season hierarchy validation;
-- full-placement prevalidation before any rollover write;
-- target-capacity and existing-placement conflict protection;
-- idempotent next-season membership creation while preserving the prior season unchanged;
-- audited application and durable movement history.
-
-Actions run `32503576294`: **SUCCESS**.
-
-Fresh evidence from CI:
-
-- Wrangler types: success;
-- TypeScript: success;
-- `tests/server/promotion.test.ts`: **6/6 passed**;
-- **36 test files / 160 tests passed**;
-- the previously flaky `app-league-create` test passed without any assertion/code weakening;
-- production Vite build: success;
-- deploy: skipped correctly on PR branch;
-- `npm ci` audit reported **0 vulnerabilities**.
-
-Task 6 is therefore GREEN and checkpointed. No production deployment or remote D1 migration has been performed.
-
-### Task 7 — Typed competition client API — IN PROGRESS
+### Task 7 — Typed competition client API — COMPLETE
 
 #### RED
 
 Commit `337174655f8140e24c399f3d00910e148a6f45c8` expanded `tests/client/api.test.ts` before the typed competition client methods existed.
 
-Actions run `32503840028`: **FAILURE**, as intended.
-
-Verified RED evidence:
+Actions run `32503840028`: **FAILURE**, as intended:
 
 - Wrangler types: success;
 - TypeScript: success;
 - all **160 pre-existing tests passed**;
-- the four new client contract groups failed only because `adminSeasons`, `seasonUnassigned`, `fixturePreview` and `promotionPreview` (and their sibling methods) do not exist yet;
-- total: **35 test files passed / 1 failed; 160 tests passed / 4 failed**;
-- build skipped after the expected test failure;
-- deploy skipped correctly.
+- four new contract groups failed only because the new competition client methods were absent;
+- build skipped after the expected test failure; deploy skipped.
 
-The new contract tests cover season/league administration, season-scoped membership placement, fixture administration + fixture-first result submission, and promotion preview/proposal/override/apply, including normalization of D1-style snake_case records into stable client camelCase models.
+#### GREEN
+
+Green candidate commit: `fb22f4c7bf9acc87e2441d10bc66ee3404d53f90`.
+
+Implemented:
+
+- typed season, expanded league, fixture, membership/placement, competition-health and promotion client models;
+- backward-compatible snake_case/camelCase normalization at the HTTP boundary;
+- season and competition-league administration methods;
+- season-scoped unassigned/assign/move member methods;
+- fixture preview/list/commit/reset/status methods;
+- fixture-first result submission contract;
+- promotion preview/proposal/override/apply methods;
+- invite join season context support while preserving legacy client operations.
+
+Actions run `32504086471`: **SUCCESS**.
+
+Fresh evidence from CI:
+
+- Wrangler types: success;
+- TypeScript: success;
+- `tests/client/api.test.ts`: **10/10 passed**;
+- **36 test files / 164 tests passed**;
+- production Vite build: success;
+- deploy: skipped correctly on the PR branch;
+- `npm ci` audit reported **0 vulnerabilities**.
+
+Task 7 is GREEN and checkpointed. No production deployment or remote D1 migration has been performed.
 
 ### Story ledger status
 
-Backend prerequisites now exist for season/division management, explicit league placement, fixture generation, fixture-authoritative result settlement, standings-driven movement projection and safe next-season rollover. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
+Backend and typed-client prerequisites now exist for season/division management, explicit league placement, fixture generation and settlement, promotion/relegation and safe next-season rollover. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
 
 ## Exact next actions
 
-1. **Task 7 GREEN now:** implement typed client models, backward-compatible competition record normalization and all tested season/league/membership/fixture/promotion methods without changing existing UI behavior.
-2. Tasks 8–10: Admin UI, Player fixture-first UI, Public competition view.
-3. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
-4. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
+1. **Task 8 now:** administrator experience for Season / Leagues / Members & invites / Fixtures / Results / Promotion / Club access. Preserve current result/invite/account operations and existing DESIGN.md authority.
+2. Task 9: Player fixture-first UI.
+3. Task 10: Public competition view.
+4. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
+5. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
 
 ## Resume instructions for a new agent
 
@@ -225,7 +151,7 @@ If this session dies:
 1. Use branch `feat/master-user-stories-100` / draft PR #9.
 2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, canonical user-stories spec, implementation plan, then this file.
 3. Use Superpowers `executing-plans`, TDD and verification-before-completion.
-4. Resume at **Task 7 GREEN** unless a newer checkpoint supersedes this one.
+4. Resume at **Task 8** unless a newer checkpoint supersedes this one.
 5. Do not infer completion. Require code + focused test/evidence.
 6. Update this file after every red/green/CI checkpoint.
 7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level only when the full story is delivered.
