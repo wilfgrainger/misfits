@@ -107,7 +107,7 @@ describe('ADM-006 to ADM-008 account lifecycle', () => {
 
     const reactivated = await updateAdminPlayer(db as never, 'actor', 'target', { status: 'ACTIVE' }, new Date('2026-08-21T12:05:00.000Z'));
     expect(reactivated).toMatchObject({ id: 'target', status: 'ACTIVE' });
-    expect(db.users).toHaveLength(2);
+    expect(db.users.size).toBe(2);
     expect(db.membershipHistory).toContain('season-2026:league-1:target');
     expect(db.resultHistory).toContain('result-1:target');
   });
