@@ -18,9 +18,9 @@ import {
   moveUserBetweenLeagues,
   previewLeagueFixtures,
   setFixtureStatus,
-  updateSeason,
 } from '../db/competition';
 import { createSeasonLeague, deleteEmptySeasonLeague, updateSeasonLeague } from '../db/competition-leagues';
+import { cloneSeasonStructure, updateSeasonLifecycle } from '../db/season-lifecycle';
 import { applyPromotionProposal, createPromotionProposal, getPromotionPreview, overridePromotionMovement } from '../db/promotion';
 
 interface CompetitionRouteDependencies {
@@ -51,10 +51,23 @@ export function createCompetitionRoutes(dependencies: CompetitionRouteDependenci
   routes.post('/api/admin/seasons', requireSameOrigin, async (c) => {
     const validation = validateSeasonInput(await c.req.json().catch(() => null));
     if (!validation.ok) return jsonError(c, new AppError('VALIDATION_ERROR', `Season details are invalid: ${validation.reason}`, 400));
+    if (validation.value.status !== 'DRAFT') {
+      return jsonError(c, new AppError('VALIDATION_ERROR', 'A new season must start in draft so its leagues and memberships can be prepared', 409));
+    }
     try {
       const season = await createSeason(c.env.DB, c.get('user').id, validation.value, now());
       return c.json({ season }, 201, { 'Cache-Control': 'private, no-store' });
     } catch (error) { return failure(c, error, 'Season could not be created'); }
+  });
+
+  routes.post('/api/admin/seasons/:seasonId/clone', requireSameOrigin, async (c) => {
+    const body = await c.req.json().catch(() => null) as { name?: unknown } | null;
+    const validation = validateSeasonInput({ name: body?.name, status: 'DRAFT', isCurrent: false });
+    if (!validation.ok) return jsonError(c, new AppError('VALIDATION_ERROR', `Season details are invalid: ${validation.reason}`, 400));
+    try {
+      const cloned = await cloneSeasonStructure(c.env.DB, c.get('user').id, c.req.param('seasonId'), validation.value.name, now());
+      return c.json(cloned, 201, { 'Cache-Control': 'private, no-store' });
+    } catch (error) { return failure(c, error, 'Season structure could not be copied'); }
   });
 
   routes.patch('/api/admin/seasons/:seasonId', requireSameOrigin, async (c) => {
@@ -63,7 +76,7 @@ export function createCompetitionRoutes(dependencies: CompetitionRouteDependenci
     const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
     const validation = validateSeasonInput({ name: body?.name ?? current.name, status: body?.status ?? current.status, isCurrent: body?.isCurrent ?? current.is_current === 1 });
     if (!validation.ok) return jsonError(c, new AppError('VALIDATION_ERROR', `Season details are invalid: ${validation.reason}`, 400));
-    try { return c.json({ season: await updateSeason(c.env.DB, c.get('user').id, current.id, validation.value, now()) }, 200, { 'Cache-Control': 'private, no-store' }); }
+    try { return c.json({ season: await updateSeasonLifecycle(c.env.DB, c.get('user').id, current.id, validation.value, now()) }, 200, { 'Cache-Control': 'private, no-store' }); }
     catch (error) { return failure(c, error, 'Season could not be updated'); }
   });
 
