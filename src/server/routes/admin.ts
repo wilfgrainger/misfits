@@ -9,7 +9,7 @@ interface AdminRouteDependencies {
   now?: () => Date;
 }
 
-function publicPlayer(player: { id: string; email: string; username: string | null; role: UserRole; status: UserStatus; league_active?: number }) {
+function publicPlayer(player: { id: string; email: string; username: string | null; role: UserRole; status: UserStatus; league_active?: number; is_master_admin?: number }) {
   return {
     id: player.id,
     email: player.email,
@@ -17,6 +17,7 @@ function publicPlayer(player: { id: string; email: string; username: string | nu
     role: player.role,
     status: player.status,
     leagueActive: player.league_active === 1,
+    isMasterAdmin: player.is_master_admin === 1,
   };
 }
 
