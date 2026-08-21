@@ -12,7 +12,7 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
     pointsPerWin: 2, targetLegs: 5, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
   };
   const shared = {
-    user: { id: 'player-a', username: 'Alpha', role: 'PLAYER' as const, status: 'ACTIVE' as const, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false },
+    user: { id: 'player-a', username: 'Alpha', role: 'PLAYER' as 'PLAYER' | 'ADMIN', status: 'ACTIVE' as const, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false },
     myLeagues: [] as typeof createdLeague[],
     adminLeagues: [] as typeof createdLeague[],
     multipleLeagues: false,
@@ -54,32 +54,25 @@ vi.mock('../../src/client/auth/GoogleAuth', () => ({ GoogleAuth: class {} }));
 
 import App from '../../src/client/App';
 
-describe('integrated league creation', () => {
+describe('club administration visibility', () => {
   beforeEach(() => {
     cleanup();
     state.myLeagues = [];
     state.adminLeagues = [];
     state.multipleLeagues = false;
+    state.user.role = 'PLAYER';
   });
 
-  it('moves a new owner directly into the created league workspace', async () => {
+  it('keeps league administration hidden from ordinary players', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Create league' })).toBeTruthy());
-    fireEvent.change(screen.getByLabelText('League name'), { target: { value: 'Tuesday Club' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create league' }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
-    expect(screen.queryByText('Join with an invite link.')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Table' })).toBeTruthy();
-
-    fireEvent.change(screen.getByLabelText('League state'), { target: { value: 'CLOSED' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
-    await waitFor(() => expect(screen.getByText('League settings saved.')).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
-    expect(screen.getByRole('button', { name: 'League closed' })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Open your Misfits invite.' })).toBeTruthy());
+    expect(screen.queryByRole('region', { name: 'League desk' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Create league' })).toBeNull();
   });
 
   it('keeps the player workspace on the league selected in the league desk', async () => {
     state.multipleLeagues = true;
+    state.user.role = 'ADMIN';
     render(<App />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
 

@@ -205,15 +205,14 @@ async function cookieFor(db: MemoryD1, userId: string) {
 }
 
 describe('league and invite routes', () => {
-  it('allows any signed-in user to create a league and limits management to its owner', async () => {
+  it('reserves every league management operation for club administrators', async () => {
     const { db, env, adminRoutes } = setup();
     const playerCookie = await cookieFor(db, 'player-1');
     const response = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', {
       method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Tuesday 501', seasonName: '2026', maxPlayers: 8, visibility: 'PRIVATE' }),
     }), env, {} as never);
-    expect(response.status).toBe(201);
-    expect(await response.json()).toMatchObject({ league: { slug: 'tuesday-501', maxPlayers: 8, matchesPerPair: 1, visibility: 'PRIVATE', createdBy: 'player-1' } });
+    expect(response.status).toBe(403);
 
     const adminCookie = await cookieFor(db, 'admin-1');
     const forbidden = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-private', {
@@ -222,29 +221,28 @@ describe('league and invite routes', () => {
     }), env, {} as never);
     expect(forbidden.status).toBe(403);
 
-    const createdId = [...db.leagues.values()].find((league) => league.slug === 'tuesday-501')!.id;
-    const edited = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/leagues/${createdId}`, {
-      method: 'PATCH', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+    const edited = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-private', {
+      method: 'PATCH', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
       body: JSON.stringify({ maxPlayers: 12, matchesPerPair: 2, targetLegs: 5, pointsPerWin: 3, status: 'CLOSED' }),
     }), env, {} as never);
     expect(edited.status).toBe(200);
     expect(await edited.json()).toMatchObject({ league: { maxPlayers: 12, matchesPerPair: 2, targetLegs: 5, pointsPerWin: 3, status: 'CLOSED' } });
 
-    const ownerLeagues = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', { headers: { Cookie: playerCookie } }), env, {} as never);
-    expect(await ownerLeagues.json()).toMatchObject({ leagues: [{ id: createdId }] });
+    const playerLeagues = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', { headers: { Cookie: playerCookie } }), env, {} as never);
+    expect(playerLeagues.status).toBe(403);
 
     const allLeagues = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', { headers: { Cookie: adminCookie } }), env, {} as never);
-    expect((await allLeagues.json() as { leagues: unknown[] }).leagues.length).toBe(3);
+    expect((await allLeagues.json() as { leagues: unknown[] }).leagues.length).toBe(2);
 
-    const ownerInvite = await adminRoutes.fetch(new Request(`https://misfits.test/api/admin/leagues/${createdId}/invites`, {
+    const ownerInvite = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-private/invites', {
       method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
     }), env, {} as never);
-    expect(ownerInvite.status).toBe(201);
+    expect(ownerInvite.status).toBe(403);
 
     const otherOwnerInvite = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues/league-private/invites', {
-      method: 'POST', headers: { Cookie: playerCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
+      method: 'POST', headers: { Cookie: adminCookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' }, body: '{}',
     }), env, {} as never);
-    expect(otherOwnerInvite.status).toBe(403);
+    expect(otherOwnerInvite.status).toBe(201);
   });
 
   it('does not reduce a league below its active member count', async () => {
@@ -407,7 +405,7 @@ describe('league and invite routes', () => {
     expect(anonymous.status).toBe(404);
     expect(anonymous.headers.get('cache-control')).toBe('no-store');
 
-    const ownerCookie = await cookieFor(db, 'player-2');
+    const ownerCookie = await cookieFor(db, 'admin-1');
     const owner = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/private-tuesday', { headers: { Cookie: ownerCookie } }), env, {} as never);
     expect(owner.status).toBe(200);
     expect(await owner.json()).toMatchObject({ league: { visibility: 'PRIVATE', slug: 'private-tuesday' } });
