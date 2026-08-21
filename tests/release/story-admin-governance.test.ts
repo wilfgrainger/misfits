@@ -26,6 +26,7 @@ class GovernanceD1 {
         first: async <T>() => this.first<T>(sql, values),
         run: async () => this.run(sql, values),
       }),
+      first: async <T>() => this.first<T>(sql, []),
     };
   }
 
