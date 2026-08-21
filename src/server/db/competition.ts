@@ -353,7 +353,14 @@ export async function getFixture(db: D1Database, fixtureId: string): Promise<Fix
 export async function setFixtureStatus(db: D1Database, actorUserId: string, fixtureId: string, nextStatus: FixtureStatus, now = new Date()): Promise<FixtureRecord> {
   const before = await getFixture(db, fixtureId);
   if (!before) throw new AppError('VALIDATION_ERROR', 'Fixture was not found', 404);
-  if (before.result_id && nextStatus === 'VOID') throw new AppError('VALIDATION_ERROR', 'A fixture with an active result cannot be voided', 409);
+  if (nextStatus === 'VOID') {
+    if (before.status !== 'OUTSTANDING') throw new AppError('VALIDATION_ERROR', 'Only an outstanding fixture can be voided', 409);
+    if (before.result_id) throw new AppError('VALIDATION_ERROR', 'A fixture with an active result cannot be voided', 409);
+  }
+  if (nextStatus === 'OUTSTANDING') {
+    if (before.status !== 'VOID') throw new AppError('VALIDATION_ERROR', 'Only a void fixture can be restored', 409);
+    if (before.result_id) throw new AppError('VALIDATION_ERROR', 'A fixture with an active result cannot be restored', 409);
+  }
   const at = timestamp(now);
   await db.batch([
     db.prepare(

@@ -40,6 +40,7 @@ describe('D1 schema', () => {
       'idx_league_players_one_active_per_season',
       'CREATE TABLE IF NOT EXISTS fixtures',
       'meeting_number',
+      "UNIQUE(league_id, pair_key, meeting_number)",
       'PENDING_CONFIRMATION',
       'ALTER TABLE matches ADD COLUMN fixture_id',
       'idx_matches_one_active_result_per_fixture',

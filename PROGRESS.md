@@ -1,9 +1,10 @@
 # Misfits 501 Progress
 
 **Updated:** 21 August 2026
-**Current branch:** `feat/story-audit-chunk-2-leagues-memberships`
-**Pull request:** `#12` — `audit chunk 2: leagues, memberships and invites (ADM-019–ADM-045)` — **DRAFT / READY FOR FINAL DOC RE-GATE**
-**Base:** merged Chunk 1 on `main` at `c2fd8599615b1687b5746b49ddd86cfd50263225`
+**Current branch:** `feat/story-audit-chunk-3-fixtures`
+**Pull request:** `#13` — fixture generation and management audit
+**Current base:** `main` at `e1c3957c06d78da782fe865f1015c2898c9a01c9`
+**Current scope:** ADM-046 through ADM-059 — **VERIFIED, awaiting final docs-head CI**
 
 ## Authority
 
@@ -12,70 +13,98 @@
 - UI authority: `DESIGN.md` and the repo-local Impeccable skill.
 - Canonical functional backlog: `docs/superpowers/specs/2026-08-21-user-stories.md` — 150 stories: 88 Admin, 55 Player, 7 Public.
 - Story-level verification ledger: `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
-- Delivery authority: Superpowers with TDD and verification-before-completion.
+- Delivery authority: Superpowers with TDD, systematic debugging and verification-before-completion.
 
 ## Delivery model
 
 `Season → League → League Membership → persisted Fixture → Result settlement → Standings → Promotion/Relegation → Next Season`
 
-The current delivery strategy is **small audited story-ID chunks from fresh `main`**, not the obsolete one-giant-PR implementation line.
+Work proceeds as small audited story-ID chunks from fresh `main`. A catalogue label is not completion evidence by itself.
 
 ## Completed audited chunks
 
 ### Chunk 1 — ADM-001 through ADM-018 — MERGED
 
 - PR #11 merged to `main` as `c2fd8599615b1687b5746b49ddd86cfd50263225`.
-- Final PR-head run `32523295692` passed Wrangler types, TypeScript, complete Vitest suite and production build.
-- Covers identity/access/governance and season lifecycle.
+- Final PR-head gate `32523295692` passed Wrangler types, TypeScript, full Vitest and production build.
 
-### Chunk 2 — ADM-019 through ADM-045 — VERIFIED, PR #12
+### Chunk 2 — ADM-019 through ADM-045 — MERGED
 
-Scope:
+- PR #12 merged to `main` as `e1c3957c06d78da782fe865f1015c2898c9a01c9`.
+- Exact final PR head: `8979543a09119909eefde3424abe459b0a4721d8`.
+- Final PR-head CI `32527554443`: Wrangler types PASS, TypeScript PASS, **191/191 tests across 48 files PASS**, Vite production build PASS.
 
-- ADM-019–ADM-030: league/division structure and rule integrity.
-- ADM-031–ADM-045: season-scoped league membership and invitation lifecycle.
+## Current Chunk 3 — ADM-046 through ADM-059 — VERIFIED
 
-Important fixes/evidence added in this chunk:
+Fresh branch: `feat/story-audit-chunk-3-fixtures` from the verified Chunk 2 merge.
 
-- explicit unique league hierarchy/order protection;
-- capacity protections and active/member-count overview;
-- consequential league scoring/rule changes protected after competition history exists;
-- same-season membership uniqueness and membership safety;
-- deactivate/reactivate without rewriting history, including race-safe reactivation;
-- reviewed previous-season placement baseline copy into a DRAFT next season;
-- invite creation/share/history/revocation without secret-token re-exposure;
-- invite acceptance idempotency and capacity/race protection;
-- ADM-028 false-ready UI race fixed: an empty league array can no longer be treated as a completed summary.
+Verified scope:
 
-Code fix head `678482dbdf6ddd8e8a6c1a3d110d911500699a17` was verified by CI run `32527260941`:
+- ADM-046 complete round-robin generation;
+- ADM-047 non-mutating preview;
+- ADM-048 durable all-or-safe fixture commit;
+- ADM-049 duplicate-generation protection;
+- ADM-050 deterministic rounds/order and odd-roster byes;
+- ADM-051 distinct repeated meetings;
+- ADM-052 complete scoped fixture list;
+- ADM-053 fixture-state filtering;
+- ADM-054 outstanding-fixture count;
+- ADM-055 safe pre-play regeneration;
+- ADM-056 regeneration block once competition/result history exists;
+- ADM-057 explicit audited fixture voiding;
+- ADM-058 safe audited fixture restoration;
+- ADM-059 invalid-roster validation before generation.
+
+### Important audit finding
+
+ADM-058 exposed a real state-transition defect. The generic fixture PATCH path allowed `CONFIRMED → OUTSTANDING`, which could contradict official result state. RED CI run `32528138189` isolated exactly that failure at 193/194 tests.
+
+Fix commit `de2be81ba4d0ef6cd8f19384486107e5ecfcd480` now enforces:
+
+- void only from `OUTSTANDING`;
+- restore only from `VOID`;
+- active-result contradiction blocks both operations;
+- valid transitions continue to write fixture-status audit history.
+
+GREEN fix run `32528291927` passed 194/194 tests, Wrangler types, TypeScript and production build.
+
+### Strengthened fixture proof
+
+Further regression evidence pins:
+
+- preview metadata with no writes;
+- invalid/suspended roster rejection before generation;
+- repeated meetings with separate IDs/meeting numbers/rounds;
+- deterministic same-input scheduling and odd-player byes;
+- full persisted fixture listing and status filters;
+- safe reset then regeneration from the changed roster;
+- database `UNIQUE(league_id, pair_key, meeting_number)` duplicate fence.
+
+Evidence head `58d066ba1279b6d37e2defe73c337a27ec65c35a` passed CI `32528529664`:
 
 - Wrangler types: PASS
 - TypeScript: PASS
-- Vitest: **191/191 tests across 48 files PASS**
+- Vitest: **196/196 tests across 48 files PASS**
 - Vite production build: PASS
-- Deploy Worker: skipped, correctly, because it was a pull-request run
+- Deploy Worker: skipped because this is a pull-request run
 
-Story-by-story ADM-019–ADM-045 evidence is now recorded in `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
-
-The audit/progress documentation commits after the code-green head must receive their own final PR-head CI before merge. Do not merge based only on the earlier code-head run.
+The audit ledger and this handoff were updated after that code/evidence gate. The **latest documentation head must receive its own full GREEN PR CI before PR #13 is merged**.
 
 ## Superseded delivery line
 
-The old monolithic implementation line is no longer authoritative:
-
-- PR #9 `feat: deliver master Misfits 501 user-story backlog` is **CLOSED, not merged**.
-- Branch `feat/master-user-stories-100` is stale/superseded and must not be resumed.
-- Branch `feat/master-user-stories-100-5652729088464527970` has no unique work remaining versus the newer history and is also stale.
-- Any useful behaviour from that line has been reconciled against the audited implementation rather than blindly merged over newer fixes.
+- PR #9 is **closed, not merged** and must not be reopened.
+- `feat/master-user-stories-100` is stale/superseded.
+- `feat/master-user-stories-100-5652729088464527970` is stale and had no unique work remaining when reconciled.
+- The connected GitHub tool available in this session does **not expose branch-ref deletion**, so those remote refs cannot be physically deleted from this chat. They are explicitly retired and non-authoritative.
 
 ## Next actions
 
-1. Wait for full CI on the latest PR #12 documentation head.
-2. If and only if Wrangler types, TypeScript, all tests and production build remain green, mark PR #12 ready and merge it to `main` with expected-head protection.
-3. Verify the resulting `main` state / merge commit.
-4. Remove stale `feat/master-user-stories-100` branch references where tooling permits; do not reopen PR #9.
-5. Start Chunk 3 from fresh `main` at **ADM-046** and continue story-by-story.
-6. Keep this file and the story-by-story audit current at every durable checkpoint.
+1. Wait for full CI on the latest PR #13 documentation head.
+2. If Wrangler types, TypeScript, all tests and production build remain green, mark PR #13 ready and merge with expected-head protection.
+3. Verify the resulting `main` merge commit.
+4. Start the next audited chunk from fresh `main` at **ADM-060**.
+5. Continue story-by-story; do not infer completion from old `DELIVERED` labels.
+6. Keep this file and the audit ledger current at every durable checkpoint.
 
 ## Known operational constraint
 
