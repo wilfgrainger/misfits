@@ -1,8 +1,8 @@
 # Misfits 501 — Story-by-Story Delivery Audit
 
 **Started:** 21 August 2026  
-**Current branch:** `feat/story-audit-chunk-3-fixtures`  
-**Current base:** `main` at `e1c3957c06d78da782fe865f1015c2898c9a01c9`  
+**Current branch:** `feat/story-audit-chunk-4-results-standings`  
+**Current base:** `main` at `b1b68d215180951b016f6638a68dedc48a46eed1`  
 **Authority:** `docs/superpowers/specs/2026-08-21-user-stories.md`  
 **Method:** Superpowers executing-plans + TDD + systematic-debugging + verification-before-completion.
 
@@ -94,32 +94,50 @@ Merged via PR #12 to `main` as `e1c3957c06d78da782fe865f1015c2898c9a01c9`. Exact
 | ADM-044 | VERIFIED | Reusing an accepted invite is idempotent and does not double-consume capacity/audit. | invite race tests; GREEN `32527554443`. |
 | ADM-045 | VERIFIED | Capacity survives concurrent join/insert races without partial duplicate membership. | league route race regressions; GREEN `32527554443`. |
 
-## Chunk 3 — fixture generation and management — VERIFIED / READY FOR FINAL DOC RE-GATE
+## Chunk 3 — fixture generation and management — MERGED
 
-PR #13 is based on merged Chunk 2 commit `e1c3957c06d78da782fe865f1015c2898c9a01c9`. The strongest pre-documentation evidence head is `58d066ba1279b6d37e2defe73c337a27ec65c35a`. CI run `32528529664` passed Wrangler types, TypeScript, **196/196 tests across 48 files**, and the Vite production build.
+Merged via PR #13 to `main` as `b1b68d215180951b016f6638a68dedc48a46eed1`. Exact final head `3e6a92a0933685cd7e0d9e4c08b5cd78094a0f19`; final gate `32528766451` passed Wrangler types, TypeScript, **196/196 tests across 48 files**, and production build.
 
-The audit found one genuine fixture-state integrity gap. RED run `32528138189` isolated ADM-058: a fixture in `CONFIRMED` state could be sent directly to `OUTSTANDING` through the generic admin restore endpoint. Commit `de2be81ba4d0ef6cd8f19384486107e5ecfcd480` now permits void only from `OUTSTANDING`, restore only from `VOID`, and prevents either operation from contradicting an active result. The immediate fix gate `32528291927` passed 194/194 tests. Additional evidence then raised the suite to 196/196 in `32528529664`.
+The audit found one genuine fixture-state integrity gap. RED run `32528138189` isolated ADM-058: a fixture in `CONFIRMED` state could be sent directly to `OUTSTANDING` through the generic admin restore endpoint. Commit `de2be81ba4d0ef6cd8f19384486107e5ecfcd480` now permits void only from `OUTSTANDING`, restore only from `VOID`, and prevents either operation from contradicting an active result.
 
 | Story | Audit state | Evidence / gap | Fix / CI |
 |---|---|---|---|
-| ADM-046 | VERIFIED | `generateRoundRobinFixtures` produces every unordered pair exactly the configured repeat count, no self-pairs, and canonical 8/10/12-player formula counts. | `competition.test.ts`, persisted fixture tests; GREEN `32528529664`. |
-| ADM-047 | VERIFIED | Preview returns season, league, active player count, repeat count, expected fixture count and pairings while leaving fixture storage unchanged. Suspended-account mismatch fails before writes. | strengthened `fixtures.test.ts`; GREEN `32528529664`. |
-| ADM-048 | VERIFIED | Commit assigns stable UUID fixture IDs and season/league/player references using a D1 batch. Schema constraints make equivalent partial/duplicate schedules fail safely rather than coexist. | `competition.ts`, migration v4, schema/fixture tests; GREEN `32528529664`. |
-| ADM-049 | VERIFIED | Repeated commit returns the existing schedule and stable IDs. D1 additionally enforces `UNIQUE(league_id, pair_key, meeting_number)`, protecting retry/concurrency races. | fixture idempotency + schema regression; GREEN `32528529664`. |
-| ADM-050 | VERIFIED | Circle scheduling is deterministic for identical input; odd rosters produce byes and no player appears more than once in a round. | strengthened `competition.test.ts`; GREEN `32528529664`. |
-| ADM-051 | VERIFIED | Multiple meetings have distinct fixture IDs, meeting numbers and rounds while preserving pair identity; matches have one-active-result-per-fixture uniqueness. | repeated-meeting fixture test + v4 schema; GREEN `32528529664`. |
-| ADM-052 | VERIFIED | Persisted fixture list is league-scoped and returns player names, round, meeting and state for the complete schedule. | fixture route tests + admin fixture UI; GREEN `32528529664`. |
-| ADM-053 | VERIFIED | Backend status filter reads persisted `OUTSTANDING`, `PENDING_CONFIRMATION`, `DISPUTED`, `CONFIRMED` and `VOID` rows; admin UI exposes operational counts/filters without dropping disputed fixtures. | strengthened state-filter test + `admin-competition.test.tsx`; GREEN `32528529664`. |
-| ADM-054 | VERIFIED | Outstanding count is derived from persisted fixture status; completed and void fixtures are excluded. Admin fixture health visibly surfaces the count. | `seasonHealth`, admin fixture health test; GREEN `32528529664`. |
-| ADM-055 | VERIFIED | Reset succeeds only while the schedule is entirely unplayed. Audit evidence resets six fixtures, changes the active roster, regenerates, and receives the new three-fixture schedule with fresh IDs and no withdrawn player. | strengthened regeneration test; GREEN `32528529664`. |
-| ADM-056 | VERIFIED | Reset query rejects any non-OUTSTANDING fixture and independently rejects any active result link, covering pending/disputed/confirmed competition history. | `deleteUnplayedFixtures` + protected-reset regression; GREEN `32528529664`. |
-| ADM-057 | VERIFIED | Fixture voiding is admin-only, same-origin protected, persists `VOID`/timestamp, keeps the fixture historically present and writes `FIXTURE_STATUS_CHANGED` audit. Active-result fixtures cannot be voided. | competition route/DB + fixture/UI tests; GREEN `32528529664`. |
-| ADM-058 | VERIFIED | Audit found unsafe generic restore. Restore now requires current state `VOID`, rejects active-result contradiction, returns to `OUTSTANDING`, clears `voided_at` and is audited. | RED `32528138189`; fix `de2be81ba`; GREEN `32528291927` and `32528529664`. |
-| ADM-059 | VERIFIED | Generation uses active memberships joined to ACTIVE accounts, checks the full active-membership count, rejects fewer than two valid players or suspended/invalid active memberships, and writes nothing on preview failure. Same-season membership uniqueness prevents duplicate active placement upstream. | suspended-roster/no-write test + membership/schema invariants; GREEN `32528529664`. |
+| ADM-046 | VERIFIED | Round-robin generation produces every unordered pair exactly the configured repeat count, no self-pairs, and canonical formula counts. | fixture/domain tests; GREEN `32528766451`. |
+| ADM-047 | VERIFIED | Preview returns season, league, active player count, repeat count, expected count and pairings without writes. | fixture tests; GREEN `32528766451`. |
+| ADM-048 | VERIFIED | Commit assigns stable IDs and complete season/league/player references using safe D1 persistence. | competition DB + schema tests; GREEN `32528766451`. |
+| ADM-049 | VERIFIED | Repeated commit is idempotent and D1 uniqueness protects equivalent meeting retries. | fixture + schema regressions; GREEN `32528766451`. |
+| ADM-050 | VERIFIED | Scheduling is deterministic, odd rosters produce byes and no player appears twice in one round. | domain tests; GREEN `32528766451`. |
+| ADM-051 | VERIFIED | Multiple meetings have distinct fixture/round/meeting identity and one result settles one fixture. | repeated-meeting + schema tests; GREEN `32528766451`. |
+| ADM-052 | VERIFIED | Complete league fixture list identifies players, round, meeting and current state. | route/UI tests; GREEN `32528766451`. |
+| ADM-053 | VERIFIED | Persisted state filters cover outstanding, pending, disputed, confirmed and void without hiding disputes. | route/UI tests; GREEN `32528766451`. |
+| ADM-054 | VERIFIED | Outstanding counts derive from fixture records, excluding completed/void as designed. | season health + UI tests; GREEN `32528766451`. |
+| ADM-055 | VERIFIED | Pre-play reset/regeneration safely rebuilds from changed roster and rules. | regeneration tests; GREEN `32528766451`. |
+| ADM-056 | VERIFIED | Any protected result/played state blocks destructive regeneration. | reset regressions; GREEN `32528766451`. |
+| ADM-057 | VERIFIED | Admin voiding preserves fixture history and audit while rejecting active-result contradiction. | route/DB/UI tests; GREEN `32528766451`. |
+| ADM-058 | VERIFIED | Audit found unsafe restore. Restore now requires `VOID`, rejects contradictory result state, restores `OUTSTANDING`, clears void timestamp and audits. | RED `32528138189`; GREEN `32528766451`. |
+| ADM-059 | VERIFIED | Generation validates active eligible membership and blocks suspended/inactive/invalid roster writes. | roster + fixture tests; GREEN `32528766451`. |
 
-## Resume instruction
+## Chunk 4 — results, disputes and standings integrity — VERIFIED / READY FOR FINAL DOC RE-GATE
 
-1. Run the complete PR #13 CI gate on the latest documentation head, not merely the earlier code/evidence head.
-2. Merge PR #13 only if Wrangler types, TypeScript, all tests and production build remain green and the expected head SHA has not moved.
-3. After merge, branch the next audited chunk from fresh `main` at ADM-060.
-4. Do not resume PR #9 or either `feat/master-user-stories-100*` branch; those lines are retired and non-authoritative.
+PR #14 is based on merged Chunk 3 commit `b1b68d215180951b016f6638a68dedc48a46eed1`. RED evidence reached **196 passing / 3 intentional failures**, isolating the actual gaps: the unified admin desk lacked the complete official-result settlement workflow, `RESULT_UPDATED_BY_ADMIN` audit material omitted resolved status/confirmation detail, and fixture-backed standings could still include free-floating confirmed legacy results.
+
+The implementation adds `AdminResultsWorkflow` for fixture-first admin entry, pending/disputed/confirmed queues, resolution, correction and confirmed-result deletion; strengthens reconstructable result audit state; and makes standings use confirmed results joined to fixtures in the selected league+season whenever persisted fixtures exist. Compatibility/debugging then removed wrapper timing races without weakening the new acceptance contracts. Code-head run `32531189939` passed Wrangler types, TypeScript, **199/199 tests across 50 files**, and the production build.
+
+| Story | Audit state | Evidence / gap | Fix / CI |
+|---|---|---|---|
+| ADM-060 | VERIFIED | Fixture-backed ordinary/admin results retain a single `fixtureId`, validate fixture participants and reject duplicate settlement through the existing fixture-result authority. | `fixture-results.test.ts`, result route regressions; GREEN `32531189939`. |
+| ADM-061 | VERIFIED | Admin Results workspace now selects an outstanding fixture; participants come from that fixture; validated legs/averages are posted fixture-first and immediately settle the official fixture result. | `admin-results-workflow.test.tsx`, fixture result routes; GREEN `32531189939`. |
+| ADM-062 | VERIFIED | Pending queue exposes fixture identity, submitter, opponent, score, averages and age/status context. | `admin-results-workflow.test.tsx`; GREEN `32531189939`. |
+| ADM-063 | VERIFIED | Disputed queue keeps dispute note and fixture context visible, provides admin resolution action, and disputed records remain excluded from standings. | admin workflow + standings/result tests; GREEN `32531189939`. |
+| ADM-064 | VERIFIED | Authorised admin can resolve an unresolved result to CONFIRMED; fixture state synchronises and confirmed result contributes once. Mutation is audited. | admin workflow + fixture result/update tests; GREEN `32531189939`. |
+| ADM-065 | VERIFIED | Previously inert Edit action is replaced by a correction workflow. Server revalidates legs/averages/participants/state and preserves fixture participant integrity before synchronisation. | `admin-results-workflow.test.tsx`, admin result/fixture safeguards; GREEN `32531189939`. |
+| ADM-066 | VERIFIED | Result deletion is explicit and confirmed in UI, soft-deletes the official match, records audit, restores linked fixture to OUTSTANDING where safe, and removes its derived standings contribution. | admin workflow + admin league delete route/fixture sync tests; GREEN `32531189939`. |
+| ADM-067 | VERIFIED | Audit found incomplete `after_json`. Admin update audit now records corrected score/averages plus status, dispute state, confirmer and confirmation timestamp; delete retains reconstructable before state. | `admin-result-integrity.test.ts`; GREEN `32531189939`. |
+| ADM-068 | VERIFIED | Standings remain computed from confirmed result records only; pending/disputed never contribute, and corrections/deletions change derived totals rather than editing totals directly. | result/standings tests + integrity regression; GREEN `32531189939`. |
+| ADM-069 | VERIFIED | Once fixtures exist, standings query joins confirmed matches to fixtures and requires fixture league plus fixture season to match the selected league record, excluding free-floating/cross-season contamination. Legacy fixture-less leagues retain compatibility. | `admin-result-integrity.test.ts`; GREEN `32531189939`. |
+
+## Current boundary
+
+- **ADM-070 is GATED · P0.** The club must approve the equal-points standings tie-break order before the audit can claim it or continue strict ID-order functional delivery beyond that rule dependency.
+- PR #14 still needs one final CI run on this documentation head before merge. Do not merge based only on the earlier code-head gate.
+- After PR #14 is merged, functional integrity pauses at ADM-070 for the product decision. The separate visual/UI quality pass may then begin only through the approved Superpowers design process, as requested by the user.
