@@ -100,6 +100,15 @@ export async function countActiveMembers(db: D1Database, leagueId: string): Prom
   return Number(row?.count ?? 0);
 }
 
+async function leagueHasCompetitionData(db: D1Database, leagueId: string): Promise<boolean> {
+  const row = await db.prepare(
+    `SELECT
+       (SELECT COUNT(*) FROM fixtures WHERE league_id = ?) +
+       (SELECT COUNT(*) FROM matches WHERE league_id = ? AND deleted_at IS NULL) AS count`,
+  ).bind(leagueId, leagueId).first<{ count: number }>();
+  return Number(row?.count ?? 0) > 0;
+}
+
 export async function getManagedLeague(db: D1Database, user: Pick<AuthUser, 'role'>, leagueId: string): Promise<LeagueRecord> {
   const league = await getLeagueById(db, leagueId);
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
@@ -138,6 +147,15 @@ export async function createLeague(db: D1Database, actorUserId: string, input: L
 export async function updateLeague(db: D1Database, actorUserId: string, leagueId: string, input: LeagueInput, now = new Date()): Promise<LeagueRecord> {
   const before = await getLeagueById(db, leagueId);
   if (!before) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
+  if (await leagueHasCompetitionData(db, leagueId)) {
+    const scoringRulesChanged =
+      before.points_per_win !== input.pointsPerWin ||
+      before.target_legs !== input.targetLegs ||
+      before.matches_per_pair !== input.matchesPerPair;
+    if (scoringRulesChanged) {
+      throw new AppError('VALIDATION_ERROR', 'Scoring rules and fixture frequency are locked after fixtures or results exist', 409);
+    }
+  }
   const timestamp = now.toISOString();
   const updated = await db.prepare(
     `UPDATE leagues
