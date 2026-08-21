@@ -5,6 +5,14 @@ import { AppError, jsonError } from '../errors';
 import { createInvite, getInviteById, listLeagueInvites, revokeInvite } from '../db/invites';
 import { createLeague, getLeagueById, getManagedLeague, listLeagueMembers, listManagedLeagues, setMembershipActive, updateLeague, type LeagueRecord } from '../db/leagues';
 import { createAdminResult, deleteAdminResult, getAdminResults, getResultById, serializeResult, updateAdminResult } from '../db/results';
+import {
+  assertAdminUpdateMatchesFixture,
+  createAdminFixtureResult,
+  fixtureIdForResult,
+  leagueHasPersistedFixtures,
+  syncFixtureForResult,
+  type FixtureResultRecord,
+} from '../db/fixture-results';
 
 interface AdminLeagueRouteDependencies {
   now?: () => Date;
@@ -25,6 +33,32 @@ function adminLeague(league: Awaited<ReturnType<typeof getLeagueById>>) {
     createdBy: league.created_by,
     visibility: league.visibility,
   };
+}
+
+function serializeFixtureResult(result: FixtureResultRecord) {
+  return {
+    id: result.id,
+    fixtureId: result.fixture_id,
+    leagueId: result.league_id,
+    playerAId: result.player_a_id,
+    playerBId: result.player_b_id,
+    playerAUsername: result.player_a_username ?? null,
+    playerBUsername: result.player_b_username ?? null,
+    playerALegs: result.player_a_legs,
+    playerBLegs: result.player_b_legs,
+    playerAAverage: Number(result.player_a_average),
+    playerBAverage: Number(result.player_b_average),
+    submittedBy: result.submitted_by,
+    status: result.status,
+    confirmedBy: result.confirmed_by,
+    disputeNote: result.dispute_note,
+    createdAt: result.created_at,
+    confirmedAt: result.confirmed_at,
+  };
+}
+
+async function serializeAdminResult(db: D1Database, result: Parameters<typeof serializeResult>[0]) {
+  return { ...serializeResult(result), fixtureId: await fixtureIdForResult(db, result.id) };
 }
 
 async function managedLeagueOrResponse(c: Context<AuthAppEnv>, leagueId: string): Promise<LeagueRecord | Response> {
@@ -154,14 +188,23 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
     const access = await managedLeagueOrResponse(c, c.req.param('id'));
     if (access instanceof Response) return access;
     const results = await getAdminResults(c.env.DB, c.req.param('id'));
-    return c.json({ results: results.map(serializeResult) }, 200, { 'Cache-Control': 'private, no-store' });
+    return c.json({ results: await Promise.all(results.map((result) => serializeAdminResult(c.env.DB, result))) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
   routes.post('/api/admin/leagues/:id/results', requireSameOrigin, requireUser, async (c) => {
-    const access = await managedLeagueOrResponse(c, c.req.param('id'));
+    const leagueId = c.req.param('id');
+    const access = await managedLeagueOrResponse(c, leagueId);
     if (access instanceof Response) return access;
+    const body = await c.req.json().catch(() => null);
     try {
-      const result = await createAdminResult(c.env.DB, c.get('user').id, c.req.param('id'), await c.req.json().catch(() => null), now());
+      if (body && typeof body === 'object' && typeof (body as { fixtureId?: unknown }).fixtureId === 'string') {
+        const result = await createAdminFixtureResult(c.env.DB, c.get('user').id, leagueId, body, now());
+        return c.json({ result: serializeFixtureResult(result) }, 201, { 'Cache-Control': 'private, no-store' });
+      }
+      if (await leagueHasPersistedFixtures(c.env.DB, leagueId)) {
+        throw new AppError('RESULT_ALREADY_RESOLVED', 'Choose an outstanding fixture before entering a league result', 409);
+      }
+      const result = await createAdminResult(c.env.DB, c.get('user').id, leagueId, body, now());
       return c.json({ result: serializeResult(result) }, 201, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
@@ -170,13 +213,17 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
   });
 
   routes.patch('/api/admin/results/:id', requireSameOrigin, requireUser, async (c) => {
-    const existing = await getResultById(c.env.DB, c.req.param('id'));
+    const resultId = c.req.param('id');
+    const existing = await getResultById(c.env.DB, resultId);
     if (!existing) return jsonError(c, new AppError('VALIDATION_ERROR', 'Result was not found', 404));
     const access = await managedLeagueOrResponse(c, existing.league_id);
     if (access instanceof Response) return access;
+    const body = await c.req.json().catch(() => null);
     try {
-      const result = await updateAdminResult(c.env.DB, c.get('user').id, c.req.param('id'), await c.req.json().catch(() => null), now());
-      return c.json({ result: serializeResult(result) }, 200, { 'Cache-Control': 'private, no-store' });
+      await assertAdminUpdateMatchesFixture(c.env.DB, resultId, body);
+      const result = await updateAdminResult(c.env.DB, c.get('user').id, resultId, body, now());
+      await syncFixtureForResult(c.env.DB, resultId, now());
+      return c.json({ result: await serializeAdminResult(c.env.DB, result) }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('INVALID_RESULT', 'Result could not be updated', 400));
@@ -184,12 +231,14 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
   });
 
   routes.delete('/api/admin/results/:id', requireSameOrigin, requireUser, async (c) => {
-    const existing = await getResultById(c.env.DB, c.req.param('id'));
+    const resultId = c.req.param('id');
+    const existing = await getResultById(c.env.DB, resultId);
     if (!existing) return jsonError(c, new AppError('VALIDATION_ERROR', 'Result was not found', 404));
     const access = await managedLeagueOrResponse(c, existing.league_id);
     if (access instanceof Response) return access;
     try {
-      await deleteAdminResult(c.env.DB, c.get('user').id, c.req.param('id'), now());
+      await deleteAdminResult(c.env.DB, c.get('user').id, resultId, now());
+      await syncFixtureForResult(c.env.DB, resultId, now());
       return c.json({ ok: true }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
