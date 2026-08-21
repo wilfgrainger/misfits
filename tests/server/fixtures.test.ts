@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { issueSession } from '../../src/server/auth/session';
 import { createCompetitionRoutes } from '../../src/server/routes/competition';
 
-type User = { id: string; username: string; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE'; is_master_admin: number };
+type User = { id: string; username: string; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE' | 'SUSPENDED'; is_master_admin: number };
 type Session = { token_hash: string; user_id: string; created_at: string; expires_at: string };
 type League = { id: string; season_id: string; name: string; slug: string; season_name: string; status: 'OPEN'; points_per_win: number; target_legs: number; created_at: string; updated_at: string; created_by: string; max_players: number; matches_per_pair: number; visibility: 'PRIVATE'; hierarchy_position: number; promotion_places: number; relegation_places: number };
 type Membership = { league_id: string; season_id: string; user_id: string; active: number; joined_at: string };
@@ -29,7 +29,14 @@ class MemoryD1 {
     return null;
   }
   private async all<T>(sql: string, values: unknown[]): Promise<{ results: T[] }> {
-    if (sql.includes('SELECT lp.user_id') && sql.includes('league_players')) { const leagueId = String(values[0]); return { results: [...this.memberships.values()].filter((row) => row.league_id === leagueId && row.active === 1).map((row) => ({ user_id: row.user_id })) as T[] }; }
+    if (sql.includes('SELECT lp.user_id') && sql.includes('league_players')) {
+      const leagueId = String(values[0]);
+      return {
+        results: [...this.memberships.values()]
+          .filter((row) => row.league_id === leagueId && row.active === 1 && this.users.get(row.user_id)?.status === 'ACTIVE')
+          .map((row) => ({ user_id: row.user_id })) as T[],
+      };
+    }
     if (sql.includes('FROM fixtures f')) { const leagueId = String(values[0]); const status = values[1] == null ? null : String(values[1]); return { results: [...this.fixtures.values()].filter((row) => row.league_id === leagueId && (!status || row.status === status)).sort((a,b) => a.round - b.round).map((row) => ({ ...row, player_a_username: this.users.get(row.player_a_id)?.username, player_b_username: this.users.get(row.player_b_id)?.username, result_id: null })) as T[] }; }
     return { results: [] };
   }
@@ -41,8 +48,58 @@ async function cookieFor(db: MemoryD1) { const session=await issueSession(db as 
 function mutation(cookie:string, body?:unknown, method='POST') { return { method, headers:{ Cookie:cookie, Origin:'https://misfits.test', ...(body===undefined?{}:{'Content-Type':'application/json'}) }, ...(body===undefined?{}:{body:JSON.stringify(body)}) }; }
 
 describe('persisted fixture administration', () => {
-  it('previews the exact schedule without writing fixtures', async () => { const {db,env,routes}=setup(); const cookie=await cookieFor(db); const response=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures/preview',{headers:{Cookie:cookie}}),env,{} as never); expect(response.status).toBe(200); const payload=await response.json() as { preview:{expectedFixtureCount:number; fixtures:unknown[]} }; expect(payload.preview.expectedFixtureCount).toBe(6); expect(payload.preview.fixtures).toHaveLength(6); expect(db.fixtures.size).toBe(0); });
+  it('previews the complete schedule contract without writing fixtures', async () => {
+    const {db,env,routes}=setup();
+    const cookie=await cookieFor(db);
+    const response=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures/preview',{headers:{Cookie:cookie}}),env,{} as never);
+    expect(response.status).toBe(200);
+    const payload=await response.json() as { preview:{seasonId:string; leagueId:string; playerCount:number; matchesPerPair:number; expectedFixtureCount:number; fixtures:Array<{playerAId:string;playerBId:string;round:number;meetingNumber:number}>} };
+    expect(payload.preview).toMatchObject({ seasonId:'s1', leagueId:'l1', playerCount:4, matchesPerPair:1, expectedFixtureCount:6 });
+    expect(payload.preview.fixtures).toHaveLength(6);
+    expect(payload.preview.fixtures.every((row)=>row.playerAId!==row.playerBId && row.round>0 && row.meetingNumber===1)).toBe(true);
+    expect(db.fixtures.size).toBe(0);
+  });
+
+  it('blocks preview before any write when an active membership belongs to a suspended account', async () => {
+    const {db,env,routes}=setup();
+    db.users.get('p4')!.status='SUSPENDED';
+    const cookie=await cookieFor(db);
+    const response=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures/preview',{headers:{Cookie:cookie}}),env,{} as never);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error:{ code:'VALIDATION_ERROR' } });
+    expect(db.fixtures.size).toBe(0);
+  });
+
   it('commits fixtures once and makes repeated generation idempotent', async () => { const {db,env,routes}=setup(); const cookie=await cookieFor(db); const first=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never); expect(first.status).toBe(201); const firstFixtures=(await first.json() as {fixtures:Fixture[]}).fixtures; expect(firstFixtures).toHaveLength(6); const ids=firstFixtures.map((row)=>row.id).sort(); const second=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never); expect(second.status).toBe(200); expect((await second.json() as {fixtures:Fixture[]}).fixtures.map((row)=>row.id).sort()).toEqual(ids); expect(db.fixtures.size).toBe(6); });
+
+  it('persists repeated meetings as distinct durable fixtures', async () => {
+    const {db,env,routes}=setup();
+    db.leagues.get('l1')!.matches_per_pair=2;
+    const cookie=await cookieFor(db);
+    const created=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never);
+    expect(created.status).toBe(201);
+    const fixtures=(await created.json() as {fixtures:Fixture[]}).fixtures;
+    expect(fixtures).toHaveLength(12);
+    const pair=fixtures.filter((row)=>row.pair_key==='p1:p2');
+    expect(pair).toHaveLength(2);
+    expect(new Set(pair.map((row)=>row.id)).size).toBe(2);
+    expect(pair.map((row)=>row.meeting_number).sort()).toEqual([1,2]);
+    expect(new Set(pair.map((row)=>row.round)).size).toBe(2);
+  });
+
   it('lists by fixture state and supports safe void/restore', async () => { const {db,env,routes}=setup(); const cookie=await cookieFor(db); const created=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never); const fixture=(await created.json() as {fixtures:Fixture[]}).fixtures[0]; const voided=await routes.fetch(new Request(`https://misfits.test/api/admin/competition/fixtures/${fixture.id}`,mutation(cookie,{status:'VOID'},'PATCH')),env,{} as never); expect((await voided.json() as {fixture:Fixture}).fixture.status).toBe('VOID'); const listed=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures?status=VOID',{headers:{Cookie:cookie}}),env,{} as never); expect((await listed.json() as {fixtures:Fixture[]}).fixtures).toHaveLength(1); const restored=await routes.fetch(new Request(`https://misfits.test/api/admin/competition/fixtures/${fixture.id}`,mutation(cookie,{status:'OUTSTANDING'},'PATCH')),env,{} as never); expect((await restored.json() as {fixture:Fixture}).fixture.status).toBe('OUTSTANDING'); });
+
+  it('refuses to restore a fixture that is not currently void', async () => {
+    const {db,env,routes}=setup();
+    const cookie=await cookieFor(db);
+    const created=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never);
+    const fixture=(await created.json() as {fixtures:Fixture[]}).fixtures[0];
+    db.fixtures.get(fixture.id)!.status='CONFIRMED';
+    const restored=await routes.fetch(new Request(`https://misfits.test/api/admin/competition/fixtures/${fixture.id}`,mutation(cookie,{status:'OUTSTANDING'},'PATCH')),env,{} as never);
+    expect(restored.status).toBe(409);
+    expect(await restored.json()).toMatchObject({ error:{ code:'VALIDATION_ERROR' } });
+    expect(db.fixtures.get(fixture.id)?.status).toBe('CONFIRMED');
+  });
+
   it('allows reset before play but blocks destructive reset after a fixture becomes active', async () => { const {db,env,routes}=setup(); const cookie=await cookieFor(db); const created=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never); const fixture=(await created.json() as {fixtures:Fixture[]}).fixtures[0]; const reset=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie,undefined,'DELETE')),env,{} as never); expect(reset.status).toBe(200); expect(db.fixtures.size).toBe(0); await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never); const active=[...db.fixtures.values()][0]; active.status='PENDING_CONFIRMATION'; const blocked=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie,undefined,'DELETE')),env,{} as never); expect(blocked.status).toBe(409); expect(db.fixtures.size).toBe(6); expect(fixture.id).toBeTruthy(); });
 });
