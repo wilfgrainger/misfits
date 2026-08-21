@@ -90,7 +90,7 @@ details.create-season-disclosure summary:focus-visible { outline: 3px solid var(
 
 .status-label, .count-label, .player-tag { display: inline-flex; width: fit-content; align-items: center; min-height: 1.8rem; padding: .22rem .52rem; border-radius: 2px; font-size: .74rem; font-weight: 850; letter-spacing: .04em; }
 .count-label, .player-tag { color: var(--muted); background: #e8ddcc; }
-.status-open, .status-confirmed, .player-tag-active { color: var(--success); background: #d2dfd1; }
+.status-open, .status-confirmed, .player-tag-active { color: #2d4c38; background: #d7e2d6; }
 .status-closed, .status-disputed, .player-tag-admin, .player-tag-suspended { color: var(--danger); background: #ead0c9; }
 .status-pending { color: var(--warning); background: #e9dfbd; }
 
@@ -103,9 +103,11 @@ details.create-season-disclosure summary:focus-visible { outline: 3px solid var(
 .standing-player small, .standing-record, .result-meta, .result-winner, .dispute-note { color: var(--muted); font-size: .8rem; }
 .standing-points, .standing-record { font-variant-numeric: tabular-nums; }
 .standing-points { color: var(--ink); text-align: right; font-size: 1.1rem; }
-.standings-scroll { margin-top: 1rem; overflow-x: auto; }
-.standings-table { width: 100%; min-width: 34rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.standings-table th, .standings-table td { padding: .75rem .5rem; text-align: right; border-bottom: 1px solid var(--rule); }
+.standings-scroll { margin-top: 1rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.standings-table { width: 100%; min-width: 22rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.standings-table th, .standings-table td { padding: .7rem .45rem; text-align: right; border-bottom: 1px solid var(--rule); }
+.standings-table th:first-child, .standings-table td:first-child { padding-left: .25rem; }
+.standings-table th:last-child, .standings-table td:last-child { padding-right: .25rem; }
 .standings-table th { color: var(--muted); font-size: .76rem; font-weight: 850; }
 .standings-table th:nth-child(2), .standings-table th[scope="row"] { text-align: left; }
 .standings-table th[scope="row"] { color: var(--ink); font-size: .9rem; }
