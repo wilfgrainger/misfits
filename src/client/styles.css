@@ -66,6 +66,11 @@ textarea { min-height: 7rem; resize: vertical; }
 .form-help, .admin-section-caption { margin: .25rem 0 0; color: var(--muted); font-size: .86rem; line-height: 1.4; }
 .admin-section-caption { font-weight: 650; }
 .form-heading { margin-bottom: .6rem; }
+fieldset { display: grid; gap: .6rem; margin: .5rem 0; padding: .75rem .85rem .9rem; border: 1px solid var(--rule); border-radius: 2px; }
+legend { padding: 0 .4rem; color: var(--muted); font-size: .76rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+details.create-season-disclosure { margin-top: 1.5rem; }
+details.create-season-disclosure summary { cursor: pointer; font-size: 1.05rem; font-weight: 800; color: var(--ink); list-style-position: inside; }
+details.create-season-disclosure summary:focus-visible { outline: 3px solid var(--club-red); outline-offset: 3px; }
 
 .public-home, .member-area, .admin-desk, .player-workspace { margin-top: 2rem; padding: 1.5rem 1rem 0; border-top: 1px solid var(--rule); }
 .section-heading, .league-heading, .workspace-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }

@@ -154,7 +154,7 @@ describe('club administration visibility', () => {
     state.user.role = 'ADMIN';
     render(<App />);
 
-    const adminRegion = (await screen.findAllByRole('region')).find((region) => within(region).queryByText(/Create (a new )?season/));
+    const adminRegion = (await screen.findAllByRole('region')).find((region) => within(region).queryAllByText(/Create (a new )?season/).length > 0);
     expect(adminRegion).toBeTruthy();
     const summary = within(adminRegion as HTMLElement).getByText('Create a new season');
     const disclosure = summary.closest('details');

@@ -38,7 +38,7 @@
 ## Fresh verification
 
 - `env IMPECCABLE_NO_UPDATE_CHECK=1 node .agents/skills/impeccable/scripts/detect.mjs --json src/client`: `[]`.
-- `./node_modules/.bin/vitest run`: **27 files / 115 tests passed**.
+- `./node_modules/.bin/vitest run`: **29 files / 127 tests passed**.
 - `./node_modules/.bin/tsc -p tsconfig.client.json --noEmit` and `./node_modules/.bin/tsc -p tsconfig.worker.json --noEmit`: passed.
 - `./node_modules/.bin/vite build`: passed.
 - `git diff --check`: passed.
