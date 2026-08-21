@@ -39,6 +39,17 @@ describe('public league sharing', () => {
 
   afterEach(() => cleanup());
 
+  it('presents the signed-out view as the Misfits club landing page', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
+
+    expect(screen.getByRole('heading', { name: 'Club darts, properly settled.' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Misfits 501 club seal' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Club table' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Misfits 501 leagues' })).toBeNull();
+  });
+
   it('opens a shared public league deep link and copies its link from the public view', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());

@@ -11,6 +11,7 @@ declare global {
             text: 'signin_with';
             shape: 'rectangular';
             logo_alignment: 'left';
+            locale: string;
             width: string;
             click_listener: () => void;
           }): void;
@@ -34,7 +35,7 @@ function loadGoogleScript(): Promise<void> {
       return;
     }
     const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
+    script.src = 'https://accounts.google.com/gsi/client?hl=en';
     script.async = true;
     script.defer = true;
     script.dataset.leagueBoardGoogle = 'true';
@@ -71,6 +72,7 @@ export class GoogleAuth {
       text: 'signin_with',
       shape: 'rectangular',
       logo_alignment: 'left',
+      locale: 'en',
       width: String(width),
       click_listener: onClick,
     });

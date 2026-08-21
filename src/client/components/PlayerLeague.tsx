@@ -19,7 +19,7 @@ function ResultRow({ result, user, onResolve }: { result: ResultSummary; user: U
   const isPlayerA = result.playerAId === user.id;
   const winner = result.playerALegs > result.playerBLegs ? result.playerAUsername : result.playerBUsername;
   return (
-    <li className="result-row">
+    <div className="result-row">
       <div className="result-main">
         <strong>{result.playerAUsername ?? 'Player'} <span>{result.playerALegs}</span></strong>
         <span className="result-divider">-</span>
@@ -33,7 +33,7 @@ function ResultRow({ result, user, onResolve }: { result: ResultSummary; user: U
       {result.status === 'PENDING' && !isPlayerA && result.submittedBy !== user.id && <button className="action-button" type="button" onClick={() => onResolve(result)}>Review result</button>}
       {result.status === 'DISPUTED' && result.disputeNote && <p className="dispute-note">{result.disputeNote}</p>}
       {result.status === 'CONFIRMED' && winner && <span className="result-winner">Winner: {winner}</span>}
-    </li>
+    </div>
   );
 }
 
@@ -55,6 +55,10 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
   const [disputeId, setDisputeId] = useState<string | null>(null);
   const [disputeNote, setDisputeNote] = useState('');
   const loadRequest = useRef(0);
+  const disputeTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const disputeDialogRef = useRef<HTMLFormElement | null>(null);
+  const disputeNoteRef = useRef<HTMLTextAreaElement | null>(null);
+  const disputeWasOpen = useRef(false);
 
   const load = async () => {
     const request = ++loadRequest.current;
@@ -94,6 +98,39 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
     setPlayerAAverage('');
     setPlayerBAverage('');
   }, [league.id, league.targetLegs]);
+
+  useEffect(() => {
+    if (disputeId) {
+      disputeWasOpen.current = true;
+      disputeNoteRef.current?.focus();
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setDisputeId(null);
+          setDisputeNote('');
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        const controls = disputeDialogRef.current?.querySelectorAll<HTMLElement>('textarea, button:not([disabled])');
+        if (!controls?.length) return;
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      };
+      document.addEventListener('keydown', onKeyDown);
+      return () => document.removeEventListener('keydown', onKeyDown);
+    }
+    if (disputeWasOpen.current) {
+      disputeWasOpen.current = false;
+      disputeTriggerRef.current?.focus();
+    }
+  }, [disputeId]);
 
   const submitResult = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -144,7 +181,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         </div>
         <button className="refresh-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Loading' : 'Refresh'}</button>
       </div>
-      <nav className="content-tabs" aria-label="League views">
+      <nav className="content-tabs" aria-label="Member workspace">
         {([['table', 'Table'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'content-tab content-tab-active' : 'content-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
       </nav>
       {notice && <p className="success-message" role="status">{notice}</p>}
@@ -159,7 +196,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
       )}
 
       {!loading && view === 'results' && (
-        <div className="result-feed"><h3>Confirmed games</h3><ul className="result-list">{results.map((result) => <ResultRow key={result.id} result={result} user={user} onResolve={confirm} />)}</ul><h3 className="subsection-title">Your pending games</h3><ul className="result-list">{pending.map((result) => <li className="review-row" key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /><div className="review-actions"><button className="primary-button" type="button" disabled={busyResult === result.id} onClick={() => void confirm(result)}>{busyResult === result.id ? 'Saving' : 'Confirm'}</button><button className="secondary-button" type="button" onClick={() => setDisputeId(result.id)}>Dispute</button></div></li>)}{pending.length === 0 && <li className="empty-message">No pending games.</li>}</ul></div>
+        <div className="result-feed"><h3>Confirmed games</h3><ul className="result-list">{results.map((result) => <li key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /></li>)}</ul><h3 className="subsection-title">Your pending games</h3><ul className="result-list">{pending.map((result) => <li className="review-row" key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /><div className="review-actions"><button className="primary-button" type="button" disabled={busyResult === result.id} onClick={() => void confirm(result)}>{busyResult === result.id ? 'Saving' : 'Confirm'}</button><button className="secondary-button" type="button" onClick={(event) => { disputeTriggerRef.current = event.currentTarget; setDisputeId(result.id); }}>Dispute</button></div></li>)}{pending.length === 0 && <li className="empty-message">No pending games.</li>}</ul></div>
       )}
 
       {!loading && view === 'players' && <ul className="club-player-list">{detail?.players.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul>}
@@ -168,7 +205,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
 
       {view === 'profile' && <ProfilePanel user={user} onSaved={saveUser} />}
 
-      {disputeId && <div className="modal-backdrop" role="presentation"><form className="modal-sheet" onSubmit={submitDispute}><h3>Dispute result</h3><label htmlFor="dispute-note">What needs checking?</label><textarea id="dispute-note" maxLength={240} value={disputeNote} onChange={(event) => setDisputeNote(event.target.value)} required /><div className="modal-actions"><button className="secondary-button" type="button" onClick={() => setDisputeId(null)}>Cancel</button><button className="primary-button" type="submit" disabled={busyResult === disputeId}>Send dispute</button></div></form></div>}
+      {disputeId && <div className="modal-backdrop"><form ref={disputeDialogRef} className="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="dispute-title" onSubmit={submitDispute}><h3 id="dispute-title">Dispute result</h3><label htmlFor="dispute-note">What needs checking?</label><textarea ref={disputeNoteRef} id="dispute-note" maxLength={240} value={disputeNote} onChange={(event) => setDisputeNote(event.target.value)} required /><div className="modal-actions"><button className="secondary-button" type="button" onClick={() => { setDisputeId(null); setDisputeNote(''); }}>Cancel</button><button className="primary-button" type="submit" disabled={busyResult === disputeId}>Send dispute</button></div></form></div>}
     </section>
   );
 }

@@ -4,9 +4,11 @@ Misfits 501 is a private-club-first, mobile darts league application for one clu
 
 The application runs entirely on Cloudflare's free-tier-capable stack: one Worker serves the Hono API and Vite/React static assets, and one D1 database stores club data. Google Identity Services is the only sign-in method.
 
-## Product contract
+## Product direction
 
-The current direction is defined in [`docs/superpowers/specs/2026-08-20-misfits-501-club-v4-design.md`](docs/superpowers/specs/2026-08-20-misfits-501-club-v4-design.md). In summary:
+For enduring intent, read [`PRODUCT.md`](PRODUCT.md), then [`VISION.md`](VISION.md). For agent and contributor workflow, start with [`AGENTS.md`](AGENTS.md), then check the current handoff in [`PROGRESS.md`](PROGRESS.md). Historical specifications remain decision records, not binding product authority.
+
+In summary:
 
 - Misfits 501 is the only club and the product identity.
 - Google Identity Services is the only sign-in method; Worker-side checks protect accounts and mutations.

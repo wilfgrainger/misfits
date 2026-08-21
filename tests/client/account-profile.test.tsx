@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let user = {
@@ -32,6 +32,7 @@ import App from '../../src/client/App';
 
 describe('account profile access', () => {
   beforeEach(() => {
+    cleanup();
     vi.restoreAllMocks();
     user.isMasterAdmin = true;
   });
@@ -39,11 +40,11 @@ describe('account profile access', () => {
   it('keeps profile management available to a signed-in user without memberships', async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'League desk' })).toBeTruthy());
-    expect(screen.getByRole('heading', { name: 'Club darts,beautifully settled.' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Club darts, properly settled.' })).toBeTruthy();
     expect(screen.getByText('THE MISFITS 501 CLUB')).toBeTruthy();
     expect(screen.getByText('One club, well kept.')).toBeTruthy();
     expect(screen.queryByText('WhatsApp for members')).toBeNull();
-    expect(screen.getByAltText('Misfits 501')).toBeTruthy();
+    expect(screen.getByAltText('Misfits 501 club seal')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Player card' })).toBeTruthy();
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });
@@ -52,6 +53,8 @@ describe('account profile access', () => {
     user.isMasterAdmin = false;
     render(<App />);
 
+    await waitFor(() => expect(screen.getByRole('button', { name: 'People' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'People' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'People' })).toBeTruthy());
     await waitFor(() => expect(screen.getByRole('button', { name: 'Make admin' })).toBeTruthy());
   });
