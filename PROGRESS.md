@@ -1,6 +1,6 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026, 17:04 BST  
+**Updated:** 21 August 2026, 17:11 BST  
 **Current branch:** `feat/master-user-stories-100`  
 **Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**  
 **Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
@@ -37,116 +37,100 @@ The PR must remain draft until all 150 stories have implementation + evidence an
 
 ### Task 0 — Branch, PR and plan — COMPLETE
 
-- Created branch `feat/master-user-stories-100` from `main`.
-- Opened draft PR **#9**.
-- Added Superpowers implementation plan: `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`.
-- PR completion gate explicitly requires 88/88 Admin + 55/55 Player + 7/7 Public stories delivered with evidence.
+- Branch `feat/master-user-stories-100` from `main`.
+- Draft PR **#9**.
+- Plan: `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`.
+- PR completion gate: 88/88 Admin + 55/55 Player + 7/7 Public delivered with evidence.
 
 ### Task 1 — Competition schema/domain spine — COMPLETE AS FOUNDATION
 
-#### Red evidence
+**RED:** commit `8971e846cadde0d5a26525b4125ae844cbecbfac`, Actions run `32500303728` failed because `tests/domain/competition.test.ts` imported the intentionally missing competition domain. Existing 127 tests passed.
 
-Commit `8971e846cadde0d5a26525b4125ae844cbecbfac` added `tests/domain/competition.test.ts` before the implementation existed.
+**GREEN:** schema/domain/persistence added:
 
-GitHub Actions run `32500303728` failed at `npm test` exactly as expected:
+- `src/server/domain/competition.ts`;
+- additive `migrations/0004_seasons_fixtures_promotion.sql`;
+- `src/server/db/competition.ts`;
+- migration coverage in `tests/server/schema.test.ts`.
 
-- existing suite: **127 tests passed**;
-- new competition suite: failed to import missing `src/server/domain/competition`;
-- build was skipped after the deliberate red failure.
-
-#### Green implementation
-
-- `src/server/domain/competition.ts`
-  - season and fixture domain types;
-  - deterministic circle-method round-robin generation;
-  - odd-player bye handling;
-  - repeated-meeting numbering;
-  - no-self-pairing / unique-player validation;
-  - promotion/relegation zone + movement helpers;
-  - season-scoped league configuration validation.
-- `migrations/0004_seasons_fixtures_promotion.sql`
-  - additive `seasons` table and backfill;
-  - `leagues.season_id`, hierarchy, promotion/relegation settings;
-  - season-aware `league_players` mapping + active uniqueness index;
-  - persisted `fixtures` lifecycle;
-  - `matches.fixture_id` + one-active-result-per-fixture uniqueness;
-  - `season_movements` history.
-- `src/server/db/competition.ts`
-  - season persistence;
-  - league/membership reads;
-  - assignment/movement helpers;
-  - fixture preview/commit/list/status/reset helpers;
-  - season health query.
-- `tests/server/schema.test.ts` verifies migration 0004 without modifying older migrations.
-
-Green checkpoint run `32500530742`: Wrangler types, TypeScript, full tests and production build all **SUCCESS**.
+Actions run `32500530742`: Wrangler types, TypeScript, full tests and production build **SUCCESS**.
 
 ### Task 2 — Season + division administration APIs — COMPLETE AS BACKEND SLICE
 
-#### Red evidence
+**RED:** commit `f69d8656e3abcc9212ef6ad135dd9dea006bad8a`, Actions run `32500761639` failed after adding season/division route tests before the route existed.
 
-Commit `f69d8656e3abcc9212ef6ad135dd9dea006bad8a` added `tests/server/competition-routes.test.ts` before `src/server/routes/competition.ts` existed.
+**GREEN:** added:
 
-GitHub Actions run `32500761639` failed at `npm test`; typecheck had passed and build was skipped after the deliberate red test failure.
+- `src/server/db/competition-leagues.ts`;
+- `src/server/routes/competition.ts`;
+- competition route mount in `src/server/index.ts`;
+- `tests/server/competition-routes.test.ts`.
 
-#### Green implementation
+Covered admin auth, season create/list/open/close, season-scoped league create, hierarchy + promotion/relegation configuration, and protected non-empty deletion.
 
-- `src/server/db/competition-leagues.ts`
-  - create season-scoped league;
-  - update league configuration/hierarchy;
-  - block consequential rules after fixtures/results exist;
-  - delete empty league safely;
-  - enforce capacity and audit changes.
+Actions run `32500908777`: Wrangler types, TypeScript, full tests and build **SUCCESS**.
+
+### Task 3 — Season-aware membership + invites — COMPLETE AS BACKEND SLICE
+
+#### Placement RED
+
+Commit `44016f11154108629a096c8206b276c1089d7853` added `tests/server/competition-membership.test.ts` before the corresponding membership endpoints existed.
+
+Actions run `32501116652`: **FAILURE**, as intended for the red phase.
+
+#### Invite RED
+
+Commit `740924c401a051766d223a2ed6e82dcf0706c091` added `tests/server/season-invite.test.ts`, proving the old invite model could create a second active league placement in the same season and did not persist explicit season placement for the join.
+
+Actions run `32501262145`: **FAILURE**, as intended.
+
+#### GREEN implementation
+
 - `src/server/routes/competition.ts`
-  - `GET/POST /api/admin/seasons`;
-  - `PATCH/DELETE /api/admin/seasons/:seasonId`;
-  - `GET/POST /api/admin/seasons/:seasonId/leagues`;
-  - `PATCH/DELETE /api/admin/competition/leagues/:leagueId`;
-  - all mutations use Worker admin auth + same-origin protection.
-- `src/server/index.ts` mounts the competition routes.
-- `tests/server/competition-routes.test.ts`
-  - non-admin rejection;
-  - create/list/open/close explicit season;
-  - season-scoped league creation;
-  - hierarchy/promotion/relegation persistence;
-  - protected non-empty season deletion.
+  - `GET /api/admin/seasons/:seasonId/unassigned`;
+  - `GET /api/admin/competition/leagues/:leagueId/members`;
+  - `POST /api/admin/seasons/:seasonId/members/:userId/assign`;
+  - `POST /api/admin/seasons/:seasonId/members/:userId/move`.
+- Existing `src/server/db/competition.ts` helpers now drive explicit placement and lock moves after fixtures/results exist.
+- `src/server/db/invites.ts`
+  - reads target league's season;
+  - rejects a second active division in the same season;
+  - persists `season_id` on new/re-activated membership;
+  - retains idempotent same-league joining and capacity protection;
+  - includes season in the membership audit payload.
+- `src/server/routes/leagues.ts` returns `seasonId` after invite join.
 
-Green checkpoint run `32500908777`: Wrangler types, TypeScript, `npm test`, and `npm run build` all **SUCCESS**. Deploy correctly skipped on the PR branch.
+Latest checkpoint commit `dbc00d53f19bf4853828aaa66fc4051c4b361683`.
+
+Actions run `32501386742`: Wrangler types, TypeScript, full `npm test`, and `npm run build` all **SUCCESS**. Production deploy correctly skipped on PR branch.
 
 ### Story ledger status
 
-No story is being prematurely marked `DELIVERED` merely because backend foundations exist. Story-level status in `docs/superpowers/specs/2026-08-21-user-stories.md` changes only when the complete acceptance behaviour is implemented and evidenced, including UI where the story requires a user-facing control.
+No story is being prematurely marked `DELIVERED` from backend-only evidence. `docs/superpowers/specs/2026-08-21-user-stories.md` remains the story-level authority, and a story changes to `DELIVERED` only when its complete acceptance criteria, including UI where applicable, are evidenced.
 
-The schema/domain/API work now covers major prerequisites for ADM-010 through ADM-030, but those stories remain non-delivered until their full acceptance surface is proven.
+Backend prerequisites now exist for the bulk of ADM-010–ADM-045 and PLY-002/PLY-004, but the user-facing story surfaces are still pending.
 
 ## Exact next actions
 
-1. **Task 3 now:** season-aware membership assignment/move, unassigned roster and targeted invite join behaviour. Write red tests first.
-2. Task 4: fixture preview/commit/list/void/regeneration APIs and fixture-count/idempotency tests.
-3. Task 5: fixture-based player/admin result settlement with confirmation/dispute state synchronized to fixture state.
-4. Task 6: promotion/relegation projection, review, override and next-season apply.
-5. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public competition view.
-6. Task 11: update every story in `2026-08-21-user-stories.md` with `DELIVERED` + evidence and add a release parser test requiring exactly 150 unique delivered stories.
-7. Task 12: full verification, Superpowers completion review, Cave Pony review, PR readiness, manual remote D1 migration, merge, observe production deployment and smoke-test production.
+1. **Task 4 now:** fixture preview/commit/list/filter/void/restore/regeneration APIs with red tests for fixture counts, byes, repeats, idempotency and post-play protection.
+2. Task 5: fixture-based result settlement; synchronize fixture + result states for submit/confirm/dispute/admin correction/delete.
+3. Task 6: promotion/relegation projection, review, override, apply to next season.
+4. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public competition view.
+5. Task 11: update all 150 story rows with `DELIVERED` + evidence; release parser must require exactly 150 unique delivered stories.
+6. Task 12: full verification, Superpowers completion review, Cave Pony review, PR readiness, manual remote D1 migration, merge, observe production deployment and production smoke-test.
 
 ## Resume instructions for a new agent
 
-If this session dies, do **not** restart discovery from scratch.
+If this session dies:
 
-1. Checkout/read branch `feat/master-user-stories-100` and PR #9.
-2. Read in this order:
-   - `AGENTS.md`
-   - `PRODUCT.md`
-   - `VISION.md`
-   - `docs/superpowers/specs/2026-08-21-user-stories.md`
-   - `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`
-   - this `PROGRESS.md`
-3. Use Superpowers `executing-plans` + TDD + verification-before-completion.
-4. Start at **Task 3** unless this file has a later checkpoint.
-5. Never mark stories complete from inference. Require implementation and test evidence.
-6. Keep this file updated after every meaningful red/green/CI checkpoint.
-7. Keep `docs/superpowers/specs/2026-08-21-user-stories.md` updated at story level whenever a story moves to `DELIVERED`.
+1. Work only from branch `feat/master-user-stories-100` / draft PR #9.
+2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, then the canonical story spec, implementation plan and this file.
+3. Use Superpowers `executing-plans`, TDD and verification-before-completion.
+4. Resume at **Task 4** unless a later checkpoint has replaced this one.
+5. Never mark a story complete from inference. Require implementation + focused test/evidence.
+6. Update this file after each red/green/CI checkpoint.
+7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level whenever a story reaches full `DELIVERED` state.
 
 ## Known operational constraint
 
-This chat environment could not clone GitHub into the local container because external GitHub DNS/network access failed. GitHub repository tools and GitHub Actions are therefore being used as the isolated execution/verification environment. Do not claim local command evidence that was not actually run.
+The chat container could not clone GitHub because external GitHub DNS/network access failed. GitHub repository actions and GitHub Actions are the isolated execution/verification environment. Do not claim local command evidence that was not actually run.
