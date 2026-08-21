@@ -20,6 +20,7 @@ export interface LeagueRecord {
 
 export interface LeagueMemberRecord {
   league_id: string;
+  season_id: string | null;
   user_id: string;
   active: number;
   joined_at: string;
@@ -76,7 +77,7 @@ export async function getLeagueById(db: D1Database, id: string): Promise<LeagueR
 
 export async function getMembership(db: D1Database, leagueId: string, userId: string): Promise<LeagueMemberRecord | null> {
   return (await db.prepare(
-    `SELECT league_players.league_id, league_players.user_id, league_players.active,
+    `SELECT league_players.league_id, league_players.season_id, league_players.user_id, league_players.active,
             league_players.joined_at, users.username, users.profile_image_url
        FROM league_players JOIN users ON users.id = league_players.user_id
       WHERE league_players.league_id = ? AND league_players.user_id = ?`,
@@ -85,7 +86,7 @@ export async function getMembership(db: D1Database, leagueId: string, userId: st
 
 export async function listLeagueMembers(db: D1Database, leagueId: string): Promise<LeagueMemberRecord[]> {
   const result = await db.prepare(
-    `SELECT league_players.league_id, league_players.user_id, league_players.active,
+    `SELECT league_players.league_id, league_players.season_id, league_players.user_id, league_players.active,
             league_players.joined_at, users.username, users.profile_image_url
        FROM league_players JOIN users ON users.id = league_players.user_id
       WHERE league_players.league_id = ? ORDER BY users.username COLLATE NOCASE ASC`,
@@ -180,6 +181,14 @@ export async function setMembershipActive(db: D1Database, actorUserId: string, l
   if (active && before.active !== 1) {
     const league = await getLeagueById(db, leagueId);
     if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
+    if (before.season_id) {
+      const existingSeason = await db.prepare(
+        'SELECT league_id FROM league_players WHERE season_id = ? AND user_id = ? AND active = 1',
+      ).bind(before.season_id, userId).first<{ league_id: string }>();
+      if (existingSeason && existingSeason.league_id !== leagueId) {
+        throw new AppError('VALIDATION_ERROR', 'This player is already active in another league in this season', 409);
+      }
+    }
     const reactivated = await db.prepare(
       `UPDATE league_players SET active = 1
         WHERE league_id = ? AND user_id = ? AND active = 0
