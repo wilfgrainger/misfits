@@ -111,6 +111,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const effectiveLeagueId = selectedLeagueId && leagues.some((league) => league.id === selectedLeagueId) ? selectedLeagueId : selectedId;
   const selectedLeague = leagues.find((league) => league.id === effectiveLeagueId) ?? null;
   const memberLeague = selectedLeague ?? orderedLeagues[0] ?? null;
+  const leagueSummaryComplete = leagueSummariesReady && orderedLeagues.every((league) => Object.prototype.hasOwnProperty.call(membersByLeague, league.id));
 
   const clear = () => { setMessage(''); setError(''); };
 
@@ -431,7 +432,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     </div>
 
     <div role="tabpanel" hidden={task !== 'leagues'}>
-      <div className="admin-block"><div className="section-heading"><h3>League structure</h3><span className="count-label">{orderedLeagues.length}</span></div>{leagueSummariesReady ? <ul className="competition-league-list" aria-label="Ordered league structure">{orderedLeagues.map((league) => {
+      <div className="admin-block"><div className="section-heading"><h3>League structure</h3><span className="count-label">{orderedLeagues.length}</span></div>{leagueSummaryComplete ? <ul className="competition-league-list" aria-label="Ordered league structure">{orderedLeagues.map((league) => {
         const activeCount = (membersByLeague[league.id] ?? []).filter((member) => member.active).length;
         return <li key={league.id}><button type="button" className={league.id === selectedLeague?.id ? 'picker-item picker-item-active' : 'picker-item'} onClick={() => selectLeague(league)}><strong>{league.hierarchyPosition ?? '?'} {league.name}</strong><span>{league.status} · {activeCount}/{league.maxPlayers} active · {league.matchesPerPair}× pair · P{league.promotionPlaces ?? 0}/R{league.relegationPlaces ?? 0}</span></button></li>;
       })}</ul> : <p className="empty-message">Loading league summaries…</p>}</div>
