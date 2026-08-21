@@ -169,10 +169,11 @@ describe('mobile league workspaces', () => {
     expect(screen.getByRole('button', { name: 'Create invite link' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Create invite link' }));
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Invite link copied.'));
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     fireEvent.click((await screen.findAllByRole('button', { name: 'Revoke invite' }))[0]);
+    const revokeDialog = await screen.findByRole('dialog', { name: 'Revoke invite link?' });
+    expect(revokeDialog).toBeTruthy();
+    fireEvent.click(within(revokeDialog).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(screen.getByText('Invite revoked.')).toBeTruthy());
-    expect(confirm).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('tab', { name: 'Results' }));
     expect(screen.getByRole('heading', { name: 'Record a result' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Record result' })).toBeTruthy();

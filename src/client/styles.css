@@ -126,7 +126,7 @@ details.create-season-disclosure summary:focus-visible { outline: 3px solid var(
 }
 .standings-table th { color: var(--muted); font-size: .76rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .standings-table th:nth-child(2), .standings-table th[scope="row"] { text-align: left; }
-.standings-table th[scope="row"] { color: var(--ink); font-size: .95rem; font-weight: 750; }
+.standings-table th[scope="row"] { color: var(--ink); font-size: .95rem; font-weight: 750; max-width: 7.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .standings-table tbody tr:hover { background: rgba(220, 208, 190, 0.45); }
 .standings-table .standing-row-you { background: #ebdcc3; }
 .standings-table .standing-row-you:hover { background: #e3d3b7; }
@@ -227,6 +227,7 @@ details.create-season-disclosure summary:focus-visible { outline: 3px solid var(
   .public-intro { grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem); align-items: end; gap: 3rem; padding: 3rem 1.75rem; }
   .public-entry { justify-self: end; }
   .shell[data-state="signed-out"] .public-home { padding: 3rem 1.75rem; }
+  .standings-table th[scope="row"] { max-width: none; }
 }
 
 @media (min-width: 960px) {

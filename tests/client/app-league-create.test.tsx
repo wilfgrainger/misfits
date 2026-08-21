@@ -17,6 +17,7 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
     adminLeagues: [] as typeof createdLeague[],
     multipleLeagues: false,
     createdLeagueInput: null as Record<string, unknown> | null,
+    creationCounter: 0,
   };
   class ApiClientError extends Error {
     constructor(public readonly status: number, message: string) { super(message); }
@@ -31,10 +32,22 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
     adminInvites() { return Promise.resolve({ invites: [] }); }
     adminResults() { return Promise.resolve({ results: [] }); }
     createAdminLeague(input: Record<string, unknown>) {
+      shared.creationCounter++;
+      const newLeague = {
+        ...createdLeague,
+        id: `league-created-${shared.creationCounter}`,
+        name: (input.name as string) || createdLeague.name,
+        seasonName: (input.seasonName as string) || createdLeague.seasonName,
+        maxPlayers: Number(input.maxPlayers) || createdLeague.maxPlayers,
+        matchesPerPair: Number(input.matchesPerPair) || createdLeague.matchesPerPair,
+        targetLegs: Number(input.targetLegs) || createdLeague.targetLegs,
+        pointsPerWin: Number(input.pointsPerWin) || createdLeague.pointsPerWin,
+        visibility: (input.visibility as any) || createdLeague.visibility,
+      };
       shared.createdLeagueInput = input;
-      shared.myLeagues = [createdLeague];
-      shared.adminLeagues = [createdLeague];
-      return Promise.resolve({ league: createdLeague });
+      shared.myLeagues = [newLeague];
+      shared.adminLeagues = [newLeague];
+      return Promise.resolve({ league: newLeague });
     }
     updateAdminLeague(leagueId: string) {
       const league = leagueId === secondLeague.id ? secondLeague : createdLeague;
@@ -63,6 +76,7 @@ describe('club administration visibility', () => {
     state.adminLeagues = [];
     state.multipleLeagues = false;
     state.createdLeagueInput = null;
+    state.creationCounter = 0;
     state.user.role = 'PLAYER';
   });
 

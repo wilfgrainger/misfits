@@ -89,6 +89,53 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
   const [editingResult, setEditingResult] = useState<ResultEditorState | null>(null);
   const [adminView, setAdminView] = useState<AdminView>('season');
   const workspaceRequest = useRef(0);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
+
+  const confirmModalRef = useRef<HTMLDivElement>(null);
+  const confirmTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const confirmWasOpen = useRef(false);
+
+  useEffect(() => {
+    if (confirmModal) {
+      confirmWasOpen.current = true;
+      setTimeout(() => {
+        const dialog = confirmModalRef.current;
+        const cancelButton = dialog?.querySelector<HTMLButtonElement>('.secondary-button');
+        cancelButton?.focus();
+      }, 0);
+
+      const onKeyDown = (event: globalThis.KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          setConfirmModal(null);
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        const dialog = confirmModalRef.current;
+        if (!dialog) return;
+        const focusables = dialog.querySelectorAll<HTMLElement>('button');
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      };
+      document.addEventListener('keydown', onKeyDown);
+      return () => document.removeEventListener('keydown', onKeyDown);
+    }
+    if (confirmWasOpen.current) {
+      confirmWasOpen.current = false;
+      confirmTriggerRef.current?.focus();
+    }
+  }, [confirmModal]);
 
   const activeSelectedId = selectedLeagueId ?? selectedId;
   const selectedLeague = leagues.find((league) => league.id === activeSelectedId) ?? null;
@@ -224,18 +271,25 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
     }
   };
 
-  const revokeInvite = async (invite: AdminInvite) => {
-    if (invite.revokedAt || (typeof window !== 'undefined' && !window.confirm('Revoke this invite link?'))) return;
-    setBusy(`invite-${invite.id}`);
-    try {
-      await api.revokeInvite(invite.id);
-      setInvites((current) => current.map((item) => item.id === invite.id ? { ...item, revokedAt: new Date().toISOString() } : item));
-      setMessage('Invite revoked.');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Invite could not be revoked.');
-    } finally {
-      setBusy(null);
-    }
+  const revokeInvite = (invite: AdminInvite, triggerEl?: HTMLButtonElement | null) => {
+    if (invite.revokedAt) return;
+    if (triggerEl) confirmTriggerRef.current = triggerEl;
+    setConfirmModal({
+      title: 'Revoke invite link?',
+      message: 'Are you sure you want to revoke this invite link? It will no longer be usable.',
+      onConfirm: async () => {
+        setBusy(`invite-${invite.id}`);
+        try {
+          await api.revokeInvite(invite.id);
+          setInvites((current) => current.map((item) => item.id === invite.id ? { ...item, revokedAt: new Date().toISOString() } : item));
+          setMessage('Invite revoked.');
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : 'Invite could not be revoked.');
+        } finally {
+          setBusy(null);
+        }
+      }
+    });
   };
 
   const createResult = async (event: FormEvent<HTMLFormElement>) => {
@@ -324,18 +378,24 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
     }
   };
 
-  const deleteResult = async (result: ResultSummary) => {
-    if (typeof window !== 'undefined' && !window.confirm('Delete this result?')) return;
-    setBusy(`result-${result.id}`);
-    try {
-      await api.deleteAdminResult(result.id);
-      setResults((current) => current.filter((item) => item.id !== result.id));
-      setMessage('Result deleted.');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Result could not be deleted.');
-    } finally {
-      setBusy(null);
-    }
+  const deleteResult = (result: ResultSummary, triggerEl?: HTMLButtonElement | null) => {
+    if (triggerEl) confirmTriggerRef.current = triggerEl;
+    setConfirmModal({
+      title: 'Delete this result?',
+      message: 'Are you sure you want to delete this result? This action cannot be undone.',
+      onConfirm: async () => {
+        setBusy(`result-${result.id}`);
+        try {
+          await api.deleteAdminResult(result.id);
+          setResults((current) => current.filter((item) => item.id !== result.id));
+          setMessage('Result deleted.');
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : 'Result could not be deleted.');
+        } finally {
+          setBusy(null);
+        }
+      }
+    });
   };
 
   const updatePlayer = async (id: string, changes: AdminPlayerChanges) => {
@@ -703,7 +763,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
                     className="action-button"
                     type="button"
                     disabled={busy === `invite-${invite.id}`}
-                    onClick={() => void revokeInvite(invite)}
+                    onClick={(event) => revokeInvite(invite, event.currentTarget)}
                   >
                     Revoke invite
                   </button>
@@ -889,7 +949,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
                         className="action-button"
                         type="button"
                         disabled={busy === `result-${result.id}`}
-                        onClick={() => void deleteResult(result)}
+                        onClick={(event) => deleteResult(result, event.currentTarget)}
                       >
                         Delete
                       </button>
@@ -1064,6 +1124,39 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
               </li>
             ))}
           </ul>
+        </div>
+      )}
+      {confirmModal && (
+        <div className="modal-backdrop">
+          <div
+            ref={confirmModalRef}
+            className="modal-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-modal-title"
+          >
+            <h3 id="confirm-modal-title">{confirmModal.title}</h3>
+            <p className="form-help">{confirmModal.message}</p>
+            <div className="modal-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setConfirmModal(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => {
+                  void confirmModal.onConfirm();
+                  setConfirmModal(null);
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

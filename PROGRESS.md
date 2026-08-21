@@ -26,12 +26,13 @@
 - Simplified the administrator desk by keeping its state local and task-oriented: no prop-drilled component forest.
 - Replaced layered visual overrides with one token-led `src/client/styles.css`; it preserves the existing client/server contracts while making the entrance, public record and operational desks one system.
 - Corrected stale documentation authority: `PRODUCT.md` now leads AGENTS and README; historical specs retain their decision history only.
+- Resolved design critique findings: replaced native `window.confirm` in [AdminLeagueDesk.tsx](file:///c:/Users/wilf6/dev/misfits/src/client/components/AdminLeagueDesk.tsx) with custom styled parchment confirmation modals, added player name truncation in [styles.css](file:///c:/Users/wilf6/dev/misfits/src/client/styles.css) for mobile viewports, and resolved duplicate test keys in [app-league-create.test.tsx](file:///c:/Users/wilf6/dev/misfits/tests/client/app-league-create.test.tsx).
 
 ## Audit decisions
 
 - **Actioned:** one canonical stylesheet and durable authority chain.
 - **Actioned:** no new dependency, service, schema or Worker boundary was introduced.
-- **Deferred:** native confirmation for invite revocation/result deletion. Revisit with one accessible confirmation pattern when destructive-operation UX is separately scoped.
+- **Actioned:** replaced native confirmations for invite revocation and result deletion with custom accessible modals.
 - **Deferred:** authenticated mobile and desktop browser walkthrough. The cloud browser blocks localhost in this environment.
 - **Blocked externally:** `npm audit`, `wrangler types` and `wrangler deploy --dry-run` could not obtain managed-environment network approval. No tool-level code failure was reported.
 
