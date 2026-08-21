@@ -62,14 +62,19 @@ class MemoryD1 {
       const [name, slug, points, legs, maxPlayers, repeats, visibility, hierarchy, promotion, relegation, updatedAt, id] = values as [string, string, number, number, number, number, 'PUBLIC' | 'PRIVATE', number, number, number, string, string];
       const league = this.leagues.get(id)!;
       Object.assign(league, { name, slug, points_per_win: points, target_legs: legs, max_players: maxPlayers, matches_per_pair: repeats, visibility, hierarchy_position: hierarchy, promotion_places: promotion, relegation_places: relegation, updated_at: updatedAt });
+    } else if (sql.includes("UPDATE leagues SET status = 'OPEN'")) {
+      const [updatedAt, seasonId] = values as [string, string];
+      for (const league of this.leagues.values()) if (league.season_id === seasonId) {
+        league.status = 'OPEN';
+        league.updated_at = updatedAt;
+      }
     } else if (sql.includes('UPDATE leagues SET season_name')) {
       const seasonName = String(values[0]);
       const seasonStatus = String(values[1]);
-      const updatedAt = String(values.length === 5 ? values[3] : values[2]);
-      const seasonId = String(values.length === 5 ? values[4] : values[3]);
+      const updatedAt = String(values[2]);
+      const seasonId = String(values[3]);
       for (const league of this.leagues.values()) if (league.season_id === seasonId) {
         league.season_name = seasonName;
-        if (seasonStatus === 'OPEN') league.status = 'OPEN';
         if (seasonStatus === 'CLOSED') league.status = 'CLOSED';
         league.updated_at = updatedAt;
       }
@@ -138,7 +143,7 @@ describe('competition administration routes', () => {
     expect(response.status).toBe(403);
   });
 
-  it('creates, lists, opens and closes an explicit season', async () => {
+  it('creates, lists and edits an explicit draft season', async () => {
     const { db, env, routes } = setup();
     const cookie = await cookieFor(db, 'admin');
     const create = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', mutation(cookie, { name: '2026/27', status: 'DRAFT', isCurrent: true })), env, {} as never);
@@ -149,10 +154,16 @@ describe('competition administration routes', () => {
     const list = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', { headers: { Cookie: cookie } }), env, {} as never);
     expect((await list.json() as { seasons: Season[] }).seasons.map((season) => season.id)).toContain(created.id);
 
-    const opened = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${created.id}`, mutation(cookie, { name: '2026/27', status: 'OPEN', isCurrent: true }, 'PATCH')), env, {} as never);
-    expect((await opened.json() as { season: Season }).season.status).toBe('OPEN');
-    const closed = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${created.id}`, mutation(cookie, { name: '2026/27', status: 'CLOSED', isCurrent: false }, 'PATCH')), env, {} as never);
-    expect((await closed.json() as { season: Season }).season.status).toBe('CLOSED');
+    const edited = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${created.id}`, mutation(cookie, { name: '2026/27 Championship', status: 'DRAFT', isCurrent: true }, 'PATCH')), env, {} as never);
+    expect(edited.status).toBe(200);
+    expect((await edited.json() as { season: Season }).season).toMatchObject({ name: '2026/27 Championship', status: 'DRAFT', is_current: 1 });
+  });
+
+  it('does not permit a new season to bypass draft preparation', async () => {
+    const { db, env, routes } = setup();
+    const response = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', mutation(await cookieFor(db, 'admin'), { name: '2026/27', status: 'OPEN', isCurrent: true })), env, {} as never);
+    expect(response.status).toBe(409);
+    expect(db.seasons.size).toBe(0);
   });
 
   it('creates ordered leagues inside a season and persists promotion/relegation settings', async () => {
@@ -183,7 +194,7 @@ describe('competition administration routes', () => {
     expect(response.status).toBe(409);
   });
 
-  it('blocks opening until every league has a viable active roster, then opens its prepared leagues', async () => {
+  it('blocks opening until every league has a viable active roster, opens prepared leagues, then preserves closure', async () => {
     const { db, env, routes } = setup();
     const cookie = await cookieFor(db, 'admin');
     const seasonResponse = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', mutation(cookie, { name: '2027/28', status: 'DRAFT', isCurrent: false })), env, {} as never);
@@ -205,6 +216,15 @@ describe('competition administration routes', () => {
     expect(opened.status).toBe(200);
     expect((await opened.json() as { season: Season }).season.status).toBe('OPEN');
     expect(db.leagues.get(league.id)?.status).toBe('OPEN');
+
+    const closed = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}`, mutation(cookie, { name: season.name, status: 'CLOSED', isCurrent: false }, 'PATCH')), env, {} as never);
+    expect(closed.status).toBe(200);
+    expect((await closed.json() as { season: Season }).season.status).toBe('CLOSED');
+    expect(db.leagues.get(league.id)?.status).toBe('CLOSED');
+
+    const reopen = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}`, mutation(cookie, { name: season.name, status: 'OPEN', isCurrent: true }, 'PATCH')), env, {} as never);
+    expect(reopen.status).toBe(409);
+    expect(db.leagues.get(league.id)?.status).toBe('CLOSED');
   });
 
   it('clones only the previous season structure into a fresh draft season', async () => {
