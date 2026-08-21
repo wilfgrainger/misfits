@@ -52,7 +52,7 @@ export function ProfilePanel({ user, onSaved }: ProfilePanelProps) {
         <input id="profile-nickname" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required />
         <label htmlFor="profile-darts-link">Darts Counter profile</label>
         <input id="profile-darts-link" type="url" inputMode="url" value={dartsCounterUrl} onChange={(event) => setDartsCounterUrl(event.target.value)} placeholder="https://dartcounter.net/..." autoComplete="url" />
-        <button className="primary-button" type="submit" disabled={saving}>{saving ? 'Saving' : 'Save profile'}</button>
+        <button className="primary-button" type="submit" disabled={saving} aria-busy={saving}>{saving ? 'Saving' : 'Save profile'}</button>
       </form>
       {message && <p className="success-message" role="status">{message}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}

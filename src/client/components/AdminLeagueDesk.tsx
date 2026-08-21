@@ -88,6 +88,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
   const [resultPlayerBAverage, setResultPlayerBAverage] = useState('');
   const [editingResult, setEditingResult] = useState<ResultEditorState | null>(null);
   const [adminView, setAdminView] = useState<AdminView>('season');
+  const [copiedAction, setCopiedAction] = useState<string | null>(null);
   const workspaceRequest = useRef(0);
   const [confirmModal, setConfirmModal] = useState<{
     title: string;
@@ -244,6 +245,10 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
       setInviteUrl(result.invite.url);
       setInvites((current) => [{ id: result.invite.id, leagueId: result.invite.leagueId, expiresAt: result.invite.expiresAt, uses: 0, revokedAt: null, createdAt: new Date().toISOString() }, ...current]);
       const copied = await copyText(result.invite.url);
+      if (copied) {
+        setCopiedAction('invite');
+        setTimeout(() => setCopiedAction(null), 2000);
+      }
       setMessage(copied ? 'Invite link copied.' : 'Invite link ready to copy.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Invite could not be created.');
@@ -254,7 +259,12 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
 
   const copyInvite = async () => {
     if (!inviteUrl) return;
-    setMessage((await copyText(inviteUrl)) ? 'Invite link copied.' : 'Invite link ready to copy.');
+    const copied = await copyText(inviteUrl);
+    if (copied) {
+      setCopiedAction('invite');
+      setTimeout(() => setCopiedAction(null), 2000);
+    }
+    setMessage(copied ? 'Invite link copied.' : 'Invite link ready to copy.');
   };
 
   const sharePublicLeague = async () => {
@@ -263,6 +273,10 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
     setError('');
     try {
       const mode = await shareLeague(navigator, selectedLeague.name, selectedLeague.slug, window.location.origin);
+      if (mode === 'copied') {
+        setCopiedAction('share');
+        setTimeout(() => setCopiedAction(null), 2000);
+      }
       setMessage(mode === 'shared' ? 'Share sheet opened.' : 'League link copied.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'League link could not be shared.');
@@ -586,7 +600,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
                 <option value="PRIVATE">Private</option>
               </select>
             </label>
-            <button className="primary-button" type="submit" disabled={busy === 'save-league'}>
+            <button className="primary-button" type="submit" disabled={busy === 'save-league'} aria-busy={busy === 'save-league'}>
               {busy === 'save-league' ? 'Saving' : 'Save settings'}
             </button>
             {selectedLeague.visibility === 'PUBLIC' && (
@@ -596,7 +610,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
                 onClick={() => void sharePublicLeague()}
                 disabled={busy === 'share'}
               >
-                {busy === 'share' ? 'Sharing' : 'Share season'}
+                {copiedAction === 'share' ? 'Copied! ✓' : busy === 'share' ? 'Sharing' : 'Share season'}
               </button>
             )}
           </form>
@@ -681,7 +695,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
                 </select>
               </label>
             </fieldset>
-            <button className="primary-button" type="submit" disabled={busy === 'create'}>
+            <button className="primary-button" type="submit" disabled={busy === 'create'} aria-busy={busy === 'create'}>
               {busy === 'create' ? 'Creating' : 'Create season'}
             </button>
           </form>
@@ -711,7 +725,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
             <div className="invite-box">
               <code>{inviteUrl}</code>
               <button className="action-button" type="button" onClick={() => void copyInvite()}>
-                Copy link
+                {copiedAction === 'invite' ? 'Copied! ✓' : 'Copy link'}
               </button>
             </div>
           )}
@@ -873,6 +887,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
                 className="primary-button"
                 type="submit"
                 disabled={busy === 'create-result' || activeMembers.length < 2}
+                aria-busy={busy === 'create-result'}
               >
                 {busy === 'create-result' ? 'Recording' : 'Record result'}
               </button>
@@ -1027,7 +1042,7 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
                           />
                         </label>
                         <div className="inline-actions">
-                          <button className="primary-button" type="submit" disabled={busy === `edit-result-${result.id}`}>
+                          <button className="primary-button" type="submit" disabled={busy === `edit-result-${result.id}`} aria-busy={busy === `edit-result-${result.id}`}>
                             {busy === `edit-result-${result.id}` ? 'Saving' : 'Save result'}
                           </button>
                           <button className="secondary-button" type="button" onClick={() => setEditingResult(null)}>
