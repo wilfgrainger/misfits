@@ -1,6 +1,6 @@
 # Misfits 501 v1 Design
 
-> **Historical:** This one-league design is retained as the original approved v1 record. It is superseded by [`2026-08-20-white-label-leagues-v3-design.md`](2026-08-20-white-label-leagues-v3-design.md), with v2 retained as the previous multi-league implementation record.
+> **Historical:** This one-league design is retained as the original approved v1 record. It is superseded by the current v4 authority in [`2026-08-20-misfits-501-club-v4-design.md`](2026-08-20-misfits-501-club-v4-design.md); v2 and v3 are retained as historical release records.
 
 **Status:** Approved design captured for implementation planning  
 **Date:** 19 August 2026  

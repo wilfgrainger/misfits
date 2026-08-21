@@ -4,6 +4,32 @@ import { describe, expect, it } from 'vitest';
 
 const publicRoot = resolve(process.cwd(), 'public');
 
+function lastHexDeclaration(styles: string, selector: string, property: string): string {
+  const blocks = /([^{}]+)\{([^{}]*)\}/g;
+  let value: string | undefined;
+
+  for (const match of styles.matchAll(blocks)) {
+    if (!match[1].split(',').map((item) => item.trim()).includes(selector)) continue;
+    const declaration = match[2].match(new RegExp(`${property}\\s*:\\s*([^;]+)`))?.[1];
+    const hex = declaration?.match(/#[0-9a-f]{6}/i)?.[0];
+    if (hex) value = hex;
+  }
+
+  if (!value) throw new Error(`No hex ${property} found for ${selector}`);
+  return value;
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const channels = (hex: string) => [0, 2, 4].map((offset) => parseInt(hex.slice(1 + offset, 3 + offset), 16) / 255).map((channel) => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const luminance = (hex: string) => {
+    const [red, green, blue] = channels(hex);
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  };
+  const light = luminance(foreground);
+  const dark = luminance(background);
+  return (Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05);
+}
+
 describe('Misfits platform assets', () => {
   it('ships the supplied club artwork as its install icon', () => {
     const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as {
@@ -23,5 +49,29 @@ describe('Misfits platform assets', () => {
 
     expect(styleSource).toContain("'unsafe-inline'");
     expect(scriptSource).not.toContain("'unsafe-inline'");
+  });
+
+  it('describes a luxury private-club experience in the document metadata', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+
+    expect(document).toContain('luxury private-club darts league');
+  });
+
+  it('keeps the small red accents at WCAG AA contrast on both dark surfaces', () => {
+    const styles = readFileSync(resolve(process.cwd(), 'src/client/styles.css'), 'utf8');
+    const foreground = lastHexDeclaration(styles, '.hero-kicker', 'color');
+    expect(foreground).toBe(lastHexDeclaration(styles, '.eyebrow', 'color'));
+
+    for (const background of [lastHexDeclaration(styles, '.brand-header', 'background'), lastHexDeclaration(styles, '.page-intro', 'background')]) {
+      expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('keeps one theme color aligned with the manifest', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as { theme_color?: string };
+    const themeColors = [...document.matchAll(/<meta name="theme-color" content="([^"]+)"\s*\/>/g)].map((match) => match[1]);
+
+    expect(themeColors).toEqual([manifest.theme_color]);
   });
 });

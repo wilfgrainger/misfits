@@ -42,11 +42,10 @@ export async function listUserLeagues(db: D1Database, userId: string): Promise<L
     `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.status,
             leagues.points_per_win, leagues.target_legs, leagues.created_at, leagues.updated_at,
             leagues.created_by, leagues.max_players, leagues.matches_per_pair, leagues.visibility
-       FROM leagues LEFT JOIN league_players ON league_players.league_id = leagues.id
-      WHERE (leagues.created_by = ? OR (league_players.user_id = ? AND league_players.active = 1))
-      GROUP BY leagues.id
+       FROM leagues JOIN league_players ON league_players.league_id = leagues.id
+      WHERE league_players.user_id = ? AND league_players.active = 1
       ORDER BY leagues.status = 'OPEN' DESC, leagues.updated_at DESC, leagues.name ASC`,
-  ).bind(userId, userId).all<LeagueRecord>();
+  ).bind(userId).all<LeagueRecord>();
   return result.results;
 }
 

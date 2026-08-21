@@ -34,10 +34,10 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
       shared.adminLeagues = [createdLeague];
       return Promise.resolve({ league: createdLeague });
     }
-    updateAdminLeague() {
-      const updatedLeague = { ...createdLeague, status: 'CLOSED' as const };
-      shared.myLeagues = [updatedLeague];
-      shared.adminLeagues = [updatedLeague];
+    updateAdminLeague(leagueId: string) {
+      const league = leagueId === secondLeague.id ? secondLeague : createdLeague;
+      const updatedLeague = { ...league, status: 'CLOSED' as const };
+      shared.adminLeagues = shared.adminLeagues.map((item) => item.id === updatedLeague.id ? updatedLeague : item);
       return Promise.resolve({ league: updatedLeague });
     }
     standings() { return Promise.resolve({ standings: [] }); }
@@ -70,7 +70,7 @@ describe('club administration visibility', () => {
     expect(screen.queryByRole('button', { name: 'Create league' })).toBeNull();
   });
 
-  it('keeps the player workspace on the league selected in the league desk', async () => {
+  it('keeps the player workspace selection separate from the league desk', async () => {
     state.multipleLeagues = true;
     state.user.role = 'ADMIN';
     render(<App />);
@@ -80,7 +80,58 @@ describe('club administration visibility', () => {
     await waitFor(() => expect(within(adminRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
     fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Thursday Club' })).toBeTruthy());
-    expect(screen.getByLabelText('Thursday Club table')).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
+    expect(screen.getByLabelText('Tuesday Club table')).toBeTruthy();
+    expect(screen.queryByLabelText('Thursday Club table')).toBeNull();
+  });
+
+  it('keeps admin desk selection separate from player workspace selection', async () => {
+    state.user.role = 'ADMIN';
+    state.myLeagues = [{
+      id: 'league-created', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const,
+      pointsPerWin: 2, targetLegs: 3, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
+    }];
+    state.adminLeagues = [
+      ...state.myLeagues,
+      {
+        id: 'league-second', name: 'Thursday Club', slug: 'thursday-club', seasonName: '2026', status: 'OPEN' as const,
+        pointsPerWin: 2, targetLegs: 5, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
+      },
+    ];
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByLabelText('Tuesday Club table')).toBeTruthy());
+    fireEvent.click(within(screen.getByRole('region', { name: 'League desk' })).getByRole('button', { name: /Thursday Club/ }));
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
+    expect(screen.getByLabelText('Tuesday Club table')).toBeTruthy();
+    expect(screen.queryByLabelText('Thursday Club table')).toBeNull();
+  });
+
+  it('does not add an admin-only league to the player workspace after saving', async () => {
+    state.user.role = 'ADMIN';
+    state.myLeagues = [{
+      id: 'league-created', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const,
+      pointsPerWin: 2, targetLegs: 3, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
+    }];
+    state.adminLeagues = [
+      ...state.myLeagues,
+      {
+        id: 'league-second', name: 'Thursday Club', slug: 'thursday-club', seasonName: '2026', status: 'OPEN' as const,
+        pointsPerWin: 2, targetLegs: 5, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
+      },
+    ];
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByLabelText('Tuesday Club table')).toBeTruthy());
+    const adminRegion = screen.getByRole('region', { name: 'League desk' });
+    fireEvent.click(within(adminRegion).getByRole('button', { name: /Thursday Club/ }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Manage Thursday Club' })).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() => expect(screen.getByText('League settings saved.')).toBeTruthy());
+    expect(screen.getByLabelText('Tuesday Club table')).toBeTruthy();
+    expect(screen.queryByLabelText('Thursday Club table')).toBeNull();
   });
 });

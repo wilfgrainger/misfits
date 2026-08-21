@@ -1,25 +1,25 @@
-:root { color: #eee5d2; background: #050505; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+:root { color: #efe7d7; background: #070706; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: #0b0d0c; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: #070706; }
 button, input { font: inherit; }
 button { min-height: 48px; }
 .shell { min-height: 100dvh; display: grid; align-items: start; justify-items: center; padding: 0; background: #050505; }
 .shell-panel { width: 100%; min-height: 100dvh; padding: 0 0 2rem; overflow: hidden; background: #eee5d2; }
 .shell-panel-wide { width: 100%; }
 .brand-header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: .8rem; padding: calc(.7rem + env(safe-area-inset-top)) 1rem .7rem; background: rgb(5 5 5 / 96%); border-bottom: 1px solid #342f2a; backdrop-filter: blur(12px); }
-.brand-mark { display: block; width: 3.5rem; aspect-ratio: 1; flex: 0 0 auto; object-fit: cover; border-radius: 50%; background: #050505; border: 1px solid #756a5c; }
+.brand-mark { display: block; width: 4.4rem; height: 3.4rem; flex: 0 0 auto; object-fit: contain; border-radius: .45rem; background: #050505; border: 1px solid #756a5c; }
 .brand-mark-generic { display: grid; place-items: center; color: #f1ead7; background: #17231e; font-size: .92rem; font-weight: 900; letter-spacing: .06em; }
 .brand-meta { display: grid; gap: .4rem; min-width: 0; }
 .eyebrow { margin: 0; color: #b83b35; font-size: .78rem; letter-spacing: .12em; font-weight: 850; }
 .online-label { color: #b9aa96; font-size: .68rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
-.page-intro { padding: 2.2rem 1rem 1.5rem; background: radial-gradient(circle at 85% 0%, rgb(174 33 29 / 20%), transparent 36%), #090909; border-bottom: 1px solid #342f2a; }
+.page-intro { padding: 2.8rem 1rem 1.8rem; background: radial-gradient(circle at 86% 0%, rgb(184 59 53 / 18%), transparent 34%), #090909; border-bottom: 1px solid #4a4035; }
 .hero-kicker { margin: 0 0 .8rem; color: #ba2925; font-size: .7rem; font-weight: 900; letter-spacing: .16em; }
 h1 { max-width: 11ch; margin: 0; color: #17231e; font-size: 2.5rem; line-height: .95; letter-spacing: 0; }
 h1 { color: #eee5d2; text-transform: uppercase; letter-spacing: -.04em; }
 h1 em { color: #ba2925; font-family: Georgia, serif; font-weight: 500; text-transform: none; }
 .intro { max-width: 32rem; margin: 1rem 0 0; color: #b9aa96; }
 .club-links { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.25rem; }
-.club-links a, .club-links span { padding: .5rem .7rem; color: #eee5d2; border: 1px solid #514940; border-radius: 999px; font-size: .75rem; font-weight: 800; text-decoration: none; }
+.club-links a, .club-links span { padding: .5rem .7rem; color: #efe7d7; border: 1px solid #655847; border-radius: 999px; font-size: .75rem; font-weight: 800; text-decoration: none; }
 .google-button-slot { width: calc(100% - 2rem); min-height: 44px; margin: 1.25rem 1rem 0; overflow: hidden; }
 .google-button-slot > div { max-width: 100%; }
 .primary-button, .secondary-button { width: 100%; border: 0; border-radius: 6px; cursor: pointer; font-weight: 750; padding: .8rem 1rem; }
@@ -58,7 +58,7 @@ h1 em { color: #ba2925; font-family: Georgia, serif; font-weight: 500; text-tran
 .player-tag-suspended { color: #7d2927; background: #ead0c9; }
 .player-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
 .player-note { color: #536058; font-size: .85rem; font-weight: 750; }
-.shell-stamp { display: block; margin: 1.5rem 1rem 0; color: #7b8278; }
+.shell-stamp { display: block; margin: 1.5rem 1rem 0; color: #81776a; }
 
 @media (min-width: 681px) {
   .shell { min-height: 100vh; padding: 2rem 1.5rem; background: #0b0d0c; }
@@ -79,6 +79,23 @@ h1 em { color: #ba2925; font-family: Georgia, serif; font-weight: 500; text-tran
   .player-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; }
   .action-button { width: auto; }
 }
+
+/* Misfits 501 club finish: quiet surfaces, warm type, one sharp red accent. */
+.shell-panel { background: #f3ecdf; color: #171614; }
+.brand-header { background: #070706; border-bottom-color: #4a4035; }
+.page-intro { box-shadow: inset 0 -1px 0 rgb(255 255 255 / 4%); }
+.public-home, .sign-in-panel, .member-area, .admin-desk, .player-workspace { border-top-color: #c9bda9; }
+.section-kicker, .workspace-kicker, .hero-kicker, .eyebrow { color: #d66a5d; }
+.club-links a:focus-visible, .club-links span:focus-visible, .league-tab:focus-visible, .content-tab:focus-visible, .header-signout:focus-visible { outline: 3px solid #b83b35; outline-offset: 3px; }
+.primary-button { color: #f4ecdd; background: #171614; }
+.secondary-button, .refresh-button, .action-button { border-color: #a99780; color: #292621; }
+.league-tab, .picker-item, .count-label, .invite-box { background: #e8dfd0; }
+.league-tab-active, .picker-item-active { background: #171614; border-color: #171614; }
+select, textarea, .onboarding-form input, .stack-form input, .result-form input, .compact-form input { color: #171614; background: #fffdf8; border-color: #b9aa96; }
+h2, h3, .workspace h2, .standing-player strong, .standing-points, .picker-item strong, .invite-box code, .stack-form label, .result-form label, .compact-form label { color: #171614; }
+.account-role, .sign-in-copy, .public-meta, .empty-member p:not(.section-kicker), .form-help, .admin-section-caption, .loading-message, .empty-message, .standing-player small, .standing-record, .result-meta, .player-identity span, .online-label { color: #645b50; }
+.brand-header .online-label { color: #b9aa96; }
+.player-tag { color: #645b50; background: #e8dfd0; }
 
 /* Mobile league workspace */
 h2, h3 { color: #17231e; }
