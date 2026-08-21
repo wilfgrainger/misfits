@@ -1,6 +1,6 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026, 17:11 BST  
+**Updated:** 21 August 2026, 17:15 BST  
 **Current branch:** `feat/master-user-stories-100`  
 **Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**  
 **Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
@@ -16,121 +16,115 @@
 
 ## Current delivery goal
 
-Deliver **100% of the canonical 150-story backlog** through one draft PR, using story/epic-level TDD and preserving the one-club architecture:
+Deliver **100% of the canonical 150-story backlog** through one draft PR, using story/epic-level TDD:
 
 `Season → League → League Membership → persisted Fixture → Result settlement → Standings → Promotion/Relegation → Next Season`
 
-The PR must remain draft until all 150 stories have implementation + evidence and the release ledger test proves none remain `MISSING`, `PARTIAL`, `GATED`, or `CURRENT/PARTIAL`.
+PR #9 remains draft until all 150 stories have implementation + evidence and the release ledger proves none remain incomplete.
 
 ## Non-negotiable boundaries
 
-- Misfits 501 remains one club, not white-label or multi-tenant.
-- DartCounter remains the live scorer; Misfits records and settles club competition data.
-- Google Identity Services remains the only sign-in method.
-- Core runtime remains one Cloudflare Worker, static assets and one D1 database.
-- No paid Cloudflare service, queue, R2, Durable Object, scheduled job or background polling.
-- D1 migrations are additive only. Never edit already-applied migrations.
-- Worker-side auth, authorization, same-origin mutation checks, privacy and audit requirements remain intact.
-- Production deploy occurs only after the complete PR is verified, required remote additive migration is manually applied, and the merged `main` deployment is observed.
+- One Misfits 501 club; no white-label/multi-tenancy.
+- DartCounter remains live scorer; Misfits records and settles competition data.
+- Google Identity Services only.
+- One Worker + static assets + one D1 database; no paid service/queue/R2/Durable Object/scheduled polling.
+- Additive migrations only; never edit applied migrations.
+- Worker auth/authorization, same-origin mutation protection, privacy and audit trail remain mandatory.
+- Production deploy only after verified PR + manually applied remote migration + merge to main.
 
 ## Execution status
 
 ### Task 0 — Branch, PR and plan — COMPLETE
 
-- Branch `feat/master-user-stories-100` from `main`.
-- Draft PR **#9**.
+- Branch `feat/master-user-stories-100`.
+- Draft PR #9.
 - Plan: `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`.
-- PR completion gate: 88/88 Admin + 55/55 Player + 7/7 Public delivered with evidence.
 
 ### Task 1 — Competition schema/domain spine — COMPLETE AS FOUNDATION
 
-**RED:** commit `8971e846cadde0d5a26525b4125ae844cbecbfac`, Actions run `32500303728` failed because `tests/domain/competition.test.ts` imported the intentionally missing competition domain. Existing 127 tests passed.
-
-**GREEN:** schema/domain/persistence added:
-
-- `src/server/domain/competition.ts`;
-- additive `migrations/0004_seasons_fixtures_promotion.sql`;
-- `src/server/db/competition.ts`;
-- migration coverage in `tests/server/schema.test.ts`.
-
-Actions run `32500530742`: Wrangler types, TypeScript, full tests and production build **SUCCESS**.
+- **RED:** commit `8971e846cadde0d5a26525b4125ae844cbecbfac`, run `32500303728` failed because the new competition domain intentionally did not yet exist.
+- **GREEN:** `src/server/domain/competition.ts`, additive migration `0004_seasons_fixtures_promotion.sql`, `src/server/db/competition.ts`, schema tests.
+- Run `32500530742`: Wrangler types + TypeScript + tests + build **SUCCESS**.
 
 ### Task 2 — Season + division administration APIs — COMPLETE AS BACKEND SLICE
 
-**RED:** commit `f69d8656e3abcc9212ef6ad135dd9dea006bad8a`, Actions run `32500761639` failed after adding season/division route tests before the route existed.
-
-**GREEN:** added:
-
-- `src/server/db/competition-leagues.ts`;
-- `src/server/routes/competition.ts`;
-- competition route mount in `src/server/index.ts`;
-- `tests/server/competition-routes.test.ts`.
-
-Covered admin auth, season create/list/open/close, season-scoped league create, hierarchy + promotion/relegation configuration, and protected non-empty deletion.
-
-Actions run `32500908777`: Wrangler types, TypeScript, full tests and build **SUCCESS**.
+- **RED:** commit `f69d8656e3abcc9212ef6ad135dd9dea006bad8a`, run `32500761639` failed after route tests were written before implementation.
+- **GREEN:** `src/server/db/competition-leagues.ts`, `src/server/routes/competition.ts`, route mount, `tests/server/competition-routes.test.ts`.
+- Run `32500908777`: complete verify pipeline **SUCCESS**.
 
 ### Task 3 — Season-aware membership + invites — COMPLETE AS BACKEND SLICE
 
-#### Placement RED
+- **Placement RED:** commit `44016f11154108629a096c8206b276c1089d7853`, run `32501116652` **FAILURE** before membership endpoints.
+- **Invite RED:** commit `740924c401a051766d223a2ed6e82dcf0706c091`, run `32501262145` **FAILURE**, proving second same-season placement was possible before the fix.
+- **GREEN:** explicit unassigned/assign/move endpoints, season-aware invite placement, same-season uniqueness, move lock after fixture/result creation, season context returned from join.
+- Run `32501386742`: full verify pipeline **SUCCESS**.
 
-Commit `44016f11154108629a096c8206b276c1089d7853` added `tests/server/competition-membership.test.ts` before the corresponding membership endpoints existed.
+### Task 4 — Persisted fixture engine + admin APIs — COMPLETE AS BACKEND SLICE
 
-Actions run `32501116652`: **FAILURE**, as intended for the red phase.
+#### RED
 
-#### Invite RED
+Commit `fc9496f9ce4347c69e5617b61bc11b54708c225e` added `tests/server/fixtures.test.ts` before fixture administration endpoints existed.
 
-Commit `740924c401a051766d223a2ed6e82dcf0706c091` added `tests/server/season-invite.test.ts`, proving the old invite model could create a second active league placement in the same season and did not persist explicit season placement for the join.
+Actions run `32501571588`: **FAILURE**, as intended.
 
-Actions run `32501262145`: **FAILURE**, as intended.
+#### GREEN
 
-#### GREEN implementation
+`src/server/routes/competition.ts` now exposes:
 
-- `src/server/routes/competition.ts`
-  - `GET /api/admin/seasons/:seasonId/unassigned`;
-  - `GET /api/admin/competition/leagues/:leagueId/members`;
-  - `POST /api/admin/seasons/:seasonId/members/:userId/assign`;
-  - `POST /api/admin/seasons/:seasonId/members/:userId/move`.
-- Existing `src/server/db/competition.ts` helpers now drive explicit placement and lock moves after fixtures/results exist.
-- `src/server/db/invites.ts`
-  - reads target league's season;
-  - rejects a second active division in the same season;
-  - persists `season_id` on new/re-activated membership;
-  - retains idempotent same-league joining and capacity protection;
-  - includes season in the membership audit payload.
-- `src/server/routes/leagues.ts` returns `seasonId` after invite join.
+- `GET /api/admin/competition/leagues/:leagueId/fixtures/preview`;
+- `GET /api/admin/competition/leagues/:leagueId/fixtures?status=...`;
+- `POST /api/admin/competition/leagues/:leagueId/fixtures`;
+- `DELETE /api/admin/competition/leagues/:leagueId/fixtures`;
+- `PATCH /api/admin/competition/fixtures/:fixtureId` for controlled VOID/OUTSTANDING administration.
 
-Latest checkpoint commit `dbc00d53f19bf4853828aaa66fc4051c4b361683`.
+The backend proves:
 
-Actions run `32501386742`: Wrangler types, TypeScript, full `npm test`, and `npm run build` all **SUCCESS**. Production deploy correctly skipped on PR branch.
+- preview has no database side effect;
+- expected fixture count is deterministic;
+- generated fixtures have stable persisted IDs;
+- repeated generation is idempotent;
+- round/meeting identity is preserved;
+- state filtering works;
+- exceptional fixture void/restore is auditable;
+- reset/regeneration works before play;
+- destructive reset is blocked after any fixture leaves OUTSTANDING or has an active result.
+
+Latest checkpoint commit: `e5f3b897c5c94dc9934b1ee22999623e57aa5469`.
+
+Actions run `32501634814`: **SUCCESS**.
+
+Fresh evidence from CI:
+
+- Wrangler types: success;
+- TypeScript: success;
+- **34 test files / 149 tests passed**;
+- production Vite build: success;
+- deploy: skipped correctly on PR branch.
 
 ### Story ledger status
 
-No story is being prematurely marked `DELIVERED` from backend-only evidence. `docs/superpowers/specs/2026-08-21-user-stories.md` remains the story-level authority, and a story changes to `DELIVERED` only when its complete acceptance criteria, including UI where applicable, are evidenced.
-
-Backend prerequisites now exist for the bulk of ADM-010–ADM-045 and PLY-002/PLY-004, but the user-facing story surfaces are still pending.
+Backend prerequisites now exist for season/division management, explicit league placement, fixture generation and much of ADM-010–ADM-059. Stories remain non-`DELIVERED` until their complete acceptance criteria, including user-facing UI where required, are evidenced.
 
 ## Exact next actions
 
-1. **Task 4 now:** fixture preview/commit/list/filter/void/restore/regeneration APIs with red tests for fixture counts, byes, repeats, idempotency and post-play protection.
-2. Task 5: fixture-based result settlement; synchronize fixture + result states for submit/confirm/dispute/admin correction/delete.
-3. Task 6: promotion/relegation projection, review, override, apply to next season.
-4. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public competition view.
-5. Task 11: update all 150 story rows with `DELIVERED` + evidence; release parser must require exactly 150 unique delivered stories.
-6. Task 12: full verification, Superpowers completion review, Cave Pony review, PR readiness, manual remote D1 migration, merge, observe production deployment and production smoke-test.
+1. **Task 5 now:** fixture-based result settlement. Add red tests proving an outstanding fixture is required, duplicate settlement is impossible, submission changes fixture to PENDING_CONFIRMATION, confirm → CONFIRMED, dispute → DISPUTED, admin deletion/correction restores/synchronizes fixture correctly.
+2. Task 6: promotion/relegation projection, review, override and next-season application.
+3. Tasks 7–10: typed client API, Admin UI, Player fixture-first UI, Public competition view.
+4. Task 11: every one of 150 story rows receives `DELIVERED` + test/evidence reference; release parser requires exactly 150 unique delivered IDs.
+5. Task 12: full verification + Superpowers completion review + Cave Pony review + manual remote D1 migration + merge + observed main deploy + production smoke test.
 
 ## Resume instructions for a new agent
 
 If this session dies:
 
-1. Work only from branch `feat/master-user-stories-100` / draft PR #9.
-2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, then the canonical story spec, implementation plan and this file.
+1. Use branch `feat/master-user-stories-100` / draft PR #9.
+2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, canonical user-stories spec, implementation plan, then this file.
 3. Use Superpowers `executing-plans`, TDD and verification-before-completion.
-4. Resume at **Task 4** unless a later checkpoint has replaced this one.
-5. Never mark a story complete from inference. Require implementation + focused test/evidence.
-6. Update this file after each red/green/CI checkpoint.
-7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level whenever a story reaches full `DELIVERED` state.
+4. Resume at **Task 5** unless a newer checkpoint supersedes this one.
+5. Do not infer completion. Require code + focused test/evidence.
+6. Update this file after every red/green/CI checkpoint.
+7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level only when the full story is delivered.
 
 ## Known operational constraint
 
-The chat container could not clone GitHub because external GitHub DNS/network access failed. GitHub repository actions and GitHub Actions are the isolated execution/verification environment. Do not claim local command evidence that was not actually run.
+The chat container could not clone GitHub because external GitHub DNS/network access failed. GitHub repository actions and GitHub Actions are the isolated execution/verification environment. Do not claim local command evidence that did not run.
