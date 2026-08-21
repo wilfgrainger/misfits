@@ -32,15 +32,15 @@
 - Modify: `src/client/styles.css`
 
 **Interfaces:**
-- Consumes: `StandingRow` from `src/client/api.ts` and optional `highlightPlayerId?: string`.
-- Produces: `StandingsTable({ standings, leagueName, highlightPlayerId })`, a semantic `<table>` labelled with `leagueName + ' standings'`.
-- Later tasks rely on its visible headers `Pos`, `Player`, `P`, `W-L`, `Avg`, and `Pts` and its `.standings-table-wrap` / `.standings-table` classes.
+- Consumes: `StandingRow` from `src/client/api.ts`, a caller-supplied accessible `label: string`, and optional `highlightPlayerId?: string`.
+- Produces: `StandingsTable({ standings, label, highlightPlayerId })`, a semantic `<table>` labelled with the exact supplied `label`.
+- Later tasks rely on its visible headers `Pos`, `Player`, `P`, `W-L`, `Avg`, and `Pts` and its `.standings-scroll` / `.standings-table` classes.
 
 - [ ] **Step 1: Write the failing component test**
 
 ```tsx
 it('labels every standings value so a visitor can read the table without guessing', () => {
-  render(<StandingsTable leagueName="Misfits 501" standings={[{ playerId: 'wilf', username: 'Wilf', rank: 1, played: 4, won: 3, lost: 1, average: 47.25, points: 6 }]} />);
+  render(<StandingsTable label="Misfits 501 standings" standings={[{ playerId: 'wilf', username: 'Wilf', rank: 1, played: 4, won: 3, lost: 1, average: 47.25, points: 6 }]} />);
 
   expect(screen.getByRole('table', { name: 'Misfits 501 standings' })).toBeTruthy();
   for (const label of ['Pos', 'Player', 'P', 'W-L', 'Avg', 'Pts']) expect(screen.getByRole('columnheader', { name: label })).toBeTruthy();
@@ -57,9 +57,9 @@ Expected: FAIL because `StandingsTable` does not yet exist.
 - [ ] **Step 3: Implement the smallest semantic table**
 
 ```tsx
-export function StandingsTable({ standings, leagueName, highlightPlayerId }: StandingsTableProps) {
-  return <div className="standings-table-wrap" tabIndex={0}>
-    <table className="standings-table" aria-label={`${leagueName} standings`}>
+export function StandingsTable({ standings, label, highlightPlayerId }: StandingsTableProps) {
+  return <div className="standings-scroll" role="region" aria-label={label} tabIndex={0}>
+    <table className="standings-table" aria-label={label}>
       <thead><tr><th scope="col">Pos</th><th scope="col">Player</th><th scope="col">P</th><th scope="col">W-L</th><th scope="col">Avg</th><th scope="col">Pts</th></tr></thead>
       <tbody>{standings.map((row) => <tr className={row.playerId === highlightPlayerId ? 'standing-row-you' : undefined} key={row.playerId}><td>{row.rank}</td><th scope="row">{row.username}</th><td>{row.played}</td><td>{row.won}-{row.lost}</td><td>{row.average.toFixed(2)}</td><td>{row.points}</td></tr>)}</tbody>
     </table>
@@ -90,8 +90,10 @@ git commit -m "feat: make Misfits standings readable"
 
 **Files:**
 - Modify: `src/client/App.tsx`
+- Modify: `src/client/auth/GoogleAuth.ts`
 - Modify: `src/client/styles.css`
 - Modify: `tests/client/public-league.test.tsx`
+- Modify: `tests/client/google-auth.test.ts`
 
 **Interfaces:**
 - Consumes: the existing `GoogleAuth` mount target, `publicLeagues`, `selectedPublicLeague`, and `PublicLeagueView` API calls.
@@ -127,7 +129,7 @@ Replace the signed-out `landing-hero` and `landing-seal` render paths with a com
 
 - [ ] **Step 4: Apply the public CSS composition**
 
-Delete the absolute signed-out header, giant `landing-hero`, and `landing-seal` rules. Add a compact `.public-intro` with a dark but high-contrast surface, a normal header, paper record content, an 320px-safe Google mount width, and no document-level horizontal overflow. Keep the single, subtle public intro reveal behind `prefers-reduced-motion: no-preference`.
+Delete the absolute signed-out header, giant `landing-hero`, and `landing-seal` rules. Add a compact `.public-intro` with a dark but high-contrast surface, a normal header, paper record content, an 320px-safe Google mount width, and no document-level horizontal overflow. In `GoogleAuth`, calculate the Google Identity button from the slot's `parent.clientWidth` and clamp it from 200px to 400px; add a focused test for that width calculation. Keep the single, subtle public intro reveal behind `prefers-reduced-motion: no-preference`.
 
 - [ ] **Step 5: Run focused tests to verify GREEN**
 
@@ -138,7 +140,7 @@ Expected: PASS; shared-link copy and Google mount contracts remain unchanged.
 - [ ] **Step 6: Commit the public-record change**
 
 ```powershell
-git add -- src/client/App.tsx src/client/styles.css tests/client/public-league.test.tsx
+git add -- src/client/App.tsx src/client/auth/GoogleAuth.ts src/client/styles.css tests/client/public-league.test.tsx tests/client/google-auth.test.ts
 git commit -m "feat: lead Misfits with the club table"
 ```
 
@@ -319,7 +321,7 @@ Expected: FAIL until the completed Tasks 1–4 outputs are present; if it alread
 
 - [ ] **Step 3: Implement the stylesheet consolidation**
 
-Replace legacy poster styles with a compact tokenised system: paper/ink/rule/red variables; line-height and measure rules; table overflow isolated to `.standings-table-wrap`; tabular numerals; selection, caret, scrollbar, and underline styling; hover/disabled/empty/error/loading states; and one restrained public intro reveal. Do not use gradients, giant type, repeated artwork, coloured metric cards, decorative kicker labels, or pill navigation.
+Replace legacy poster styles with a compact tokenised system: paper/ink/rule/red variables; line-height and measure rules; table overflow isolated to `.standings-scroll`; tabular numerals; selection, caret, scrollbar, and underline styling; hover/disabled/empty/error/loading states; and one restrained public intro reveal. Do not use gradients, giant type, repeated artwork, coloured metric cards, decorative kicker labels, or pill navigation.
 
 - [ ] **Step 4: Run the structural test to verify GREEN**
 
@@ -365,9 +367,9 @@ Expected: all commands exit 0; detector is clean or has documented, resolved fin
 
 - [ ] **Step 2: Run the built application locally**
 
-Run: `npm run dev -- --host 127.0.0.1`
+Run: `npm run db:migrate:local`, then `npm run build`, then `npm run dev:worker -- --local --port 8787`.
 
-Open the local URL in the controlled browser and inspect public 320px, 390px, and desktop viewports. Check one logo, readable copy, semantic table, no horizontal document overflow, visible controls, selection/focus, and no console errors.
+Open `http://127.0.0.1:8787/` in the controlled browser and inspect public 320px, 390px, and desktop viewports. Check one logo, readable copy, semantic table, no horizontal document overflow, visible controls, selection/focus, and no console errors. Do not use a Vite-only dev server as API-integration proof.
 
 - [ ] **Step 3: Conduct independent final review passes**
 
@@ -383,9 +385,9 @@ git push origin codex/implement-misfits-club-v4
 
 Observe the branch's GitHub Actions run to completion; record the commit SHA and CI result.
 
-- [ ] **Step 5: Deploy through the existing protected production path and inspect it live**
+- [ ] **Step 5: Deploy through the existing production path and inspect it live**
 
-The existing workflow deploys on `main`. Integrate only the verified redesign commit through the repository's normal main-branch process, observe the production deploy, then inspect `https://darts.graingers.agency/` at 320px, 390px, and desktop. Record the deployed SHA, public page geometry, console state, and any authenticated-flow proof boundary.
+The existing workflow deploys on `main`, but `main` has no configured branch protection. Create a draft pull request for the verified feature branch, observe its exact-SHA CI, then merge only through that reviewed PR flow. Observe the production deploy and inspect `https://darts.graingers.agency/` at 320px, 390px, and desktop. Record the deployed SHA, public page geometry, console state, and any authenticated-flow proof boundary.
 
 - [ ] **Step 6: Produce the final evidence report**
 
