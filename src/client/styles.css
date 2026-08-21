@@ -83,6 +83,9 @@ details.create-season-disclosure summary:focus-visible { outline: 3px solid var(
 .public-league { margin-top: 1.5rem; }
 .public-league-actions, .review-actions, .modal-actions, .inline-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
 .public-league-actions { justify-content: flex-end; }
+@media (max-width: 680px) {
+  .public-league-actions { justify-content: flex-start; }
+}
 .public-league-actions .action-button, .review-actions .primary-button, .review-actions .secondary-button, .modal-actions .primary-button, .modal-actions .secondary-button, .inline-actions .action-button { width: auto; margin-top: 0; }
 .league-tabs, .content-tabs, .admin-tabs { display: flex; gap: 0; overflow-x: auto; margin: 1.15rem 0 0; padding: 0; border-bottom: 2px solid var(--rule); scrollbar-width: thin; }
 .league-tab { display: grid; min-width: 9.5rem; min-height: 4.25rem; flex: 0 0 auto; gap: .15rem; padding: .75rem .9rem; color: var(--muted); text-align: left; background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; cursor: pointer; transition: all .15s ease; }
