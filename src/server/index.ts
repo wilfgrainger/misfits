@@ -7,6 +7,7 @@ import { createLeagueRoutes } from './routes/leagues';
 import { createAdminLeagueRoutes } from './routes/admin-leagues';
 import { createResultRoutes } from './routes/results';
 import { createCompetitionRoutes } from './routes/competition';
+import { createSeasonMembershipRoutes } from './routes/season-memberships';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -18,5 +19,6 @@ app.route('/', createLeagueRoutes());
 app.route('/', createAdminLeagueRoutes());
 app.route('/', createResultRoutes());
 app.route('/', createCompetitionRoutes());
+app.route('/', createSeasonMembershipRoutes());
 
 export default app;

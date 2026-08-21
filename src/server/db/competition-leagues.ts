@@ -2,6 +2,13 @@ import { AppError } from '../errors';
 import type { CompetitionLeagueInput } from '../domain/competition';
 import { getCompetitionLeague, getSeason, leagueHasFixturesOrResults, type CompetitionLeagueRecord } from './competition';
 
+async function assertHierarchyAvailable(db: D1Database, seasonId: string, hierarchyPosition: number, excludeLeagueId?: string): Promise<void> {
+  const conflict = excludeLeagueId
+    ? await db.prepare('SELECT id FROM leagues WHERE season_id = ? AND hierarchy_position = ? AND id <> ? LIMIT 1').bind(seasonId, hierarchyPosition, excludeLeagueId).first<{ id: string }>()
+    : await db.prepare('SELECT id FROM leagues WHERE season_id = ? AND hierarchy_position = ? LIMIT 1').bind(seasonId, hierarchyPosition).first<{ id: string }>();
+  if (conflict) throw new AppError('VALIDATION_ERROR', 'Another league already uses this hierarchy position in the season', 409);
+}
+
 export async function createSeasonLeague(
   db: D1Database,
   actorUserId: string,
@@ -12,6 +19,7 @@ export async function createSeasonLeague(
   const season = await getSeason(db, seasonId);
   if (!season) throw new AppError('LEAGUE_NOT_FOUND', 'Season was not found', 404);
   if (season.status === 'CLOSED') throw new AppError('LEAGUE_CLOSED', 'A closed season cannot accept a new league', 409);
+  await assertHierarchyAvailable(db, seasonId, input.hierarchyPosition);
   const id = crypto.randomUUID();
   const at = now.toISOString();
   try {
@@ -76,6 +84,8 @@ export async function updateSeasonLeague(
       before.relegation_places !== input.relegationPlaces;
     if (competitionChanged) throw new AppError('VALIDATION_ERROR', 'Competition rules and hierarchy are locked after fixtures or results exist', 409);
   }
+  if (!before.season_id) throw new AppError('VALIDATION_ERROR', 'League is not attached to a season', 409);
+  await assertHierarchyAvailable(db, before.season_id, input.hierarchyPosition, leagueId);
   const activeCount = await db.prepare('SELECT COUNT(*) AS count FROM league_players WHERE league_id = ? AND active = 1').bind(leagueId).first<{ count: number }>();
   if (Number(activeCount?.count ?? 0) > input.maxPlayers) throw new AppError('LEAGUE_FULL', 'Capacity cannot be lower than the active member count', 409);
   const at = now.toISOString();

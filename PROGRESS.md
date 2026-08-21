@@ -1,121 +1,82 @@
 # Misfits 501 Progress
 
-**Updated:** 21 August 2026, 17:47 BST
-**Current branch:** `feat/master-user-stories-100`
-**Pull request:** `#9` — `feat: deliver master Misfits 501 user-story backlog` — **DRAFT**
-**Base:** `main` at `8f5e7d712c332944b5b73fc58f51d9df199f964c`
+**Updated:** 21 August 2026
+**Current branch:** `feat/story-audit-chunk-2-leagues-memberships`
+**Pull request:** `#12` — `audit chunk 2: leagues, memberships and invites (ADM-019–ADM-045)` — **DRAFT / READY FOR FINAL DOC RE-GATE**
+**Base:** merged Chunk 1 on `main` at `c2fd8599615b1687b5746b49ddd86cfd50263225`
 
 ## Authority
 
 - Product truth: `PRODUCT.md`.
 - Strategic/platform guardrail: `VISION.md`.
 - UI authority: `DESIGN.md` and the repo-local Impeccable skill.
-- Canonical functional backlog: `docs/superpowers/specs/2026-08-21-user-stories.md` — **150 stories: 88 Admin, 55 Player, 7 Public**.
-- Active implementation plan: `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`.
-- Delivery authority: Superpowers. Simplicity/review gate: Cave Pony.
+- Canonical functional backlog: `docs/superpowers/specs/2026-08-21-user-stories.md` — 150 stories: 88 Admin, 55 Player, 7 Public.
+- Story-level verification ledger: `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
+- Delivery authority: Superpowers with TDD and verification-before-completion.
 
-## Current delivery goal
-
-Deliver **100% of the canonical 150-story backlog** through one draft PR, using story/epic-level TDD:
+## Delivery model
 
 `Season → League → League Membership → persisted Fixture → Result settlement → Standings → Promotion/Relegation → Next Season`
 
-PR #9 remains draft until all 150 stories have implementation + evidence and the release ledger proves none remain incomplete.
+The current delivery strategy is **small audited story-ID chunks from fresh `main`**, not the obsolete one-giant-PR implementation line.
 
-## Non-negotiable boundaries
+## Completed audited chunks
 
-- One Misfits 501 club; no white-label/multi-tenancy.
-- DartCounter remains live scorer; Misfits records and settles competition data.
-- Google Identity Services only.
-- One Worker + static assets + one D1 database; no paid service/queue/R2/Durable Object/scheduled polling.
-- Additive migrations only; never edit applied migrations.
-- Worker auth/authorization, same-origin mutation protection, privacy and audit trail remain mandatory.
-- Production deploy only after verified PR + manually applied remote migration + merge to main.
+### Chunk 1 — ADM-001 through ADM-018 — MERGED
 
-## Execution status
+- PR #11 merged to `main` as `c2fd8599615b1687b5746b49ddd86cfd50263225`.
+- Final PR-head run `32523295692` passed Wrangler types, TypeScript, complete Vitest suite and production build.
+- Covers identity/access/governance and season lifecycle.
 
-### Task 0 — Branch, PR and plan — COMPLETE
+### Chunk 2 — ADM-019 through ADM-045 — VERIFIED, PR #12
 
-- Branch `feat/master-user-stories-100`.
-- Draft PR #9.
-- Plan: `docs/superpowers/plans/2026-08-21-master-user-stories-100.md`.
+Scope:
 
-### Task 1 — Competition schema/domain spine — COMPLETE AS FOUNDATION
+- ADM-019–ADM-030: league/division structure and rule integrity.
+- ADM-031–ADM-045: season-scoped league membership and invitation lifecycle.
 
-- **RED:** commit `8971e846cadde0d5a26525b4125ae844cbecbfac`, run `32500303728` failed because the new competition domain intentionally did not yet exist.
-- **GREEN:** `src/server/domain/competition.ts`, additive migration `0004_seasons_fixtures_promotion.sql`, `src/server/db/competition.ts`, schema tests.
-- Run `32500530742`: Wrangler types + TypeScript + tests + build **SUCCESS**.
+Important fixes/evidence added in this chunk:
 
-### Task 2 — Season + division administration APIs — COMPLETE AS BACKEND SLICE
+- explicit unique league hierarchy/order protection;
+- capacity protections and active/member-count overview;
+- consequential league scoring/rule changes protected after competition history exists;
+- same-season membership uniqueness and membership safety;
+- deactivate/reactivate without rewriting history, including race-safe reactivation;
+- reviewed previous-season placement baseline copy into a DRAFT next season;
+- invite creation/share/history/revocation without secret-token re-exposure;
+- invite acceptance idempotency and capacity/race protection;
+- ADM-028 false-ready UI race fixed: an empty league array can no longer be treated as a completed summary.
 
-- **RED:** commit `f69d8656e3abcc9212ef6ad135dd9dea006bad8a`, run `32500761639` failed after route tests were written before implementation.
-- **GREEN:** `src/server/db/competition-leagues.ts`, `src/server/routes/competition.ts`, route mount, `tests/server/competition-routes.test.ts`.
-- Run `32500908777`: complete verify pipeline **SUCCESS**.
+Code fix head `678482dbdf6ddd8e8a6c1a3d110d911500699a17` was verified by CI run `32527260941`:
 
-### Task 3 — Season-aware membership + invites — COMPLETE AS BACKEND SLICE
+- Wrangler types: PASS
+- TypeScript: PASS
+- Vitest: **191/191 tests across 48 files PASS**
+- Vite production build: PASS
+- Deploy Worker: skipped, correctly, because it was a pull-request run
 
-- **Placement RED:** commit `44016f11154108629a096c8206b276c1089d7853`, run `32501116652` **FAILURE** before membership endpoints.
-- **Invite RED:** commit `740924c401a051766d223a2ed6e82dcf0706c091`, run `32501262145` **FAILURE**, proving second same-season placement was possible before the fix.
-- **GREEN:** explicit unassigned/assign/move endpoints, season-aware invite placement, same-season uniqueness, move lock after fixture/result creation, season context returned from join.
-- Run `32501386742`: full verify pipeline **SUCCESS**.
+Story-by-story ADM-019–ADM-045 evidence is now recorded in `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
 
-### Task 4 — Persisted fixture engine + admin APIs — COMPLETE AS BACKEND SLICE
+The audit/progress documentation commits after the code-green head must receive their own final PR-head CI before merge. Do not merge based only on the earlier code-head run.
 
-- **RED:** commit `fc9496f9ce4347c69e5617b61bc11b54708c225e`, run `32501571588` **FAILURE** as intended.
-- **GREEN:** fixture preview/list/commit/reset/status APIs with deterministic IDs/order and protected regeneration.
-- Run `32501634814`: **SUCCESS** — Wrangler + TypeScript + **34 test files / 149 tests** + production build.
+## Superseded delivery line
 
-### Task 5 — Fixture-based result settlement — COMPLETE AS BACKEND SLICE
+The old monolithic implementation line is no longer authoritative:
 
-- **RED:** commit `f85706d922b2a559f05e7ca7a367c13f13a915c7`, run `32501821200` **FAILURE** as intended.
-- **GREEN candidate:** `29104c11000cdb21f3ffae8ea273c76c4e4bd822`.
-- Implemented fixture-authoritative result submission, exactly-one-active-result protection, fixture state synchronization, admin correction/delete integrity and legacy compatibility.
-- Run `32502161438`: **SUCCESS** — Wrangler + TypeScript + **35 test files / 154 tests** + production build; 0 vulnerabilities; deploy skipped.
+- PR #9 `feat: deliver master Misfits 501 user-story backlog` is **CLOSED, not merged**.
+- Branch `feat/master-user-stories-100` is stale/superseded and must not be resumed.
+- Branch `feat/master-user-stories-100-5652729088464527970` has no unique work remaining versus the newer history and is also stale.
+- Any useful behaviour from that line has been reconciled against the audited implementation rather than blindly merged over newer fixes.
 
-### Task 6 — Promotion/relegation + next-season placement — COMPLETE AS BACKEND SLICE
+## Next actions
 
-- **RED:** commit `2c34c67e6bb88bf7f2473a580d40e31e211c2b73`, run `32503035206` **FAILURE** as intended.
-- **GREEN candidate:** `3449f75f90fb418d900b896a513f07f1677c7d22`.
-- Implemented tie ambiguity detection, safe hierarchy edges, finalisation gates, durable proposals, audited overrides, target hierarchy/capacity/conflict prevalidation, idempotent rollover and history preservation.
-- Run `32503576294`: **SUCCESS** — **36 test files / 160 tests**, promotion 6/6, Wrangler + TypeScript + build, 0 vulnerabilities; deploy skipped.
-
-### Task 7 — Typed competition client API — COMPLETE
-
-- **RED:** commit `337174655f8140e24c399f3d00910e148a6f45c8`, run `32503840028` **FAILURE** as intended. All 160 pre-existing tests passed; four new client groups failed on missing methods.
-- **GREEN candidate:** `fb22f4c7bf9acc87e2441d10bc66ee3404d53f90`.
-- Added typed season/league/fixture/membership/promotion models, boundary normalization, season/league/member/fixture/promotion methods and fixture-first result contract.
-- Run `32504086471`: **SUCCESS** — `api.test.ts` 10/10, **36 test files / 164 tests**, Wrangler + TypeScript + production build, 0 vulnerabilities; deploy skipped.
-
-### Task 8 — Administrator competition experience — COMPLETE
-
-- **GREEN:** Created `src/client/components/AdminCompetitionDesk.tsx`, integrated it into `src/client/App.tsx`, updated tests and responsive styling.
-- All 6 admin competition UI contracts pass without weakening.
-
-### Task 9 — Player fixture-first UI — COMPLETE
-
-- **GREEN:** Added `Fixtures` tab in `PlayerLeague.tsx`, enabled fixture-first result recording via `submitFixtureResult`.
-
-### Task 10 — Public competition view — COMPLETE
-
-- **GREEN:** Verified public league record, standings, results, and sharing capabilities.
-
-### Task 11 — User story audit & progress tracking — COMPLETE
-
-- **GREEN:** Audited user story backlog across 150 stories and updated progress tracking.
-- Test suite: **171 tests across 37 files passing GREEN**, TypeScript and production build passing cleanly.
-
-## Resume instructions for a new agent
-
-If this session dies:
-
-1. Use branch `feat/master-user-stories-100` / draft PR #9.
-2. Read `AGENTS.md`, `PRODUCT.md`, `VISION.md`, canonical user-stories spec, implementation plan, then this file.
-3. Use Superpowers `executing-plans`, TDD and verification-before-completion.
-4. Resume at **Task 8 GREEN** unless a newer checkpoint supersedes this one.
-5. Do not infer completion. Require code + focused test/evidence.
-6. Update this file after every red/green/CI checkpoint.
-7. Update `docs/superpowers/specs/2026-08-21-user-stories.md` at story level only when the full story is delivered.
+1. Wait for full CI on the latest PR #12 documentation head.
+2. If and only if Wrangler types, TypeScript, all tests and production build remain green, mark PR #12 ready and merge it to `main` with expected-head protection.
+3. Verify the resulting `main` state / merge commit.
+4. Remove stale `feat/master-user-stories-100` branch references where tooling permits; do not reopen PR #9.
+5. Start Chunk 3 from fresh `main` at **ADM-046** and continue story-by-story.
+6. Keep this file and the story-by-story audit current at every durable checkpoint.
 
 ## Known operational constraint
 
-The chat container cannot resolve GitHub DNS. GitHub repository actions and GitHub Actions remain the isolated execution/verification environment. Do not claim local command evidence that did not run.
+The chat container cannot resolve GitHub DNS. GitHub repository actions and GitHub Actions are the execution/verification environment. Do not claim local command evidence that did not run.

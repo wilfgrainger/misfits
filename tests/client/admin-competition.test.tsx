@@ -154,7 +154,8 @@ describe('administrator competition workspace', () => {
     const { fetchMock } = renderDesk();
     fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
     const structure = await screen.findByRole('list', { name: 'Ordered league structure' });
-    expect(within(structure).getAllByRole('button').map((button) => button.textContent)).toEqual(expect.arrayContaining([
+    const structureButtons = await within(structure).findAllByRole('button');
+    expect(structureButtons.map((button) => button.textContent)).toEqual(expect.arrayContaining([
       expect.stringContaining('1 Premier'), expect.stringContaining('2 Division One'),
     ]));
 

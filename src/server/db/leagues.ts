@@ -20,6 +20,7 @@ export interface LeagueRecord {
 
 export interface LeagueMemberRecord {
   league_id: string;
+  season_id: string | null;
   user_id: string;
   active: number;
   joined_at: string;
@@ -76,7 +77,7 @@ export async function getLeagueById(db: D1Database, id: string): Promise<LeagueR
 
 export async function getMembership(db: D1Database, leagueId: string, userId: string): Promise<LeagueMemberRecord | null> {
   return (await db.prepare(
-    `SELECT league_players.league_id, league_players.user_id, league_players.active,
+    `SELECT league_players.league_id, league_players.season_id, league_players.user_id, league_players.active,
             league_players.joined_at, users.username, users.profile_image_url
        FROM league_players JOIN users ON users.id = league_players.user_id
       WHERE league_players.league_id = ? AND league_players.user_id = ?`,
@@ -85,7 +86,7 @@ export async function getMembership(db: D1Database, leagueId: string, userId: st
 
 export async function listLeagueMembers(db: D1Database, leagueId: string): Promise<LeagueMemberRecord[]> {
   const result = await db.prepare(
-    `SELECT league_players.league_id, league_players.user_id, league_players.active,
+    `SELECT league_players.league_id, league_players.season_id, league_players.user_id, league_players.active,
             league_players.joined_at, users.username, users.profile_image_url
        FROM league_players JOIN users ON users.id = league_players.user_id
       WHERE league_players.league_id = ? ORDER BY users.username COLLATE NOCASE ASC`,
@@ -98,6 +99,15 @@ export async function countActiveMembers(db: D1Database, leagueId: string): Prom
     'SELECT COUNT(*) AS count FROM league_players WHERE league_id = ? AND active = 1',
   ).bind(leagueId).first<{ count: number }>();
   return Number(row?.count ?? 0);
+}
+
+async function leagueHasCompetitionData(db: D1Database, leagueId: string): Promise<boolean> {
+  const row = await db.prepare(
+    `SELECT
+       (SELECT COUNT(*) FROM fixtures WHERE league_id = ?) +
+       (SELECT COUNT(*) FROM matches WHERE league_id = ? AND deleted_at IS NULL) AS count`,
+  ).bind(leagueId, leagueId).first<{ count: number }>();
+  return Number(row?.count ?? 0) > 0;
 }
 
 export async function getManagedLeague(db: D1Database, user: Pick<AuthUser, 'role'>, leagueId: string): Promise<LeagueRecord> {
@@ -138,6 +148,15 @@ export async function createLeague(db: D1Database, actorUserId: string, input: L
 export async function updateLeague(db: D1Database, actorUserId: string, leagueId: string, input: LeagueInput, now = new Date()): Promise<LeagueRecord> {
   const before = await getLeagueById(db, leagueId);
   if (!before) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
+  if (await leagueHasCompetitionData(db, leagueId)) {
+    const scoringRulesChanged =
+      before.points_per_win !== input.pointsPerWin ||
+      before.target_legs !== input.targetLegs ||
+      before.matches_per_pair !== input.matchesPerPair;
+    if (scoringRulesChanged) {
+      throw new AppError('VALIDATION_ERROR', 'Scoring rules and fixture frequency are locked after fixtures or results exist', 409);
+    }
+  }
   const timestamp = now.toISOString();
   const updated = await db.prepare(
     `UPDATE leagues
@@ -162,6 +181,14 @@ export async function setMembershipActive(db: D1Database, actorUserId: string, l
   if (active && before.active !== 1) {
     const league = await getLeagueById(db, leagueId);
     if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
+    if (before.season_id) {
+      const existingSeason = await db.prepare(
+        'SELECT league_id FROM league_players WHERE season_id = ? AND user_id = ? AND active = 1',
+      ).bind(before.season_id, userId).first<{ league_id: string }>();
+      if (existingSeason && existingSeason.league_id !== leagueId) {
+        throw new AppError('VALIDATION_ERROR', 'This player is already active in another league in this season', 409);
+      }
+    }
     const reactivated = await db.prepare(
       `UPDATE league_players SET active = 1
         WHERE league_id = ? AND user_id = ? AND active = 0
