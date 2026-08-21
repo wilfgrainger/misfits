@@ -35,8 +35,11 @@ describe('Google Identity Services client', () => {
 
   it('renders the official Google sign-in button in English and forwards its credential', async () => {
     const google = window.google!;
+    const entry = document.createElement('div');
     const container = document.createElement('div');
-    Object.defineProperty(container, 'getBoundingClientRect', { value: () => ({ width: 320 }) });
+    Object.defineProperty(entry, 'clientWidth', { configurable: true, value: 320 });
+    entry.append(container);
+    document.body.append(entry);
     const onCredential = vi.fn();
     const onClick = vi.fn();
     const cleanup = await new GoogleAuth('client-id').mountButton(container, onCredential, onClick);
@@ -58,5 +61,28 @@ describe('Google Identity Services client', () => {
     expect(onClick).toHaveBeenCalledOnce();
     cleanup();
     expect(container.childNodes).toHaveLength(0);
+    entry.remove();
+  });
+
+  it('fits the Google button to the containing entry width within safe bounds', async () => {
+    const google = window.google!;
+    const cases = [
+      { entryWidth: 180, expectedWidth: '200' },
+      { entryWidth: 320, expectedWidth: '320' },
+      { entryWidth: 460, expectedWidth: '400' },
+    ];
+
+    for (const { entryWidth, expectedWidth } of cases) {
+      const entry = document.createElement('div');
+      const slot = document.createElement('div');
+      Object.defineProperty(entry, 'clientWidth', { configurable: true, value: entryWidth });
+      entry.append(slot);
+      document.body.append(entry);
+
+      await new GoogleAuth('client-id').mountButton(slot, vi.fn(), vi.fn());
+
+      expect(google.accounts.id.renderButton).toHaveBeenLastCalledWith(slot, expect.objectContaining({ width: expectedWidth }));
+      entry.remove();
+    }
   });
 });

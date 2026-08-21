@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const firstLeague = { id: 'league-1', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const, pointsPerWin: 2, targetLegs: 3, maxPlayers: 16, matchesPerPair: 1, visibility: 'PUBLIC' as const };
 const secondLeague = { ...firstLeague, id: 'league-2', name: 'Misfits 501', slug: 'misfits-501' };
 const standings = [{ rank: 1, playerId: 'player-1', username: 'Wilf', played: 4, won: 3, lost: 1, legsFor: 10, legsAgainst: 5, legDifference: 5, average: 51.24, points: 6 }];
+const results = [{ id: 'result-1', leagueId: 'league-1', playerAId: 'player-1', playerBId: 'player-2', playerAUsername: 'Wilf', playerBUsername: 'Sam', playerALegs: 3, playerBLegs: 1, playerAAverage: 51.24, playerBAverage: 47.1, submittedBy: 'player-1', status: 'CONFIRMED' as const, confirmedBy: 'player-2', disputeNote: null, createdAt: '2026-08-21T12:00:00.000Z', confirmedAt: '2026-08-21T12:30:00.000Z' }];
 
 vi.mock('../../src/client/api', () => {
   class MockApiClientError extends Error {
@@ -18,7 +19,7 @@ vi.mock('../../src/client/api', () => {
       return Promise.resolve({ league: { ...league, players: [] }, players: [] });
     }
     standings() { return Promise.resolve({ standings }); }
-    results() { return Promise.resolve({ results: [] }); }
+    results() { return Promise.resolve({ results }); }
   }
   return { ApiClient: MockApiClient, ApiClientError: MockApiClientError };
 });
@@ -55,6 +56,11 @@ describe('public league sharing', () => {
     expect(document.querySelectorAll('img[src="/brand/misfits-501.jpg"]')).toHaveLength(1);
     expect(screen.queryByText('Club darts, properly settled.')).toBeNull();
     expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
+    expect(screen.getByText('First to 3 legs · 2 points per win')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Share season' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Latest results' })).toBeTruthy();
+    expect(screen.getAllByText('Wilf')).toHaveLength(2);
+    expect(screen.getByText('Sam')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Misfits 501 leagues' })).toBeNull();
   });
 

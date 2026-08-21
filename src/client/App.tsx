@@ -49,7 +49,7 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
       <div className="season-record-heading"><div><p className="season-context">{league.seasonName} season</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>Share season</button></div></div>
       {shareMessage && <p className="success-message" role="status">{shareMessage}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
-      <p className="season-rules">First to {league.targetLegs} legs · {league.pointsPerWin} points per win{detail ? ` · ${detail.players.length} active ${detail.players.length === 1 ? 'player' : 'players'}` : ''}</p>
+      <p className="season-rules">First to {league.targetLegs} legs · {league.pointsPerWin} points per win</p>
       <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} />
       {standings.length === 0 && <p className="empty-message">No confirmed results yet.</p>}
       {results.length > 0 && <div className="public-results"><h3>Latest results</h3><ul className="result-list">{results.slice(0, 5).map((result) => <li className="result-row" key={result.id}><div className="result-main"><strong>{result.playerAUsername} <span>{result.playerALegs}</span></strong><span className="result-divider">-</span><strong>{result.playerBUsername} <span>{result.playerBLegs}</span></strong></div><div className="result-meta"><span>{result.playerAAverage.toFixed(2)} / {result.playerBAverage.toFixed(2)} avg</span></div></li>)}</ul></div>}
