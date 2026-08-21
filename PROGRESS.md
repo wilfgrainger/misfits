@@ -1,8 +1,8 @@
 # Misfits 501 Progress
 
 **Updated:** 21 August 2026
-**Current branch:** `codex/implement-misfits-club-v4`
-**Base visibility:** only `origin/codex/review-project-status-and-update-documentation` is available locally; no `origin/main` ref is fetched.
+**Current branch:** `main` (all changes merged and pushed)
+**Base visibility:** origin/main is fetched and synchronized.
 
 ## Authority
 
