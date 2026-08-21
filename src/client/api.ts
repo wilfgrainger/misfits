@@ -23,6 +23,24 @@ export interface AdminPlayerChanges {
   status?: UserSummary['status'];
 }
 
+export type SeasonStatus = 'DRAFT' | 'OPEN' | 'CLOSED';
+
+export interface SeasonSummary {
+  id: string;
+  name: string;
+  status: SeasonStatus;
+  isCurrent: boolean;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+}
+
+export interface SeasonInput {
+  name: string;
+  status: SeasonStatus;
+  isCurrent: boolean;
+}
+
 export interface LeagueSummary {
   id: string;
   name: string;
@@ -35,6 +53,12 @@ export interface LeagueSummary {
   matchesPerPair: number;
   createdBy?: string | null;
   visibility: 'PUBLIC' | 'PRIVATE';
+  seasonId?: string | null;
+  hierarchyPosition?: number;
+  promotionPlaces?: number;
+  relegationPlaces?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LeaguePlayer {
@@ -61,8 +85,102 @@ export interface StandingRow {
   average: number;
 }
 
+export type FixtureStatus = 'OUTSTANDING' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'DISPUTED' | 'VOID';
+
+export interface FixtureSummary {
+  id: string;
+  seasonId: string;
+  leagueId: string;
+  playerAId: string;
+  playerBId: string;
+  pairKey: string;
+  round: number;
+  meetingNumber: number;
+  status: FixtureStatus;
+  createdAt: string;
+  updatedAt: string;
+  voidedAt: string | null;
+  playerAUsername: string | null;
+  playerBUsername: string | null;
+  resultId: string | null;
+}
+
+export interface FixturePreview {
+  seasonId: string;
+  leagueId: string;
+  playerCount: number;
+  matchesPerPair: number;
+  expectedFixtureCount: number;
+  fixtures: Array<{ playerAId: string; playerBId: string; round: number; meetingNumber: number }>;
+}
+
+export interface CompetitionMember {
+  leagueId: string;
+  seasonId: string | null;
+  userId: string;
+  active: boolean;
+  joinedAt: string;
+  username: string | null;
+  profileImageUrl: string | null;
+  email?: string;
+  status?: 'ACTIVE' | 'SUSPENDED';
+}
+
+export interface UnassignedPlayer {
+  id: string;
+  username: string | null;
+  email: string;
+  status: 'ACTIVE' | 'SUSPENDED';
+}
+
+export interface SeasonPlacement {
+  seasonId: string;
+  leagueId: string;
+  userId: string;
+  active: boolean;
+}
+
+export interface AdminCompetitionHealth {
+  unassignedPlayers: number;
+  outstandingFixtures: number;
+  pendingConfirmations: number;
+  disputes: number;
+}
+
+export interface PromotionMovement {
+  id?: string;
+  fromSeasonId?: string;
+  toSeasonId?: string | null;
+  userId: string;
+  fromLeagueId: string;
+  toLeagueId: string | null;
+  fromPosition: number;
+  kind: 'PROMOTED' | 'RELEGATED' | 'MANUAL';
+  status?: 'PROPOSED' | 'APPROVED' | 'APPLIED';
+  reason?: string | null;
+  decidedBy?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PromotionAmbiguity {
+  leagueId: string;
+  boundary: 'PROMOTION' | 'RELEGATION';
+  position: number;
+  tiedUserIds: string[];
+}
+
+export interface PromotionProjection {
+  seasonId: string;
+  provisional: boolean;
+  unresolvedCount: number;
+  movements: PromotionMovement[];
+  ambiguities: PromotionAmbiguity[];
+}
+
 export interface ResultSummary {
   id: string;
+  fixtureId?: string | null;
   leagueId: string;
   playerAId: string;
   playerBId: string;
@@ -103,6 +221,158 @@ export interface ResultInput {
   playerBAverage: number;
 }
 
+export interface FixtureResultInput {
+  fixtureId: string;
+  playerALegs: number;
+  playerBLegs: number;
+  playerAAverage: number;
+  playerBAverage: number;
+}
+
+type JsonRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): JsonRecord {
+  return value !== null && typeof value === 'object' ? value as JsonRecord : {};
+}
+
+function stringValue(row: JsonRecord, ...keys: string[]): string | undefined {
+  for (const key of keys) if (typeof row[key] === 'string') return row[key] as string;
+  return undefined;
+}
+
+function nullableStringValue(row: JsonRecord, ...keys: string[]): string | null | undefined {
+  for (const key of keys) {
+    if (row[key] === null) return null;
+    if (typeof row[key] === 'string') return row[key] as string;
+  }
+  return undefined;
+}
+
+function numberValue(row: JsonRecord, ...keys: string[]): number | undefined {
+  for (const key of keys) if (typeof row[key] === 'number' && Number.isFinite(row[key])) return row[key] as number;
+  return undefined;
+}
+
+function booleanValue(row: JsonRecord, ...keys: string[]): boolean | undefined {
+  for (const key of keys) {
+    if (typeof row[key] === 'boolean') return row[key] as boolean;
+    if (typeof row[key] === 'number') return row[key] === 1;
+  }
+  return undefined;
+}
+
+function normalizeSeason(value: unknown): SeasonSummary {
+  const row = asRecord(value);
+  return {
+    id: stringValue(row, 'id') ?? '',
+    name: stringValue(row, 'name') ?? '',
+    status: (stringValue(row, 'status') ?? 'DRAFT') as SeasonStatus,
+    isCurrent: booleanValue(row, 'isCurrent', 'is_current') ?? false,
+    createdAt: stringValue(row, 'createdAt', 'created_at') ?? '',
+    updatedAt: stringValue(row, 'updatedAt', 'updated_at') ?? '',
+    closedAt: nullableStringValue(row, 'closedAt', 'closed_at') ?? null,
+  };
+}
+
+function normalizeLeague(value: unknown): LeagueSummary {
+  const row = asRecord(value);
+  return {
+    id: stringValue(row, 'id') ?? '',
+    name: stringValue(row, 'name') ?? '',
+    slug: stringValue(row, 'slug') ?? '',
+    seasonName: stringValue(row, 'seasonName', 'season_name') ?? '',
+    status: (stringValue(row, 'status') ?? 'OPEN') as LeagueSummary['status'],
+    pointsPerWin: numberValue(row, 'pointsPerWin', 'points_per_win') ?? 2,
+    targetLegs: numberValue(row, 'targetLegs', 'target_legs') ?? 3,
+    maxPlayers: numberValue(row, 'maxPlayers', 'max_players') ?? 32,
+    matchesPerPair: numberValue(row, 'matchesPerPair', 'matches_per_pair') ?? 1,
+    createdBy: nullableStringValue(row, 'createdBy', 'created_by'),
+    visibility: (stringValue(row, 'visibility') ?? 'PRIVATE') as LeagueSummary['visibility'],
+    seasonId: nullableStringValue(row, 'seasonId', 'season_id'),
+    hierarchyPosition: numberValue(row, 'hierarchyPosition', 'hierarchy_position'),
+    promotionPlaces: numberValue(row, 'promotionPlaces', 'promotion_places'),
+    relegationPlaces: numberValue(row, 'relegationPlaces', 'relegation_places'),
+    createdAt: stringValue(row, 'createdAt', 'created_at'),
+    updatedAt: stringValue(row, 'updatedAt', 'updated_at'),
+  };
+}
+
+function normalizeMember(value: unknown): CompetitionMember {
+  const row = asRecord(value);
+  return {
+    leagueId: stringValue(row, 'leagueId', 'league_id') ?? '',
+    seasonId: nullableStringValue(row, 'seasonId', 'season_id') ?? null,
+    userId: stringValue(row, 'userId', 'user_id') ?? '',
+    active: booleanValue(row, 'active') ?? false,
+    joinedAt: stringValue(row, 'joinedAt', 'joined_at') ?? '',
+    username: nullableStringValue(row, 'username') ?? null,
+    profileImageUrl: nullableStringValue(row, 'profileImageUrl', 'profile_image_url') ?? null,
+    email: stringValue(row, 'email'),
+    status: stringValue(row, 'status') as CompetitionMember['status'],
+  };
+}
+
+function normalizeFixture(value: unknown): FixtureSummary {
+  const row = asRecord(value);
+  return {
+    id: stringValue(row, 'id') ?? '',
+    seasonId: stringValue(row, 'seasonId', 'season_id') ?? '',
+    leagueId: stringValue(row, 'leagueId', 'league_id') ?? '',
+    playerAId: stringValue(row, 'playerAId', 'player_a_id') ?? '',
+    playerBId: stringValue(row, 'playerBId', 'player_b_id') ?? '',
+    pairKey: stringValue(row, 'pairKey', 'pair_key') ?? '',
+    round: numberValue(row, 'round') ?? 0,
+    meetingNumber: numberValue(row, 'meetingNumber', 'meeting_number') ?? 0,
+    status: (stringValue(row, 'status') ?? 'OUTSTANDING') as FixtureStatus,
+    createdAt: stringValue(row, 'createdAt', 'created_at') ?? '',
+    updatedAt: stringValue(row, 'updatedAt', 'updated_at') ?? '',
+    voidedAt: nullableStringValue(row, 'voidedAt', 'voided_at') ?? null,
+    playerAUsername: nullableStringValue(row, 'playerAUsername', 'player_a_username') ?? null,
+    playerBUsername: nullableStringValue(row, 'playerBUsername', 'player_b_username') ?? null,
+    resultId: nullableStringValue(row, 'resultId', 'result_id') ?? null,
+  };
+}
+
+function normalizeMovement(value: unknown): PromotionMovement {
+  const row = asRecord(value);
+  return {
+    id: stringValue(row, 'id'),
+    fromSeasonId: stringValue(row, 'fromSeasonId', 'from_season_id'),
+    toSeasonId: nullableStringValue(row, 'toSeasonId', 'to_season_id'),
+    userId: stringValue(row, 'userId', 'user_id') ?? '',
+    fromLeagueId: stringValue(row, 'fromLeagueId', 'from_league_id') ?? '',
+    toLeagueId: nullableStringValue(row, 'toLeagueId', 'to_league_id') ?? null,
+    fromPosition: numberValue(row, 'fromPosition', 'from_position') ?? 0,
+    kind: (stringValue(row, 'kind') ?? 'MANUAL') as PromotionMovement['kind'],
+    status: stringValue(row, 'status') as PromotionMovement['status'],
+    reason: nullableStringValue(row, 'reason'),
+    decidedBy: nullableStringValue(row, 'decidedBy', 'decided_by'),
+    createdAt: stringValue(row, 'createdAt', 'created_at'),
+    updatedAt: stringValue(row, 'updatedAt', 'updated_at'),
+  };
+}
+
+function normalizePromotionProjection(value: unknown): PromotionProjection {
+  const row = asRecord(value);
+  const movements = Array.isArray(row.movements) ? row.movements.map(normalizeMovement) : [];
+  const ambiguities = Array.isArray(row.ambiguities) ? row.ambiguities.map((value) => {
+    const ambiguity = asRecord(value);
+    return {
+      leagueId: stringValue(ambiguity, 'leagueId', 'league_id') ?? '',
+      boundary: (stringValue(ambiguity, 'boundary') ?? 'PROMOTION') as PromotionAmbiguity['boundary'],
+      position: numberValue(ambiguity, 'position') ?? 0,
+      tiedUserIds: Array.isArray(ambiguity.tiedUserIds) ? ambiguity.tiedUserIds.filter((id): id is string => typeof id === 'string') : [],
+    };
+  }) : [];
+  return {
+    seasonId: stringValue(row, 'seasonId', 'season_id') ?? '',
+    provisional: booleanValue(row, 'provisional') ?? false,
+    unresolvedCount: numberValue(row, 'unresolvedCount', 'unresolved_count') ?? 0,
+    movements,
+    ambiguities,
+  };
+}
+
 export class ApiClientError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
@@ -140,10 +410,70 @@ export class ApiClient {
   standings(leagueId: string) { return this.call<{ standings: StandingRow[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/standings`); }
   results(leagueId: string) { return this.call<{ results: ResultSummary[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/results`); }
   myResults() { return this.call<{ results: ResultSummary[] }>('/api/me/results'); }
-  joinInvite(token: string) { return this.call<{ membership: { leagueId: string; userId: string; active: boolean } }>(`/api/invites/${encodeURIComponent(token)}/join`, { method: 'POST' }); }
+  joinInvite(token: string) { return this.call<{ membership: { seasonId?: string; leagueId: string; userId: string; active: boolean } }>(`/api/invites/${encodeURIComponent(token)}/join`, { method: 'POST' }); }
   submitResult(leagueId: string, input: ResultInput) { return this.call<{ result: ResultSummary }>(`/api/leagues/${encodeURIComponent(leagueId)}/results`, { method: 'POST', body: JSON.stringify(input) }); }
+  submitFixtureResult(leagueId: string, input: FixtureResultInput) { return this.call<{ result: ResultSummary }>(`/api/leagues/${encodeURIComponent(leagueId)}/results`, { method: 'POST', body: JSON.stringify(input) }); }
   confirmResult(resultId: string) { return this.call<{ result: ResultSummary }>(`/api/results/${encodeURIComponent(resultId)}/confirm`, { method: 'POST' }); }
   disputeResult(resultId: string, note: string) { return this.call<{ result: ResultSummary }>(`/api/results/${encodeURIComponent(resultId)}/dispute`, { method: 'POST', body: JSON.stringify({ note }) }); }
+
+  adminSeasons() {
+    return this.call<{ seasons: unknown[] }>('/api/admin/seasons').then(({ seasons }) => ({ seasons: seasons.map(normalizeSeason) }));
+  }
+  createAdminSeason(input: SeasonInput) {
+    return this.call<{ season: unknown }>('/api/admin/seasons', { method: 'POST', body: JSON.stringify(input) }).then(({ season }) => ({ season: normalizeSeason(season) }));
+  }
+  updateAdminSeason(seasonId: string, input: Partial<SeasonInput>) {
+    return this.call<{ season: unknown }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}`, { method: 'PATCH', body: JSON.stringify(input) }).then(({ season }) => ({ season: normalizeSeason(season) }));
+  }
+  deleteAdminSeason(seasonId: string) { return this.call<{ ok: true }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}`, { method: 'DELETE' }); }
+  seasonLeagues(seasonId: string) {
+    return this.call<{ leagues: unknown[] }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/leagues`).then(({ leagues }) => ({ leagues: leagues.map(normalizeLeague) }));
+  }
+  createSeasonLeague(seasonId: string, input: Partial<LeagueSummary> & { name: string; maxPlayers: number }) {
+    return this.call<{ league: unknown }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/leagues`, { method: 'POST', body: JSON.stringify(input) }).then(({ league }) => ({ league: normalizeLeague(league) }));
+  }
+  updateCompetitionLeague(leagueId: string, input: Partial<LeagueSummary>) {
+    return this.call<{ league: unknown }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}`, { method: 'PATCH', body: JSON.stringify(input) }).then(({ league }) => ({ league: normalizeLeague(league) }));
+  }
+  deleteCompetitionLeague(leagueId: string) { return this.call<{ ok: true }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}`, { method: 'DELETE' }); }
+
+  seasonUnassigned(seasonId: string) { return this.call<{ users: UnassignedPlayer[] }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/unassigned`); }
+  competitionMembers(leagueId: string) {
+    return this.call<{ members: unknown[] }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}/members`).then(({ members }) => ({ members: members.map(normalizeMember) }));
+  }
+  assignSeasonMember(seasonId: string, userId: string, leagueId: string) {
+    return this.call<{ membership: SeasonPlacement }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/members/${encodeURIComponent(userId)}/assign`, { method: 'POST', body: JSON.stringify({ leagueId }) });
+  }
+  moveSeasonMember(seasonId: string, userId: string, fromLeagueId: string, toLeagueId: string) {
+    return this.call<{ membership: SeasonPlacement }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/members/${encodeURIComponent(userId)}/move`, { method: 'POST', body: JSON.stringify({ fromLeagueId, toLeagueId }) });
+  }
+
+  fixturePreview(leagueId: string) { return this.call<{ preview: FixturePreview }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}/fixtures/preview`); }
+  fixtures(leagueId: string, status?: FixtureStatus) {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.call<{ fixtures: unknown[] }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}/fixtures${query}`).then(({ fixtures }) => ({ fixtures: fixtures.map(normalizeFixture) }));
+  }
+  commitFixtures(leagueId: string) {
+    return this.call<{ fixtures: unknown[] }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}/fixtures`, { method: 'POST' }).then(({ fixtures }) => ({ fixtures: fixtures.map(normalizeFixture) }));
+  }
+  resetFixtures(leagueId: string) { return this.call<{ ok: true }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}/fixtures`, { method: 'DELETE' }); }
+  setFixtureStatus(fixtureId: string, status: 'VOID' | 'OUTSTANDING') {
+    return this.call<{ fixture: unknown }>(`/api/admin/competition/fixtures/${encodeURIComponent(fixtureId)}`, { method: 'PATCH', body: JSON.stringify({ status }) }).then(({ fixture }) => ({ fixture: normalizeFixture(fixture) }));
+  }
+
+  promotionPreview(seasonId: string) {
+    return this.call<{ preview: unknown }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/promotion/preview`).then(({ preview }) => ({ preview: normalizePromotionProjection(preview) }));
+  }
+  createPromotionProposal(fromSeasonId: string, toSeasonId: string) {
+    return this.call<{ movements: unknown[] }>(`/api/admin/seasons/${encodeURIComponent(fromSeasonId)}/promotion/proposal`, { method: 'POST', body: JSON.stringify({ toSeasonId }) }).then(({ movements }) => ({ movements: movements.map(normalizeMovement) }));
+  }
+  overridePromotionMovement(fromSeasonId: string, userId: string, toLeagueId: string, reason: string) {
+    return this.call<{ movement: unknown }>(`/api/admin/seasons/${encodeURIComponent(fromSeasonId)}/promotion/${encodeURIComponent(userId)}`, { method: 'PATCH', body: JSON.stringify({ toLeagueId, reason }) }).then(({ movement }) => ({ movement: normalizeMovement(movement) }));
+  }
+  applyPromotionProposal(fromSeasonId: string, toSeasonId: string) {
+    return this.call<{ placements: SeasonPlacement[]; movements: unknown[] }>(`/api/admin/seasons/${encodeURIComponent(fromSeasonId)}/promotion/apply`, { method: 'POST', body: JSON.stringify({ toSeasonId }) }).then(({ placements, movements }) => ({ placements, movements: movements.map(normalizeMovement) }));
+  }
+
   adminLeagues() { return this.call<{ leagues: LeagueSummary[] }>('/api/admin/leagues'); }
   createAdminLeague(input: Partial<LeagueSummary> & { name: string; seasonName: string; maxPlayers: number }) { return this.call<{ league: LeagueSummary }>('/api/admin/leagues', { method: 'POST', body: JSON.stringify(input) }); }
   updateAdminLeague(id: string, input: Partial<LeagueSummary>) { return this.call<{ league: LeagueSummary }>(`/api/admin/leagues/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) }); }
