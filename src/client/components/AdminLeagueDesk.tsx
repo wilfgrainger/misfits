@@ -89,7 +89,12 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
   const [editingResult, setEditingResult] = useState<ResultEditorState | null>(null);
   const [adminView, setAdminView] = useState<AdminView>('season');
   const [copiedAction, setCopiedAction] = useState<string | null>(null);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const workspaceRequest = useRef(0);
+
+  useEffect(() => {
+    return () => { if (copyTimer.current) clearTimeout(copyTimer.current); };
+  }, []);
   const [confirmModal, setConfirmModal] = useState<{
     title: string;
     message: string;
@@ -246,8 +251,9 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
       setInvites((current) => [{ id: result.invite.id, leagueId: result.invite.leagueId, expiresAt: result.invite.expiresAt, uses: 0, revokedAt: null, createdAt: new Date().toISOString() }, ...current]);
       const copied = await copyText(result.invite.url);
       if (copied) {
+        if (copyTimer.current) clearTimeout(copyTimer.current);
         setCopiedAction('invite');
-        setTimeout(() => setCopiedAction(null), 2000);
+        copyTimer.current = setTimeout(() => setCopiedAction(null), 2000);
       }
       setMessage(copied ? 'Invite link copied.' : 'Invite link ready to copy.');
     } catch (cause) {
@@ -261,8 +267,9 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
     if (!inviteUrl) return;
     const copied = await copyText(inviteUrl);
     if (copied) {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
       setCopiedAction('invite');
-      setTimeout(() => setCopiedAction(null), 2000);
+      copyTimer.current = setTimeout(() => setCopiedAction(null), 2000);
     }
     setMessage(copied ? 'Invite link copied.' : 'Invite link ready to copy.');
   };
@@ -274,8 +281,9 @@ export function AdminLeagueDesk({ user, selectedLeagueId, onLeagueSelected, onLe
     try {
       const mode = await shareLeague(navigator, selectedLeague.name, selectedLeague.slug, window.location.origin);
       if (mode === 'copied') {
+        if (copyTimer.current) clearTimeout(copyTimer.current);
         setCopiedAction('share');
-        setTimeout(() => setCopiedAction(null), 2000);
+        copyTimer.current = setTimeout(() => setCopiedAction(null), 2000);
       }
       setMessage(mode === 'shared' ? 'Share sheet opened.' : 'League link copied.');
     } catch (cause) {

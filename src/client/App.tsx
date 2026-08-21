@@ -22,6 +22,7 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
   const [error, setError] = useState('');
   const [shareMessage, setShareMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -32,7 +33,10 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
       setStandings(standingPayload.standings);
       setResults(resultPayload.results);
     }).catch((cause: unknown) => { if (active) setError(messageFor(cause, 'League data could not be loaded.')); });
-    return () => { active = false; };
+    return () => {
+      active = false;
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    };
   }, [league.id]);
 
   const share = async () => {
@@ -40,8 +44,9 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
     try {
       const mode = await shareLeague(navigator, league.name, league.slug, window.location.origin);
       if (mode === 'copied') {
+        if (copyTimer.current) clearTimeout(copyTimer.current);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        copyTimer.current = setTimeout(() => setCopied(false), 2000);
       }
       setShareMessage(mode === 'shared' ? 'Share sheet opened.' : 'League link copied.');
     } catch (cause) {
@@ -227,7 +232,18 @@ export default function App() {
           {publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><LeagueTabs ariaLabel="Club seasons" leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
         </>}
 
-        {view === 'onboarding' && <form className="onboarding-form" onSubmit={submitUsername}><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Continue</button></form>}
+        {view === 'onboarding' && (
+          <form className="onboarding-form" onSubmit={submitUsername}>
+            <div className="form-heading">
+              <p className="section-kicker">WELCOME TO MISFITS 501</p>
+              <h2>Set your player nickname</h2>
+              <p className="form-help">This is how your name will appear on the club table and match results.</p>
+            </div>
+            <label htmlFor="username">Nickname</label>
+            <input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. Bullseye Billy" autoComplete="nickname" maxLength={24} required />
+            <button className="primary-button" type="submit">Continue</button>
+          </form>
+        )}
 
         {view === 'signed-in' && user && (
           <div className="account-panel">

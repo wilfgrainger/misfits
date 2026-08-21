@@ -202,7 +202,30 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
 
       {!loading && view === 'players' && <ul className="club-player-list">{detail?.players.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul>}
 
-      {view === 'record' && <form className="result-form" onSubmit={submitResult}><div className="form-heading"><p className="section-kicker">NEW GAME</p><h3>Record your result</h3></div>{!canRecord && <p className="empty-message">Result entry is unavailable while this league is closed.</p>}<label htmlFor="opponent">Opponent</label><select id="opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)} required disabled={!canRecord}><option value="">Choose player</option>{opponents.map((player) => <option key={player.id} value={player.id}>{player.username}</option>)}</select><div className="form-grid"><label htmlFor="your-legs">Your legs<input id="your-legs" type="number" min="0" max={league.targetLegs} value={playerALegs} onChange={(event) => setPlayerALegs(event.target.value)} required disabled={!canRecord} /></label><label htmlFor="their-legs">Their legs<input id="their-legs" type="number" min="0" max={league.targetLegs} value={playerBLegs} onChange={(event) => setPlayerBLegs(event.target.value)} required disabled={!canRecord} /></label><label htmlFor="your-average">Your average<input id="your-average" type="number" min="0" max="200" step="0.01" value={playerAAverage} onChange={(event) => setPlayerAAverage(event.target.value)} required disabled={!canRecord} /></label><label htmlFor="their-average">Their average<input id="their-average" type="number" min="0" max="200" step="0.01" value={playerBAverage} onChange={(event) => setPlayerBAverage(event.target.value)} required disabled={!canRecord} /></label></div><button className="primary-button" type="submit" disabled={!canRecord || busyResult === 'new' || opponents.length === 0} aria-busy={busyResult === 'new'}>{!canRecord ? 'League closed' : busyResult === 'new' ? 'Sending' : 'Send for confirmation'}</button></form>}
+      {view === 'record' && (
+        <form className="result-form" onSubmit={submitResult}>
+          <div className="form-heading">
+            <p className="section-kicker">NEW GAME</p>
+            <h3>Record your result</h3>
+            <p className="form-help">First to {league.targetLegs} leg{league.targetLegs > 1 ? 's' : ''} wins.</p>
+          </div>
+          {!canRecord && <p className="empty-message">Result entry is unavailable while this league is closed.</p>}
+          <label htmlFor="opponent">Opponent</label>
+          <select id="opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)} required disabled={!canRecord}>
+            <option value="">Choose player</option>
+            {opponents.map((player) => <option key={player.id} value={player.id}>{player.username}</option>)}
+          </select>
+          <div className="form-grid">
+            <label htmlFor="your-legs">Your legs<input id="your-legs" type="number" min="0" max={league.targetLegs} value={playerALegs} onChange={(event) => setPlayerALegs(event.target.value)} required disabled={!canRecord} /></label>
+            <label htmlFor="their-legs">Their legs<input id="their-legs" type="number" min="0" max={league.targetLegs} value={playerBLegs} onChange={(event) => setPlayerBLegs(event.target.value)} required disabled={!canRecord} /></label>
+            <label htmlFor="your-average">Your average<input id="your-average" type="number" min="0" max="200" step="0.01" value={playerAAverage} onChange={(event) => setPlayerAAverage(event.target.value)} required disabled={!canRecord} /></label>
+            <label htmlFor="their-average">Their average<input id="their-average" type="number" min="0" max="200" step="0.01" value={playerBAverage} onChange={(event) => setPlayerBAverage(event.target.value)} required disabled={!canRecord} /></label>
+          </div>
+          <button className="primary-button" type="submit" disabled={!canRecord || busyResult === 'new' || opponents.length === 0} aria-busy={busyResult === 'new'}>
+            {!canRecord ? 'League closed' : busyResult === 'new' ? 'Sending' : 'Send for confirmation'}
+          </button>
+        </form>
+      )}
 
       {view === 'profile' && <ProfilePanel user={user} onSaved={saveUser} />}
 

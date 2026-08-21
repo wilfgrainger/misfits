@@ -516,8 +516,10 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
 .standings-table tbody tr:first-child td:last-child { color: var(--red); }
 
 /* You row */
-.standing-row-you td { background: rgba(212,64,64,.07); }
-.standing-row-you th { background: rgba(212,64,64,.07); }
+.standing-row-you td, .standing-row-you th {
+  background: rgba(212,64,64,.07);
+  transition: background-color .2s ease;
+}
 .standing-row-you:hover td { background: rgba(212,64,64,.12) !important; }
 
 /* ─── Result feed ─────────────────────────────────────────────────────────── */
@@ -772,8 +774,13 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
 @keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modal-slide-up { from { transform: translateY(8%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes club-arrive { from { opacity: 0; transform: translateY(.75rem); } to { opacity: 1; transform: translateY(0); } }
+@keyframes tab-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
 @media (prefers-reduced-motion: no-preference) {
   .public-intro > * { animation: club-arrive .4s cubic-bezier(.2,.8,.2,1) both; }
+  [role="tabpanel"]:not([hidden]) {
+    animation: tab-fade-in .2s cubic-bezier(.2,.8,.2,1);
+  }
 }
 
 /* ─── Tablet ─────────────────────────────────────────────────────────────── */
