@@ -7,7 +7,7 @@ Turn Misfits 501 from a poster-led league interface into the credible weekly rec
 ## Product decisions
 
 - The supplied `public/brand/misfits-501.jpg` remains unchanged. It is shown once in the shared header as the full, contained club badge. It is never duplicated, cropped, filtered, faded, used as a background, or used as a hero illustration.
-- Public sharing remains a deliberate feature. Existing seasons retain their stored visibility; there is no silent migration of existing public tables. New seasons default to `PRIVATE`, and an administrator must explicitly select `Public` to publish one.
+- Public sharing remains a deliberate feature. Existing seasons retain their stored visibility; there is no silent migration of existing public tables. New seasons default to `PRIVATE` in both the creation form and server-side creation validation, and an administrator or direct API client must explicitly select `Public` to publish one.
 - The public surface is a club record, not a sign-in campaign. It has a compact dark masthead, a concise title and explanatory line, then the active public season's standings without a full-screen marketing hero.
 - Signed-in members and administrators do not see a promotional introduction. Their first content is their account and current season context.
 - The terminology is club-first: `Club table`, `Current season`, `Season admin`, `Record a result`, and `Club access`. The application does not call itself a workspace, door, control room, or generic league-management product.
@@ -54,7 +54,7 @@ The Results task is headed `Record a result`. The People task becomes `Club acce
 ## Data and behaviour boundaries
 
 - No API route, score-validation rule, result-confirmation rule, member permission, invite token, authentication method, or data model changes solely for the redesign.
-- The only persisted behaviour change is the client-selected default passed by `createAdminLeague`: `visibility: 'PRIVATE'` unless an administrator actively chooses `PUBLIC`.
+- The only persisted behaviour change is a private creation default: `createAdminLeague` starts with `visibility: 'PRIVATE'`, and server-side create validation also resolves an omitted visibility to `PRIVATE`. An explicit `PUBLIC` value remains supported.
 - Existing `visibility` values are read and saved as-is. No D1 migration changes them.
 
 ## Accessibility and responsive requirements
