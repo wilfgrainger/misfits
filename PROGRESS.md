@@ -3,6 +3,7 @@
 **Updated:** 22 August 2026  
 **Current branch:** `spec/ux-compression`  
 **Current focus:** Cave Pony UX compression design, written-spec approval gate  
+**Draft PR:** #168 `docs: define Cave Pony UX compression release`  
 **Latest production feature release:** PR #17 `feat: configurable Best-of scoring and head-to-head standings`  
 **Production merge SHA:** `3185019780f9560917dd22bb9326c342662ba420`
 
@@ -19,6 +20,7 @@ Current Superpowers gate:
 - architectural path selected because the work changes player navigation hierarchy and removes an admin composition layer;
 - in-chat Cave Pony compression direction approved by the user;
 - design branch: `spec/ux-compression`;
+- written spec committed and self-reviewed for placeholders, contradictions, scope and ambiguity;
 - draft design PR: #168;
 - **no production implementation may start until the written spec is explicitly approved**;
 - after written-spec approval, invoke Superpowers `writing-plans`, then execute RED → GREEN TDD.
