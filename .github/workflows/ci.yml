@@ -19,33 +19,6 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  task9_docs:
-    name: One-shot Task 9 story audit
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/configurable-match-scoring'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: feat/configurable-match-scoring
-          fetch-depth: 0
-      - name: Apply catalogue and audit verification
-        run: python scripts/task9-docs.py
-      - name: Commit audit updates and remove transient helper
-        shell: bash
-        run: |
-          git fetch origin main
-          git checkout origin/main -- .github/workflows/ci.yml
-          rm -f scripts/task9-docs.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git diff --cached --quiet && { echo "No audit changes produced"; exit 1; }
-          git commit -m "docs: verify configurable scoring stories"
-          git push origin HEAD:feat/configurable-match-scoring
-
   deploy:
     name: Deploy Worker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

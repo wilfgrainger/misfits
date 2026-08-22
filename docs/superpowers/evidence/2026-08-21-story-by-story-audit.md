@@ -73,8 +73,8 @@ The historical ADM-024/025 implementation remains real evidence for the older co
 | ADM-021 | VERIFIED | Explicit hierarchy is persisted/sorted and duplicate positions are rejected. | `story-admin-league-structure.test.ts`; GREEN `32527554443`. |
 | ADM-022 | VERIFIED | Capacity persists, assignments/invites enforce it, lowering below active membership is rejected, and admin overview shows count/capacity. | league routes + `admin-league-summary.test.tsx`; GREEN `32527554443`. |
 | ADM-023 | VERIFIED | Positive `matchesPerPair` persists and fixture generation uses it exactly. | fixture/domain tests; GREEN `32527554443`. |
-| ADM-024 | PARTIAL | Historical behavior is verified: `targetLegs` persists and decisive result validation follows it. Expanded acceptance now requires authoritative `maxLegs`, derived target, even-format draws and player-visible Best-of rules. | Historical GREEN `32527554443`; superseding design `2026-08-22-configurable-match-scoring-design.md`; new RED `32555046374`. |
-| ADM-025 | PARTIAL | Historical behavior is verified: `pointsPerWin` drives confirmed-result standings and consequential changes are protected. Expanded acceptance now requires configurable draw/loss points and correct draw awards. | Historical GREEN `32527554443`; superseding design; new RED `32555046374`. |
+| ADM-024 | VERIFIED | Authoritative `maxLegs` is persisted per league, derives the winning target, preserves legacy decisive formats, validates even exhausted draws, and is visible/editable as Best-of rather than a second target-legs authority. | Initial RED `ef185521543cd7db715601493fcebdb433502d07` / `32555046374`; Best-of RED `191d8163c9d66cbb5cbf849bf7857449d205e04f` / `32555425552`; persistence RED `7520b4460ab6fe85b7e35fde97fe1597ea1dd629` / `32555672236`; admin UI RED `9f3eacd089f50c772e43c93d1f96a1c1d712cd84` / `32560656189`; player/public RED `05d32241ed5990bb92b5bd128a44b6c9fc4f4a7f` / `32560958867`; final UI GREEN `32561215701`. |
+| ADM-025 | VERIFIED | Win/draw/loss points are persisted and cloned per league, confirmed wins/draws/losses award configured values, consequential scoring changes lock after competition history exists, and the full scoring contract is editable and visible in admin/player/public views. | Initial RED `ef185521543cd7db715601493fcebdb433502d07` / `32555046374`; persistence/rule-lock RED `7520b4460ab6fe85b7e35fde97fe1597ea1dd629` / `32555672236`; standings RED `2b199e852e20904d5728116a3d90410e8ae247df` / `32559458511`; admin UI RED `9f3eacd089f50c772e43c93d1f96a1c1d712cd84` / `32560656189`; player/public RED `05d32241ed5990bb92b5bd128a44b6c9fc4f4a7f` / `32560958867`; final UI GREEN `32561215701`. |
 | ADM-026 | VERIFIED | PUBLIC is anonymous-readable; PRIVATE requires permitted context; private identity fields do not leak. | league/public tests; GREEN `32527554443`. |
 | ADM-027 | VERIFIED | Stable league link resolves intended competition; sharing fallback works; private reads remain protected. | share/public tests; GREEN `32527554443`. |
 | ADM-028 | VERIFIED | Audit exposed false-ready UI state because `every()` is true for an empty array. Overview now becomes accessible only after leagues and all membership summaries load. | fix `678482dbd`; league-summary tests; GREEN final `32527554443`. |
@@ -119,7 +119,7 @@ The audit found one genuine fixture-state integrity gap. RED run `32528138189` i
 | ADM-058 | VERIFIED | Audit found unsafe restore. Restore now requires `VOID`, rejects contradictory result state, restores `OUTSTANDING`, clears void timestamp and audits. | RED `32528138189`; GREEN `32528766451`. |
 | ADM-059 | VERIFIED | Generation validates active eligible membership and blocks suspended/inactive/invalid roster writes. | roster + fixture tests; GREEN `32528766451`. |
 
-## Chunk 4 — results, disputes and standings integrity — VERIFIED THROUGH ADM-069 / ADM-070 REOPENED
+## Chunk 4 — results, disputes and standings integrity — VERIFIED THROUGH ADM-070
 
 PR #14 established fixture-first admin result settlement, reconstructable result audit state and season+league-scoped confirmed-only standings. Code-head run `32531189939` passed Wrangler types, TypeScript, **199/199 tests across 50 files**, and the production build. PR #15 then fixed the post-merge Results-tab integration defects and landed on `main` before the scoring redesign began.
 
@@ -135,7 +135,7 @@ PR #14 established fixture-first admin result settlement, reconstructable result
 | ADM-067 | VERIFIED | Admin update audit records corrected score/averages plus status, dispute state, confirmer and confirmation timestamp; delete retains reconstructable before state. | `admin-result-integrity.test.ts`; GREEN `32531189939`. |
 | ADM-068 | VERIFIED | Standings remain computed from confirmed result records only; pending/disputed never contribute, and corrections/deletions change derived totals rather than editing totals directly. | result/standings tests + integrity regression; GREEN `32531189939`. |
 | ADM-069 | VERIFIED | Once fixtures exist, standings query joins confirmed matches to fixtures and requires fixture league plus fixture season to match the selected league record, excluding free-floating/cross-season contamination. | `admin-result-integrity.test.ts`; GREEN `32531189939`. |
-| ADM-070 | MISSING / APPROVED FOR TDD | Product gate is resolved: competitive order is **Points → total legs won → head-to-head**. Two-player head-to-head aggregates confirmed meetings; 3+ ties use a mini-table; unresolved equality shares rank; presentation fallback is non-competitive; promotion boundaries must remain ambiguous when a shared rank crosses them. Current production still sorts by legacy leg difference/legs-for/average/username behavior. | Approved design `2026-08-22-configurable-match-scoring-design.md`; implementation plan `2026-08-22-configurable-match-scoring.md`; implementation evidence pending. |
+| ADM-070 | VERIFIED | Competitive standings use Points → total legs won → head-to-head points; two-player direct meetings and 3+ tied-group mini-tables are covered; unresolved equality shares rank; username/player ID are display-only; promotion/relegation consumes authoritative rank and blocks a shared-rank boundary rather than guessing. | Definitive standings RED `2b199e852e20904d5728116a3d90410e8ae247df` / `32559458511`; standings GREEN `32560372522`; promotion authority RED `7b5874829dc09ce4d2eecbc8ff0f620a671ec1dc` / `32560471929`; promotion GREEN `32560541080`; story release test `tests/release/story-adm-070.test.ts`; visible rule GREEN `32561215701`. |
 
 ## Current execution checkpoint — PR #17
 
@@ -145,3 +145,19 @@ PR #14 established fixture-first admin result settlement, reconstructable result
 - RED CI run `32555046374`: Wrangler types and TypeScript passed; **200 existing tests passed**; exactly the three new configurable-scoring contract tests failed because `maxLegs`/draw/loss fields and migration 0005 do not yet exist. Build was correctly skipped after test failure.
 - No production scoring implementation existed at this RED checkpoint.
 - Next: implement the minimal scoring schema/domain GREEN, then continue the committed plan in order.
+
+## Configurable scoring re-audit — PR #17
+
+ADM-024, ADM-025 and ADM-070 were deliberately reopened when the club approved Best-of even formats, draw scoring and the sporting tie-break order. They are now re-verified against the expanded acceptance criteria rather than inheriting their earlier decisive-match evidence.
+
+| Task | RED evidence | GREEN evidence |
+|---|---|---|
+| Shared schema/scoring contract | `ef185521543cd7db715601493fcebdb433502d07`, CI `32555046374` | CI `32555367533` |
+| Best-of result validation | `191d8163c9d66cbb5cbf849bf7857449d205e04f`, CI `32555425552` | CI `32555506609` |
+| Persistence / API / rule locks | `7520b4460ab6fe85b7e35fde97fe1597ea1dd629`, CI `32555672236` | CI `32559244717` |
+| W/D/L standings + head-to-head | `2b199e852e20904d5728116a3d90410e8ae247df`, CI `32559458511` | CI `32560372522` |
+| Promotion uses authoritative rank | `7b5874829dc09ce4d2eecbc8ff0f620a671ec1dc`, CI `32560471929` | CI `32560541080` |
+| Admin Match & table rules UI | `9f3eacd089f50c772e43c93d1f96a1c1d712cd84`, CI `32560656189` | CI `32560845059` |
+| Player/public scoring presentation | `05d32241ed5990bb92b5bd128a44b6c9fc4f4a7f`, CI `32560958867` | CI `32561215701` — **238/238 tests across 57 files**, Wrangler types, TypeScript and production build |
+
+The production release remains separately gated: migration `0005_configurable_match_scoring.sql` must be explicitly applied to production D1 before PR #17 can be merged and deployed. Story verification here means the implementation and automated acceptance evidence are complete; it does not claim the schema change is already live in production.
