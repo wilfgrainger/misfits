@@ -249,10 +249,7 @@ export function calculatePromotionMovements(
 }
 
 function sameCompetitiveRank(left: StandingPosition, right: StandingPosition): boolean {
-  return left.points === right.points
-    && left.legDifference === right.legDifference
-    && left.legsFor === right.legsFor
-    && left.average === right.average;
+  return left.position === right.position;
 }
 
 function tiedUserIds(standings: StandingPosition[], boundaryIndex: number): string[] {
@@ -262,10 +259,10 @@ function tiedUserIds(standings: StandingPosition[], boundaryIndex: number): stri
 }
 
 /**
- * Projection deliberately ignores the username fallback used for display
- * ordering. If two players are equal on every approved competitive metric at
- * a movement boundary, an administrator must resolve the tie before a final
- * proposal can be written.
+ * Standings rank is the sole competitive authority here. The standings engine
+ * has already applied points, total legs won and head-to-head. Presentation
+ * statistics such as leg difference, average, username and player ID must not
+ * reopen a resolved rank or split a genuine shared rank at a movement boundary.
  */
 export function calculatePromotionProjection(
   standingsByLeague: Map<string, StandingPosition[]>,
