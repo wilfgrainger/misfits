@@ -49,4 +49,15 @@ describe('D1 schema', () => {
       expect(sql).toContain(fragment);
     }
   });
+
+  it('defines the additive v6 private club membership migration', () => {
+    const sql = readFileSync('migrations/0006_private_club_membership.sql', 'utf8');
+    expect(sql).toContain('ALTER TABLE users ADD COLUMN club_status');
+    expect(sql).toContain("CHECK(club_status IN ('PENDING', 'APPROVED', 'REJECTED'))");
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS club_invites');
+    expect(sql).toContain('token_hash TEXT NOT NULL UNIQUE');
+    expect(sql).toContain("SET club_status = 'APPROVED'");
+    expect(sql).toContain('FROM league_players');
+    expect(sql).toContain("UPDATE leagues SET visibility = 'PRIVATE'");
+  });
 });
