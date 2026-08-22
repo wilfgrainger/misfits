@@ -3,7 +3,7 @@
 **Updated:** 22 August 2026  
 **Current branch:** `spec/ux-compression`  
 **Draft PR:** #168  
-**Current focus:** Release 1 UX Compression, Task 2 public experience  
+**Current focus:** Release 1 UX Compression, Task 3 direct admin Results composition verification  
 **Production baseline:** `main` at `5d8e351ad4995305eb8970427846f2b821366a98`; PR #17 scoring release remains deployed
 
 ## Authority
@@ -19,16 +19,9 @@
 
 ## Parked stories
 
-All 150 stories have GitHub issues. Release 1 must not close the incomplete ones.
+All 150 canonical stories have issues. **117 are verified/closed; 33 remain incomplete/open (12 PARTIAL + 21 MISSING).** Release 1 does not close the 33.
 
-| Audience | Total | Verified/closed | Incomplete/open |
-|---|---:|---:|---:|
-| Admin | 88 | 82 | 6 |
-| Player | 55 | 29 | 26 |
-| Public | 7 | 6 | 1 |
-| **Total** | **150** | **117** | **33** |
-
-Incomplete = **12 PARTIAL + 21 MISSING**. The 33 remain parked until later releases.
+Open distribution: Admin 6, Player 26, Public 1.
 
 Open Admin: `ADM-075`, `ADM-081`, `ADM-083`, `ADM-084`, `ADM-087`, `ADM-088`.
 
@@ -38,92 +31,78 @@ Open Public: `PUB-005`.
 
 ## Release 1 execution
 
-Superpowers state: design **APPROVED**; plan **WRITTEN**; execution is inline `executing-plans` with RED → GREEN TDD. Impeccable is the UI handoff authority; Cave Pony is the final simplicity/user audit.
+Superpowers: design **APPROVED**, plan **WRITTEN**, inline `executing-plans`, RED → GREEN TDD. Impeccable is UI handoff authority; Cave Pony is final simplicity/user audit.
 
 ### Task 1 — Player chrome, navigation and safe result defaults — GREEN
 
 Delivered:
+- member workspace uses horizontally scrollable `content-tabs` and 44px minimum touch targets;
+- existing six destinations remain reachable because fixture-first stories are parked;
+- result leg scores start/reset blank; recoverable failures preserve entered values;
+- redundant signed-in account heading/role/mislabelled season-count badge removed;
+- meaningful selected competition context retained.
 
-- member workspace now reuses scrollable `content-tabs` / `content-tab` navigation;
-- shared content-tab minimum touch height raised from 42px to 44px;
-- all six existing member destinations remain reachable; `Add result` remains because fixture-first stories are parked;
-- result leg scores start blank and reset blank after successful submission or league change;
-- recoverable failures continue to preserve entered values because the catch path does not reset form state;
-- removed redundant signed-in account heading/role/incorrect `myLeagues.length` “season(s)” badge;
-- retained meaningful selected competition context (`Current season: <league> · <season> · <state> · <visibility>`).
+Evidence:
+- RED `32582699248`: 238 existing pass, exactly 2 intended new failures.
+- RED shell `32582988576`: 240 pass, exactly 1 intended new failure.
+- GREEN `32583252880`: Wrangler types, client+Worker TypeScript, **241/241 tests**, production build PASS; deploy skipped.
 
-RED evidence:
+### Task 2 — Public experience — GREEN
 
-- CI `32582699248`: Wrangler/typecheck passed; **238 existing tests passed, exactly 2 new tests failed** on old segmented navigation and prefilled score.
-- CI `32582988576`: after the first GREEN slice, **240 tests passed, exactly 1 new test failed** on the redundant account badge/heading.
+Delivered:
+- failed public league-list load now shows `The club table could not be loaded.` plus Retry;
+- genuine zero-public-league state says `No public leagues are published yet.` and is distinct from failure;
+- Retry reloads the league list in place;
+- selected-league detail error behavior remains visible;
+- league-specific sharing copy is `Share league`.
 
-GREEN evidence:
+Evidence:
+- RED `32583354161`: 241 existing pass, exactly 3 intended public UX failures.
+- first GREEN candidate `32583452406`: product behavior passed; only two stale `Share season` assertions and one unsupported matcher remained.
+- clean GREEN `32583582127`: Wrangler types, both TypeScript projects, **244/244 tests**, production build PASS; deploy skipped.
 
-- clean CI `32583252880`: Wrangler types **PASS**, client+Worker TypeScript **PASS**, **241/241 tests PASS**, production build **PASS**, PR deploy correctly skipped.
+### Task 3 — Canonical admin Results composition — GREEN CANDIDATE
 
-Relevant commits include:
+RED:
+- `tests/client/admin-results-layout.test.tsx` mocks `createPortal` to throw if the legacy bridge is invoked.
+- CI `32583693311`: Wrangler/typecheck PASS; **243 tests PASS, exactly 1 intended test FAILS** with `legacy Results portal invoked` from `AdminCompetitionDesk.tsx`.
 
-- RED player contract `04d32996860145556faeb74779844606302efa3d`
-- player GREEN `5a12e71ee6557b7953221cab7b0f514dbe21839d`
-- compact-shell RED `56d1f2f3d3259397fc13093c4fc51d0474d6edc9`
-- compact-shell GREEN `e25000233921f17028831a2697026486684d6164`
+GREEN candidate at `f828bd6c7ab6626e2699e61db0807e172029d0b7`:
+- `AdminCompetitionDeskV2.tsx` imports and renders `AdminResultsWorkflow` directly inside the existing Results tabpanel;
+- the old inline placeholder Result queue is replaced;
+- `AdminCompetitionDesk.tsx` is reduced to a re-export of the canonical desk;
+- all portal, DOM query, click-capture and manual child-hiding machinery is removed;
+- no API/server behavior changed.
 
-### Task 2 — Public experience — NEXT
+**Current gate:** this `PROGRESS.md` commit intentionally triggers ordinary PR CI over the bot-authored GREEN candidate. Do not call Task 3 GREEN until that run passes.
 
-RED-test then deliver:
+### Tasks 4–7
 
-- distinguish public API failure from a genuine zero-public-league state;
-- visible error + Retry for failed public league-list load;
-- keep selected-league detail failures visible;
-- change league-specific action copy from `Share season` to `Share league`;
-- compress signed-out intro only where it brings the table forward without hiding Google sign-in.
-
-No API/schema change.
-
-### Tasks 3–7
-
-3. Integrate `AdminResultsWorkflow` directly into the canonical admin desk; remove portal/event-query shim.  
-4. Use actual fixture player names in admin result entry; progressively disclose infrequent Season/League actions.  
+4. Actual fixture player names in admin result entry; native progressive disclosure for infrequent Season/League create/copy/add actions.  
 5. Prove/remove dead `AdminLeagueDesk`, `react-router-dom`, `zod` where safe.  
-6. Align story/vision authority and update handoff.  
+6. Align VISION/story authority and update handoff.  
 7. Impeccable review, Cave Pony final audit, full repository verification, PR finish/merge.
 
 ## Next five releases
 
-1. **UX Compression** (current): reduce friction without closing parked stories.
-2. **Fixture-First Player Experience**: permission-safe player/public fixture reads, My/League Fixtures, progress/status, fixture-first entry, correct fixed-A/B score mapping, own pending result. Expected impact: much of `PLY-026`–`PLY-040` + `PUB-005`.
-3. **Standings, Movement & Season Context**: movement zones/ambiguity/provisional-v-final, explicit current season, public league browsing, full rule context.
+1. **UX Compression** (current).
+2. **Fixture-First Player Experience**: permission-safe fixture reads, My/League Fixtures, progress/status, fixture-first entry, fixed-A/B score mapping, own pending result.
+3. **Standings, Movement & Season Context**: zones/ambiguity/provisional-v-final movement, explicit current season, public league browsing, full rule context.
 4. **Admin Competition Readiness & Safety**: whole-season readiness, `seasonHealth()`, operational counts, accessible destructive actions.
 5. **History, Responsive Acceptance & Final Story Closure**: historic fixture context, viewport/touch acceptance, revalidate all 150 issues and close only fully evidenced stories.
 
-## Parked root cause for Release 2
+## Parked Release 2 root cause
 
-Current player fixture path is invalid for normal players:
+Normal players cannot currently read fixtures because `PlayerLeague -> ApiClient.fixtures()` calls `/api/admin/competition/leagues/:id/fixtures`, which requires ADMIN, and the client swallows the 403 into an empty fixture list. **Do not weaken the admin guard in Release 1.** Release 2 adds a permission-safe read contract.
 
-```text
-PlayerLeague
-  -> ApiClient.fixtures(leagueId)
-  -> GET /api/admin/competition/leagues/:leagueId/fixtures
-  -> /api/admin/* requires ADMIN
-```
+Before that future flow becomes reachable, `Your/Their` score inputs must also map correctly onto fixed fixture Player A/B ordering to avoid the latent Player-B reversal.
 
-A normal PLAYER receives 403 and the client currently swallows that into an empty fixture list. **Do not weaken the admin guard.** Release 2 adds a permission-safe read contract.
+## Guardrails / next-agent instruction
 
-Also before fixture-first entry becomes reachable: `Your/Their` inputs must be mapped correctly to the fixture's fixed Player A/B order to avoid the latent Player-B score reversal.
-
-## Baseline / release guardrails
-
-- No D1/schema change is planned for Release 1.
+- No D1/schema/API architecture changes in Release 1.
 - No new router, state framework, component library, backend service or Cloudflare product.
-- Preserve Worker authentication/authorization, same-origin mutation checks, competition invariants and accessibility.
-- Fresh production-main baseline before Release 1: workflow `32563097678`, verify/build/deploy all success.
-
-## Next-agent instruction
-
-1. Continue PR #168 from Task 2.
-2. Read the approved design and plan before edits.
-3. Keep the 33 incomplete story issues open throughout Release 1.
-4. Use RED → GREEN for each behavior change; checkpoint this file after durable tasks.
-5. Do not make the parked fixture flow more reachable during UX compression.
-6. Run repo-local Impeccable before UI handoff, then Cave Pony final audit.
-7. Merge only a freshly verified final PR head.
+- Preserve Worker authorization, same-origin security, competition invariants and accessibility.
+- Continue from Task 3 verification, then Task 4.
+- Keep all 33 incomplete story issues open throughout Release 1.
+- Run repo-local Impeccable before handoff, then Cave Pony final audit.
+- Merge only a freshly verified final PR head.
