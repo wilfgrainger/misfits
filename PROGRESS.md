@@ -10,7 +10,7 @@
 
 The user has explicitly parked the **33 incomplete canonical stories** and approved a separate Cave Pony user-experience compression pass.
 
-The approved in-chat direction is now written at:
+The approved in-chat direction is written at:
 
 - `docs/superpowers/specs/2026-08-22-ux-compression-design.md`
 
@@ -18,7 +18,8 @@ Current Superpowers gate:
 
 - architectural path selected because the work changes player navigation hierarchy and removes an admin composition layer;
 - in-chat Cave Pony compression direction approved by the user;
-- written spec committed at `3a2aa4d82a2d157a4e87cb61c4a86da7bcd8b0ad`;
+- design branch: `spec/ux-compression`;
+- draft design PR: #168;
 - **no production implementation may start until the written spec is explicitly approved**;
 - after written-spec approval, invoke Superpowers `writing-plans`, then execute RED → GREEN TDD.
 
@@ -31,7 +32,7 @@ Current Superpowers gate:
 - add explicit public load failure + retry and correct `Share league` wording;
 - integrate `AdminResultsWorkflow` directly into the canonical admin desk and remove the portal/event-query shim;
 - label admin result fields with actual fixture player names;
-- use minimal progressive disclosure for secondary admin create/copy/destructive actions;
+- use minimal progressive disclosure for secondary admin actions;
 - prove and remove dead UI/dependencies (`AdminLeagueDesk`, `react-router-dom`, `zod`) only where truly unused;
 - align story/document authority without rewriting historical evidence.
 
