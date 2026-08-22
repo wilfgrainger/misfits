@@ -39,11 +39,11 @@ jobs:
               observation="GitHub API error while listing runs: $runs_json"
               break
             fi
-            run_id="$(jq -r '.workflow_runs[] | select(.name == "CI") | .id' <<<"$runs_json" | head -n1)"
+            run_id="$(jq -r '.workflow_runs[] | select(.name == "CI" and .head_branch == "main") | .id' <<<"$runs_json" | head -n1)"
             if [ -n "$run_id" ] && [ "$run_id" != 'null' ]; then
-              run_status="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .status' <<<"$runs_json")"
-              run_conclusion="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .conclusion' <<<"$runs_json")"
-              run_url="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .html_url' <<<"$runs_json")"
+              run_status="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id and .head_branch == "main") | .status' <<<"$runs_json")"
+              run_conclusion="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id and .head_branch == "main") | .conclusion' <<<"$runs_json")"
+              run_url="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id and .head_branch == "main") | .html_url' <<<"$runs_json")"
               [ "$run_status" = 'completed' ] && break
             fi
             sleep 5
@@ -67,6 +67,7 @@ jobs:
           # PR #17 main release evidence
 
           - Merge SHA: \`$TARGET_SHA\`
+          - Required branch: \`main\`
           - Main CI run: \`${run_id:-not_found}\`
           - Main CI URL: ${run_url:-not_available}
           - Main CI status: \`$run_status\`
@@ -75,7 +76,7 @@ jobs:
           - Verify job URL: ${verify_url:-not_available}
           - \`Deploy Worker\` conclusion: \`$deploy\`
           - Deploy job URL: ${deploy_url:-not_available}
-          - Observation: ${observation:-Main CI and deploy jobs observed.}
+          - Observation: ${observation:-Main branch CI and deploy jobs observed.}
           - Recorded UTC: \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
           EOF
 
