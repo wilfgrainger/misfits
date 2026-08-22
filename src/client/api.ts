@@ -1,8 +1,11 @@
+export type ClubStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface UserSummary {
   id: string;
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  clubStatus: ClubStatus;
   profileImageUrl: string | null;
   dartsCounterUrl: string | null;
   isMasterAdmin: boolean;
@@ -385,8 +388,13 @@ function normalizePromotionProjection(value: unknown): PromotionProjection {
 }
 
 export class ApiClientError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly code?: string,
+  ) {
     super(message);
+    this.name = 'ApiClientError';
   }
 }
 
@@ -395,13 +403,18 @@ export class ApiClient {
     const headers = new Headers(init.headers);
     if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const response = await fetch(path, { ...init, headers, credentials: 'include' });
-    const payload = await response.json().catch(() => null) as { error?: { message?: string }; [key: string]: unknown } | null;
-    if (!response.ok) throw new ApiClientError(response.status, payload?.error?.message ?? 'Request failed');
+    const payload = await response.json().catch(() => null) as { error?: { code?: string; message?: string }; [key: string]: unknown } | null;
+    if (!response.ok) throw new ApiClientError(response.status, payload?.error?.message ?? 'Request failed', payload?.error?.code);
     return payload as T;
   }
 
   me() { return this.call<{ user: UserSummary; requiresOnboarding: boolean }>('/api/me'); }
-  signIn(credential: string) { return this.call<AuthPayload>('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }); }
+  signIn(credential: string, inviteToken?: string) {
+    return this.call<AuthPayload>('/api/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(inviteToken ? { credential, inviteToken } : { credential }),
+    });
+  }
   setUsername(username: string) { return this.call<AuthPayload>('/api/me/username', { method: 'POST', body: JSON.stringify({ username }) }); }
   logout() { return this.call<{ ok: true }>('/auth/logout', { method: 'POST' }); }
   adminPlayers() { return this.call<{ players: AdminPlayer[] }>('/api/admin/players'); }
