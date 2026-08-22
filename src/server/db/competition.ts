@@ -24,7 +24,10 @@ export interface CompetitionLeagueRecord {
   season_name: string;
   season_id: string | null;
   status: 'OPEN' | 'CLOSED';
+  max_legs: number;
   points_per_win: number;
+  points_per_draw: number;
+  points_per_loss: number;
   target_legs: number;
   created_at: string;
   updated_at: string;
@@ -177,7 +180,7 @@ export async function deleteEmptyDraftSeason(db: D1Database, actorUserId: string
 
 export async function listSeasonLeagues(db: D1Database, seasonId: string): Promise<CompetitionLeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT id, name, slug, season_name, season_id, status, points_per_win, target_legs,
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
             created_at, updated_at, created_by, max_players, matches_per_pair, visibility,
             hierarchy_position, promotion_places, relegation_places
        FROM leagues WHERE season_id = ?
@@ -188,7 +191,7 @@ export async function listSeasonLeagues(db: D1Database, seasonId: string): Promi
 
 export async function getCompetitionLeague(db: D1Database, leagueId: string): Promise<CompetitionLeagueRecord | null> {
   return (await db.prepare(
-    `SELECT id, name, slug, season_name, season_id, status, points_per_win, target_legs,
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
             created_at, updated_at, created_by, max_players, matches_per_pair, visibility,
             hierarchy_position, promotion_places, relegation_places
        FROM leagues WHERE id = ?`,

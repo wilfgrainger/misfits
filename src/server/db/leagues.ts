@@ -8,7 +8,10 @@ export interface LeagueRecord {
   slug: string;
   season_name: string;
   status: LeagueStatus;
+  max_legs: number;
   points_per_win: number;
+  points_per_draw: number;
+  points_per_loss: number;
   target_legs: number;
   created_at: string;
   updated_at: string;
@@ -30,7 +33,7 @@ export interface LeagueMemberRecord {
 
 export async function listPublicLeagues(db: D1Database): Promise<LeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
+    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
             created_at, updated_at, created_by, max_players, matches_per_pair, visibility
        FROM leagues WHERE visibility = 'PUBLIC'
        ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
@@ -41,7 +44,7 @@ export async function listPublicLeagues(db: D1Database): Promise<LeagueRecord[]>
 export async function listUserLeagues(db: D1Database, userId: string): Promise<LeagueRecord[]> {
   const result = await db.prepare(
     `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.status,
-            leagues.points_per_win, leagues.target_legs, leagues.created_at, leagues.updated_at,
+            leagues.max_legs, leagues.points_per_win, leagues.points_per_draw, leagues.points_per_loss, leagues.target_legs, leagues.created_at, leagues.updated_at,
             leagues.created_by, leagues.max_players, leagues.matches_per_pair, leagues.visibility
        FROM leagues JOIN league_players ON league_players.league_id = leagues.id
       WHERE league_players.user_id = ? AND league_players.active = 1
@@ -52,7 +55,7 @@ export async function listUserLeagues(db: D1Database, userId: string): Promise<L
 
 export async function listManagedLeagues(db: D1Database): Promise<LeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
+    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
             created_at, updated_at, created_by, max_players, matches_per_pair, visibility
        FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
   ).all<LeagueRecord>();
@@ -61,7 +64,7 @@ export async function listManagedLeagues(db: D1Database): Promise<LeagueRecord[]
 
 export async function getLeagueByIdOrSlug(db: D1Database, key: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
-    `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
+    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
             created_at, updated_at, created_by, max_players, matches_per_pair, visibility
        FROM leagues WHERE id = ? OR slug = ?`,
   ).bind(key, key).first<LeagueRecord>()) ?? null;
@@ -69,7 +72,7 @@ export async function getLeagueByIdOrSlug(db: D1Database, key: string): Promise<
 
 export async function getLeagueById(db: D1Database, id: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
-    `SELECT id, name, slug, season_name, status, points_per_win, target_legs,
+    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
             created_at, updated_at, created_by, max_players, matches_per_pair, visibility
        FROM leagues WHERE id = ?`,
   ).bind(id).first<LeagueRecord>()) ?? null;
@@ -129,10 +132,10 @@ export async function createLeague(db: D1Database, actorUserId: string, input: L
   const id = crypto.randomUUID();
   const timestamp = now.toISOString();
   await db.prepare(
-    `INSERT INTO leagues (id, name, slug, season_name, status, points_per_win, target_legs,
+    `INSERT INTO leagues (id, name, slug, season_name, status, points_per_win, points_per_draw, points_per_loss, max_legs, target_legs,
                           created_at, updated_at, created_by, max_players, matches_per_pair, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, timestamp, timestamp, actorUserId, input.maxPlayers, input.matchesPerPair, input.visibility).run();
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.pointsPerDraw, input.pointsPerLoss, input.maxLegs, input.targetLegs, timestamp, timestamp, actorUserId, input.maxPlayers, input.matchesPerPair, input.visibility).run();
   await db.prepare(
     'INSERT OR IGNORE INTO league_players (league_id, user_id, active, joined_at) VALUES (?, ?, 1, ?)',
   ).bind(id, actorUserId, timestamp).run();
@@ -150,7 +153,10 @@ export async function updateLeague(db: D1Database, actorUserId: string, leagueId
   if (!before) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
   if (await leagueHasCompetitionData(db, leagueId)) {
     const scoringRulesChanged =
+      (before.max_legs ?? ((before.target_legs * 2) - 1)) !== input.maxLegs ||
       before.points_per_win !== input.pointsPerWin ||
+      (before.points_per_draw ?? 0) !== input.pointsPerDraw ||
+      (before.points_per_loss ?? 0) !== input.pointsPerLoss ||
       before.target_legs !== input.targetLegs ||
       before.matches_per_pair !== input.matchesPerPair;
     if (scoringRulesChanged) {
@@ -160,11 +166,11 @@ export async function updateLeague(db: D1Database, actorUserId: string, leagueId
   const timestamp = now.toISOString();
   const updated = await db.prepare(
     `UPDATE leagues
-        SET name = ?, slug = ?, season_name = ?, status = ?, points_per_win = ?, target_legs = ?,
+        SET name = ?, slug = ?, season_name = ?, status = ?, points_per_win = ?, points_per_draw = ?, points_per_loss = ?, max_legs = ?, target_legs = ?,
             max_players = ?, matches_per_pair = ?, visibility = ?, updated_at = ?
       WHERE id = ?
         AND (SELECT COUNT(*) FROM league_players WHERE league_id = ? AND active = 1) <= ?`,
-  ).bind(input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, input.maxPlayers, input.matchesPerPair, input.visibility, timestamp, leagueId, leagueId, input.maxPlayers).run();
+  ).bind(input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.pointsPerDraw, input.pointsPerLoss, input.maxLegs, input.targetLegs, input.maxPlayers, input.matchesPerPair, input.visibility, timestamp, leagueId, leagueId, input.maxPlayers).run();
   if (updated.meta.changes !== 1) throw new AppError('LEAGUE_FULL', 'Capacity cannot be lower than the active member count', 409);
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)

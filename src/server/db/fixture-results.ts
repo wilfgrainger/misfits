@@ -2,6 +2,7 @@ import { AppError } from '../errors';
 import { validatePlayerResult, type ResultInput } from '../domain/result';
 import { getFixture, getCompetitionLeague, type FixtureRecord } from './competition';
 import { getMembership } from './leagues';
+import { scoringRulesForLeague } from './scoring-rules';
 
 export type FixtureMatchStatus = 'PENDING' | 'CONFIRMED' | 'DISPUTED';
 
@@ -27,7 +28,7 @@ export interface FixtureResultRecord {
   player_b_username?: string | null;
 }
 
-function resultFromFixtureInput(fixture: FixtureRecord, input: unknown, targetLegs: number): ResultInput {
+function resultFromFixtureInput(fixture: FixtureRecord, input: unknown, rules: ReturnType<typeof scoringRulesForLeague>): ResultInput {
   if (!input || typeof input !== 'object') throw new AppError('INVALID_RESULT', 'Fixture result details are invalid: INPUT', 400);
   const value = input as Record<string, unknown>;
   const validation = validatePlayerResult({
@@ -37,7 +38,7 @@ function resultFromFixtureInput(fixture: FixtureRecord, input: unknown, targetLe
     playerBLegs: value.playerBLegs,
     playerAAverage: value.playerAAverage,
     playerBAverage: value.playerBAverage,
-  }, targetLegs);
+  }, rules);
   if (!validation.ok) throw new AppError('INVALID_RESULT', `Fixture result details are invalid: ${validation.reason}`, 400);
   return validation.value;
 }
@@ -91,7 +92,7 @@ export async function submitFixtureResult(
   if (fixture.status !== 'OUTSTANDING' || fixture.result_id) throw new AppError('RESULT_ALREADY_RESOLVED', 'This fixture already has a result in progress or settled', 409);
   if (sessionUserId !== fixture.player_a_id && sessionUserId !== fixture.player_b_id) throw new AppError('FORBIDDEN', 'You can only record one of your own fixtures', 403);
   await requireFixtureMembers(db, fixture);
-  const result = resultFromFixtureInput(fixture, input, league.target_legs);
+  const result = resultFromFixtureInput(fixture, input, scoringRulesForLeague(league));
   const id = crypto.randomUUID();
   const at = now.toISOString();
   const inserted = await db.prepare(
@@ -129,7 +130,7 @@ export async function createAdminFixtureResult(
   if (!fixture || fixture.league_id !== leagueId) throw new AppError('INVALID_RESULT', 'Fixture was not found in this league', 404);
   if (fixture.status !== 'OUTSTANDING' || fixture.result_id) throw new AppError('RESULT_ALREADY_RESOLVED', 'This fixture is already settled or awaiting settlement', 409);
   await requireFixtureMembers(db, fixture);
-  const result = resultFromFixtureInput(fixture, input, league.target_legs);
+  const result = resultFromFixtureInput(fixture, input, scoringRulesForLeague(league));
   const id = crypto.randomUUID();
   const at = now.toISOString();
   const inserted = await db.prepare(

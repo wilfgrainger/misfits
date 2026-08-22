@@ -26,10 +26,10 @@ export async function createSeasonLeague(
     await db.batch([
       db.prepare(
         `INSERT INTO leagues (
-          id, name, slug, season_name, season_id, status, points_per_win, target_legs,
+          id, name, slug, season_name, season_id, status, points_per_win, points_per_draw, points_per_loss, max_legs, target_legs,
           created_at, updated_at, created_by, max_players, matches_per_pair, visibility,
           hierarchy_position, promotion_places, relegation_places
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         id,
         input.name,
@@ -38,6 +38,9 @@ export async function createSeasonLeague(
         seasonId,
         season.status === 'OPEN' ? 'OPEN' : 'CLOSED',
         input.pointsPerWin,
+        input.pointsPerDraw,
+        input.pointsPerLoss,
+        input.maxLegs,
         input.targetLegs,
         at,
         at,
@@ -77,7 +80,10 @@ export async function updateSeasonLeague(
   if (await leagueHasFixturesOrResults(db, leagueId)) {
     const competitionChanged =
       before.matches_per_pair !== input.matchesPerPair ||
+      before.max_legs !== input.maxLegs ||
       before.points_per_win !== input.pointsPerWin ||
+      before.points_per_draw !== input.pointsPerDraw ||
+      before.points_per_loss !== input.pointsPerLoss ||
       before.target_legs !== input.targetLegs ||
       before.hierarchy_position !== input.hierarchyPosition ||
       before.promotion_places !== input.promotionPlaces ||
@@ -93,13 +99,16 @@ export async function updateSeasonLeague(
     await db.batch([
       db.prepare(
         `UPDATE leagues SET
-          name = ?, slug = ?, points_per_win = ?, target_legs = ?, max_players = ?, matches_per_pair = ?,
+          name = ?, slug = ?, points_per_win = ?, points_per_draw = ?, points_per_loss = ?, max_legs = ?, target_legs = ?, max_players = ?, matches_per_pair = ?,
           visibility = ?, hierarchy_position = ?, promotion_places = ?, relegation_places = ?, updated_at = ?
          WHERE id = ?`,
       ).bind(
         input.name,
         input.slug,
         input.pointsPerWin,
+        input.pointsPerDraw,
+        input.pointsPerLoss,
+        input.maxLegs,
         input.targetLegs,
         input.maxPlayers,
         input.matchesPerPair,
