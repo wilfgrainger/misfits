@@ -20,49 +20,70 @@ jobs:
       TARGET_SHA: 3185019780f9560917dd22bb9326c342662ba420
     steps:
       - uses: actions/checkout@v4
-      - name: Require main CI and deploy success
+      - name: Observe main CI and deploy
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           run_id=''
           run_url=''
+          run_status='not_found'
+          run_conclusion='null'
+          verify='not_found'
+          deploy='not_found'
+          verify_url=''
+          deploy_url=''
+          observation=''
+
           for attempt in $(seq 1 90); do
-            runs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$TARGET_SHA&event=push&per_page=20")"
+            if ! runs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$TARGET_SHA&event=push&per_page=20" 2>&1)"; then
+              observation="GitHub API error while listing runs: $runs_json"
+              break
+            fi
             run_id="$(jq -r '.workflow_runs[] | select(.name == "CI") | .id' <<<"$runs_json" | head -n1)"
             if [ -n "$run_id" ] && [ "$run_id" != 'null' ]; then
-              status="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .status' <<<"$runs_json")"
-              conclusion="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .conclusion' <<<"$runs_json")"
+              run_status="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .status' <<<"$runs_json")"
+              run_conclusion="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .conclusion' <<<"$runs_json")"
               run_url="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .html_url' <<<"$runs_json")"
-              if [ "$status" = 'completed' ]; then
-                [ "$conclusion" = 'success' ] || { echo "::error::Main CI concluded $conclusion"; exit 1; }
-                break
-              fi
+              [ "$run_status" = 'completed' ] && break
             fi
             sleep 5
           done
-          [ -n "$run_id" ] && [ "$run_id" != 'null' ] || { echo '::error::No main CI run found for merge SHA'; exit 1; }
 
-          jobs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100")"
-          verify="$(jq -r '.jobs[] | select(.name == "verify") | .conclusion' <<<"$jobs_json")"
-          deploy="$(jq -r '.jobs[] | select(.name == "Deploy Worker") | .conclusion' <<<"$jobs_json")"
-          [ "$verify" = 'success' ] || { echo "::error::verify job concluded $verify"; exit 1; }
-          [ "$deploy" = 'success' ] || { echo "::error::Deploy Worker job concluded $deploy"; exit 1; }
+          if [ -n "$run_id" ] && [ "$run_id" != 'null' ]; then
+            if jobs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100" 2>&1)"; then
+              verify="$(jq -r '[.jobs[] | select(.name == "verify")][0].conclusion // "not_found"' <<<"$jobs_json")"
+              deploy="$(jq -r '[.jobs[] | select(.name == "Deploy Worker")][0].conclusion // "not_found"' <<<"$jobs_json")"
+              verify_url="$(jq -r '[.jobs[] | select(.name == "verify")][0].html_url // ""' <<<"$jobs_json")"
+              deploy_url="$(jq -r '[.jobs[] | select(.name == "Deploy Worker")][0].html_url // ""' <<<"$jobs_json")"
+            else
+              observation="GitHub API error while listing jobs: $jobs_json"
+            fi
+          elif [ -z "$observation" ]; then
+            observation='No main CI run found for merge SHA within observation window.'
+          fi
 
-          verify_url="$(jq -r '.jobs[] | select(.name == "verify") | .html_url' <<<"$jobs_json")"
-          deploy_url="$(jq -r '.jobs[] | select(.name == "Deploy Worker") | .html_url' <<<"$jobs_json")"
           mkdir -p docs/operations/evidence
           cat > docs/operations/evidence/2026-08-22-pr17-main-release.md <<EOF
           # PR #17 main release evidence
 
           - Merge SHA: \`$TARGET_SHA\`
-          - Main CI run: \`$run_id\`
-          - Main CI URL: $run_url
+          - Main CI run: \`${run_id:-not_found}\`
+          - Main CI URL: ${run_url:-not_available}
+          - Main CI status: \`$run_status\`
+          - Main CI conclusion: \`$run_conclusion\`
           - \`verify\` conclusion: \`$verify\`
-          - Verify job URL: $verify_url
+          - Verify job URL: ${verify_url:-not_available}
           - \`Deploy Worker\` conclusion: \`$deploy\`
-          - Deploy job URL: $deploy_url
+          - Deploy job URL: ${deploy_url:-not_available}
+          - Observation: ${observation:-Main CI and deploy jobs observed.}
           - Recorded UTC: \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
           EOF
+
+          {
+            echo "RUN_CONCLUSION=$run_conclusion"
+            echo "VERIFY_CONCLUSION=$verify"
+            echo "DEPLOY_CONCLUSION=$deploy"
+          } >> "$GITHUB_ENV"
       - name: Commit observer evidence
         run: |
           git config user.name 'github-actions[bot]'
@@ -70,3 +91,8 @@ jobs:
           git add docs/operations/evidence/2026-08-22-pr17-main-release.md
           git commit -m 'docs: record PR17 main release evidence'
           git push
+      - name: Require successful main release
+        run: |
+          test "$RUN_CONCLUSION" = 'success'
+          test "$VERIFY_CONCLUSION" = 'success'
+          test "$DEPLOY_CONCLUSION" = 'success'
