@@ -249,13 +249,6 @@ export default function App() {
 
         {view === 'signed-in' && user && (
           <div className="account-panel">
-            <div className="account-heading">
-              <div>
-                <p className="account-name">{user.username ?? 'Player'}</p>
-                <p className="account-role">{user.role === 'ADMIN' ? 'Club administrator' : 'Misfits 501 player'}</p>
-              </div>
-              <span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'season' : 'seasons'}</span>
-            </div>
             {user.role === 'ADMIN' && (
               <nav className="segmented-tabs" aria-label="Admin views">
                 <button
