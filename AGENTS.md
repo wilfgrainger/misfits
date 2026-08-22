@@ -57,8 +57,17 @@ git diff --check
 - **Ask first:** schema changes, dependencies, Cloudflare architecture changes, CI/CD changes, production deployment, remote D1 migration, secrets, destructive data operations or a material rewrite of product truth.
 - **Never:** commit secrets; edit applied migrations; automate remote D1 migrations; add paid Cloudflare services or extra runtimes; weaken authorization; discard existing user work; claim a command passed when it did not run.
 
-## Verification and handoff
+## Testing and verification
 
-Run the smallest focused test first. For UI work, include fresh Impeccable critique/audit evidence for both mobile and desktop. Before handoff, run the applicable focused checks, then the repository verification commands: typecheck, test, build, Wrangler types, Wrangler dry-run deployment, `git diff --check`, and `git status --short`.
+Tests own durable behaviour, not repository history. Keep one clear owner for each contract where practical:
 
-Report actual output only. If a command is blocked by the environment, record the blocker and do not claim it passed.
+- `tests/domain/` — pure competition and validation invariants.
+- `tests/server/` — authentication, authorization, persistence and API behaviour.
+- `tests/client/` — user journeys and presentation behaviour.
+- `tests/release/` — deployment, schema and operational guardrails that are not already owned elsewhere.
+
+During implementation, run the smallest focused test that proves the changed path. Do **not** run or retrigger the complete CI pipeline after every small edit or documentation checkpoint. Batch coherent low-risk changes, then run one fresh repository gate before review/merge: Wrangler types, both TypeScript projects, full Vitest suite and production build. Expand proof only for material risk such as security, permissions, migrations, destructive operations or data loss.
+
+Do not add story-number tests when an existing domain/server/client test already proves the same acceptance contract. Do not test that a deleted filename stays deleted or that CI has an exact number of jobs. Test the safety or user behaviour that matters.
+
+Report actual output only. If a check is blocked by the environment, record the blocker and do not claim it passed.
