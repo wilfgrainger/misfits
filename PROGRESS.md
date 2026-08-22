@@ -1,75 +1,63 @@
 # Misfits 501 Progress
 
 **Updated:** 22 August 2026  
-**Current branch:** `spec/ux-compression`  
-**PR:** #168  
-**Current focus:** Release 1 UX Compression final verification and merge  
-**Production baseline:** `main` at `5d8e351ad4995305eb8970427846f2b821366a98`; PR #17 scoring release remains deployed
+**Current branch:** `refactor/test-suite-simplification`  
+**Current focus:** Release 1.5 Cave Pony test-suite simplification, final verification  
+**Production/main baseline:** Release 1 UX Compression merged as `aed8df57e4342c341af3405ba031d94c95379f2d`
 
 ## Authority
 
 - Product: `PRODUCT.md`
 - Vision/platform guardrail: `VISION.md`
 - UI: `DESIGN.md` + repo-local Impeccable skill
-- Release 1 design: `docs/superpowers/specs/2026-08-22-ux-compression-design.md`
-- Release 1 plan: `docs/superpowers/plans/2026-08-22-ux-compression.md`
 - Story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`
 - Latest story evidence: `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`
-- GitHub issues own operational open/closed story state.
+- GitHub issues own operational story open/closed state.
+- `AGENTS.md` owns the durable test/verification policy.
 
 ## Parked stories
 
-**117/150 stories are verified/closed. 33 remain deliberately parked and open: 12 PARTIAL + 21 MISSING.** Release 1 does not close them.
+**117/150 stories are verified/closed. 33 remain deliberately parked and open: 12 PARTIAL + 21 MISSING.**
 
-Open distribution: Admin 6, Player 26, Public 1.
+Open distribution: Admin 6, Player 26, Public 1. Release 1 and Release 1.5 do not close them.
 
-## Release 1 UX Compression
+## Release 1 — UX Compression — MERGED
 
-Design **APPROVED** and implementation executed with Superpowers RED → GREEN discipline.
+PR #168 merged to `main` as `aed8df57e4342c341af3405ba031d94c95379f2d`.
 
-Delivered:
-- player member navigation is horizontally scrollable with 44px touch targets;
-- signed-in duplicate identity/season-count chrome removed while useful season/league context remains;
-- player result scores start/reset blank instead of pre-filling a win;
-- public league-list failure, genuine-empty state and Retry are explicit; sharing says `Share league`;
-- admin Results is composed directly in the canonical competition desk, with no portal/DOM-query bridge;
-- official fixture result fields use actual player names;
-- infrequent Season/League setup and destructive controls use native progressive disclosure;
-- dead `AdminLeagueDesk` production surface removed;
-- direct unused `react-router-dom` and `zod` app dependencies removed with npm-generated lockfile alignment;
-- `VISION.md`, `DESIGN.md` and the canonical story catalogue now agree on current fixture/product authority;
-- duplicate parent Results API loading removed, leaving `AdminResultsWorkflow` as the single Results lifecycle owner;
-- obsolete tests coupled to the deleted `AdminLeagueDesk` UI removed while canonical admin suites remain.
+Final PR-head gate `32586862564` passed `npm ci`, Wrangler types, both TypeScript projects, full Vitest and production build. Impeccable deterministic scan returned 0 findings.
 
-Key evidence:
-- Task 1 GREEN CI `32583252880`, 241/241 tests + typecheck/build PASS.
-- Task 2 GREEN CI `32583582127`, 244/244 tests + typecheck/build PASS.
-- Task 3 GREEN CI `32584789691`, 244/244 tests + typecheck/build PASS.
-- Task 4 RED `32584898196`, exactly two intended failures; GREEN `32585326632` full gate PASS.
-- Task 5 RED `32585394285`, exactly one intended dead-surface contract failure.
-- Impeccable deterministic scan on `src/client`: **0 findings**.
-- Cave Pony final review found one duplicate Results request; RED evidence showed two GETs where one was required. Clean head `08b2b558e5c5a15961637acbaada28ce5b8d5ccc` removes that duplicate and stale legacy-admin tests.
+Delivered player/public/admin UX compression, direct canonical Results composition, dead UI/dependency cleanup, documentation authority alignment and removal of the duplicate parent Results request. No D1/schema/API architecture change was introduced.
 
-**Final gate:** this checkpoint commit intentionally triggers the ordinary two-job repository CI on the clean branch head. Do not merge until Wrangler types, both TypeScript projects, full Vitest and production build all pass.
+## Release 1.5 — Cave Pony test-suite simplification
 
-## Next step after Release 1
+User explicitly approved this follow-up because the repository was paying too much process/test tax for small UI changes.
 
-### Release 1.5 — Cave Pony test-suite simplification
+### Audit conclusion
 
-The user explicitly approved a follow-up simplification pass on testing before further feature work.
+The focused `tests/domain/` and `tests/server/` suites are the integrity spine and are intentionally retained. They protect scoring, standings, promotion, authentication, authorization, persistence and route contracts.
 
-Goal: reduce test tax without weakening confidence.
+The avoidable weight was concentrated in client UI archaeology, story-number duplication and a brittle CI meta-test.
 
-Cave Pony principles for the test suite:
-- test durable user/domain contracts, not superseded component structure;
-- one authoritative test per behaviour wherever practical;
-- delete duplicate assertions across old UI generations;
-- prefer focused domain/API tests for invariants and a small number of end-to-end component journeys;
-- keep deployment/security/schema guardrails strong;
-- avoid creating CI jobs for ordinary review tools;
-- document which suites are smoke, contract, domain and journey coverage.
+### Changes
 
-Release 1.5 must start from merged `main`, audit the test tree, propose deletions/consolidations with evidence, then run the complete remaining suite before merge.
+Deleted as duplicate or historical-structure coverage:
+- `tests/client/weekly-ledger-structure.test.tsx` — public happy-path and semantic standings coverage already owned by `public-league.test.tsx` + `standings-table.test.tsx`.
+- `tests/client/repository-contract.test.ts` — asserted docs/CSS strings, deleted filenames and unused package history rather than user/runtime behaviour.
+- `tests/client/player-result-rules.test.tsx` — navigation reachability remains in `player-app.test.tsx`; blank score behaviour remains in `player-scoring-rules.test.tsx` and league-switch coverage.
+- `tests/release/story-adm-070.test.ts` — weaker duplicate of the promotion rank-authority cases already in `tests/domain/competition.test.ts`.
+
+Simplified:
+- `tests/release/deploy-workflow.test.ts` now asserts the real safety contract (verification required, deploy main-only, pinned Cloudflare action/secrets, no remote migration) without requiring CI to contain exactly two jobs.
+- `AGENTS.md` now requires focused proof during development and one fresh full repository gate before review/merge, rather than repeatedly retriggering full CI after every small edit/checkpoint.
+- Story-number tests must not be added when another suite already owns the same acceptance contract.
+- Tests must not assert that a deleted filename stays deleted or that CI has an exact job count.
+
+### Cave Pony boundary
+
+No production code changed in Release 1.5. No domain/server security, permission, schema, migration or persistence test has been removed. The goal is less brittle proof, not less assurance.
+
+**Next:** create the Release 1.5 PR from this branch, run one authoritative full repository gate, merge only if green, then verify the combined `main` release/deploy once.
 
 ## Next planned product releases
 
@@ -78,16 +66,13 @@ Release 1.5 must start from merged `main`, audit the test tree, propose deletion
 3. **Admin Competition Readiness & Safety**: whole-season readiness, `seasonHealth()`, operational counts, accessible destructive actions.
 4. **History, Responsive Acceptance & Final Story Closure**: historic fixture context, viewport/touch acceptance, revalidate all 150 issues and close only fully evidenced stories.
 
-## Parked Release 2 root cause
+## Parked fixture root cause
 
-Normal players cannot currently read fixtures because `PlayerLeague -> ApiClient.fixtures()` calls `/api/admin/competition/leagues/:id/fixtures`, which requires ADMIN, and the client swallows the 403 into an empty fixture list. Do not weaken the admin guard in Release 1. A future fixture-first release adds a permission-safe read contract.
-
-Before that flow becomes reachable, `Your/Their` scores must map correctly to fixed fixture Player A/B ordering to avoid the latent Player-B reversal.
+Normal players still cannot read fixtures because `PlayerLeague -> ApiClient.fixtures()` calls `/api/admin/competition/leagues/:id/fixtures`, which requires ADMIN, and the client swallows the 403 into an empty fixture list. Do not weaken the admin guard. The future fixture-first release adds a permission-safe read contract and must also map `Your/Their` scores correctly onto fixed fixture Player A/B ordering.
 
 ## Guardrails
 
-- No D1/schema/API architecture changes were introduced by Release 1.
-- No new router, state framework, component library, backend service or Cloudflare product.
-- Preserve Worker authorization, same-origin security, competition invariants and accessibility.
-- All 33 incomplete story issues stay open until separately revalidated.
-- Merge only a freshly verified final PR head.
+- Keep all 33 incomplete story issues open until separately revalidated.
+- Preserve Worker authorization, same-origin security, competition invariants, auditability and accessibility.
+- Use focused tests while implementing; run one full fresh gate before integration.
+- Merge only a freshly verified PR head.
