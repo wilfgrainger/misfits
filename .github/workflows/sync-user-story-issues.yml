@@ -1,0 +1,27 @@
+name: Sync user-story issues
+
+on:
+  push:
+    branches:
+      - ops/user-story-issue-sync
+    paths:
+      - scripts/sync-user-story-issues.py
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Sync canonical stories to GitHub issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_API_URL: ${{ github.api_url }}
+        run: python scripts/sync-user-story-issues.py
