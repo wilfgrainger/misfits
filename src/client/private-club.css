@@ -1,0 +1,359 @@
+:root {
+  --club-red: #d44040;
+  --club-red-strong: #e35454;
+  --club-red-soft: rgba(212, 64, 64, 0.14);
+  --club-red-line: rgba(212, 64, 64, 0.34);
+  --club-success: #63c978;
+  --club-success-soft: rgba(99, 201, 120, 0.13);
+  --club-success-line: rgba(99, 201, 120, 0.3);
+}
+
+.private-club-shell {
+  min-height: 100dvh;
+  color: var(--club-text);
+  background:
+    radial-gradient(circle at 50% -8rem, rgba(212, 64, 64, 0.12), transparent 28rem),
+    var(--club-ink);
+}
+
+.private-club-shell .experience-panel {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 88% 5rem, rgba(212, 64, 64, 0.08), transparent 22rem),
+    linear-gradient(180deg, #0a0e0d 0%, #0c1110 100%);
+}
+
+.private-club-shell .experience-header::after {
+  border-color: var(--club-red-line);
+  background:
+    radial-gradient(circle, transparent 0 16%, rgba(212, 64, 64, 0.18) 16.5% 17.5%, transparent 18% 31%, rgba(212, 64, 64, 0.13) 31.5% 32.5%, transparent 33% 46%, rgba(212, 64, 64, 0.08) 46.5% 47.5%, transparent 48%);
+}
+
+.private-club-shell .experience-header .brand-mark {
+  border-color: var(--club-red-line);
+}
+
+.private-club-shell :focus-visible {
+  outline: 3px solid var(--club-red-strong);
+  outline-offset: 3px;
+}
+
+.private-entry-state {
+  display: grid;
+  width: min(100% - 2rem, 31rem);
+  min-height: calc(100dvh - 8rem);
+  margin: 0 auto;
+  padding: clamp(2rem, 10vh, 6.5rem) 0 3rem;
+  align-content: center;
+  justify-items: center;
+  gap: 0.8rem;
+  text-align: center;
+}
+
+.private-entry-state h1 {
+  max-width: 15ch;
+  margin: 0;
+  color: var(--club-text);
+  font-size: clamp(2rem, 8vw, 3.35rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.private-entry-icon {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.5rem;
+  place-items: center;
+  color: var(--club-red-strong);
+  background: var(--club-red-soft);
+  border: 1px solid var(--club-red-line);
+  border-radius: 50%;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+}
+
+.private-entry-icon svg {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
+.entry-kicker {
+  margin: 0;
+  color: var(--club-red-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.entry-copy {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--club-muted);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.private-google-card {
+  width: min(100%, 24rem);
+  margin-top: 0.7rem;
+  padding: 0.8rem;
+  overflow: hidden;
+  background: #121816;
+  border: 1px solid var(--club-border);
+  border-radius: 16px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.2);
+}
+
+.private-google-card .google-button-slot,
+.private-google-card .google-button-slot > div,
+.private-google-card iframe {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.entry-message {
+  width: min(100%, 24rem);
+  margin: 0.15rem 0 0;
+}
+
+.privacy-note {
+  display: flex;
+  max-width: 32rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.7rem 0 0;
+  color: var(--club-dim);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.privacy-note svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.private-entry-loading {
+  min-height: calc(100dvh - 7rem);
+}
+
+.private-loading-line {
+  width: min(12rem, 54vw);
+  height: 2px;
+  margin: 0.5rem 0;
+  overflow: hidden;
+  background: #222b27;
+  border-radius: 99px;
+}
+
+.private-loading-line::after {
+  display: block;
+  width: 45%;
+  height: 100%;
+  content: '';
+  background: var(--club-red);
+  border-radius: inherit;
+  animation: private-loading 0.95s ease-in-out infinite alternate;
+}
+
+@keyframes private-loading {
+  from { transform: translateX(-20%); }
+  to { transform: translateX(145%); }
+}
+
+.membership-state {
+  max-width: 34rem;
+}
+
+.private-signout-button {
+  min-width: 10rem;
+  margin-top: 0.8rem;
+}
+
+.private-onboarding-card {
+  width: min(100% - 2rem, 32rem);
+  margin: clamp(2rem, 9vh, 6rem) auto 4rem;
+  padding: clamp(1.2rem, 4vw, 2rem);
+  background: #111715;
+  border: 1px solid var(--club-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.25);
+}
+
+.private-onboarding-card h1 {
+  margin: 0.2rem 0 0.5rem;
+  color: var(--club-text);
+  font-size: clamp(1.8rem, 6vw, 2.5rem);
+  letter-spacing: -0.045em;
+}
+
+.private-member-app {
+  padding-bottom: calc(6.8rem + env(safe-area-inset-bottom));
+}
+
+.private-empty-member {
+  margin-top: 1rem;
+  padding: clamp(1.5rem, 5vw, 2.4rem);
+  background: #111715;
+  border: 1px solid var(--club-border);
+  border-radius: 18px;
+}
+
+/* Brand red owns ordinary interaction. Green remains semantic state. */
+.private-club-shell .primary-button,
+.private-club-shell .segmented-tab-active,
+.private-club-shell .content-tab-active,
+.private-club-shell .club-nav-item-active,
+.private-club-shell .league-tab-active {
+  color: #fff8f2;
+  background: var(--club-red);
+  border-color: var(--club-red);
+  box-shadow: 0 8px 22px rgba(212, 64, 64, 0.18);
+}
+
+.private-club-shell .primary-button:hover,
+.private-club-shell .segmented-tab-active:hover,
+.private-club-shell .content-tab-active:hover,
+.private-club-shell .club-nav-item-active:hover {
+  background: var(--club-red-strong);
+  border-color: var(--club-red-strong);
+}
+
+.private-club-shell .league-tab-active {
+  color: var(--club-text);
+  background: rgba(212, 64, 64, 0.12);
+  border-color: var(--club-red-line);
+}
+
+.private-club-shell .refresh-button,
+.private-club-shell .icon-action,
+.private-club-shell .surface-icon:not(.status-success) {
+  color: var(--club-red-strong);
+  background: var(--club-red-soft);
+  border-color: var(--club-red-line);
+}
+
+.private-club-shell .status-open,
+.private-club-shell .success-message,
+.private-club-shell .result-winner {
+  color: var(--club-success);
+}
+
+.private-club-shell .status-open {
+  background: var(--club-success-soft);
+  border-color: var(--club-success-line);
+}
+
+/* Club access is an admission workflow, not a generic user table. */
+.club-access-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.club-access-priority {
+  border-color: var(--club-red-line) !important;
+  box-shadow: inset 3px 0 0 var(--club-red), 0 16px 36px rgba(0, 0, 0, 0.12);
+}
+
+.club-access-panel .section-heading > div {
+  min-width: 0;
+}
+
+.club-request-list > li,
+.club-member-list > li,
+.club-invite-list > li {
+  align-items: center;
+}
+
+.status-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.status-chip-row .status-label {
+  color: var(--club-muted);
+  background: #19211e;
+  border-color: var(--club-border);
+}
+
+.compact-button {
+  min-height: 42px;
+  padding-inline: 0.85rem;
+}
+
+.club-invite-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.invite-secret-callout {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(212, 64, 64, 0.07);
+  border: 1px solid var(--club-red-line);
+  border-radius: 14px;
+}
+
+.club-invite-list {
+  margin-top: 0.8rem;
+}
+
+@media (max-width: 680px) {
+  .private-brand-header .header-user .header-signout {
+    display: none;
+  }
+
+  .private-entry-state {
+    min-height: calc(100dvh - 6.8rem);
+    padding-top: clamp(1.5rem, 8vh, 4rem);
+  }
+
+  .club-invite-create {
+    grid-template-columns: 1fr;
+  }
+
+  .club-request-list > li,
+  .club-member-list > li,
+  .club-invite-list > li {
+    align-items: stretch;
+  }
+
+  .club-request-list .inline-actions,
+  .club-member-list .inline-actions {
+    width: 100%;
+  }
+
+  .club-request-list .inline-actions > button,
+  .club-member-list .inline-actions > button {
+    flex: 1 1 9rem;
+  }
+}
+
+@media (min-width: 681px) {
+  .private-entry-state {
+    min-height: min(46rem, calc(100dvh - 7rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .private-loading-line::after {
+    animation: none;
+    transform: none;
+    width: 100%;
+  }
+
+  .private-club-shell *,
+  .private-club-shell *::before,
+  .private-club-shell *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
