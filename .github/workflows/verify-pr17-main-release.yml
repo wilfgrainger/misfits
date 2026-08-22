@@ -18,27 +18,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       TARGET_SHA: 3185019780f9560917dd22bb9326c342662ba420
+      PROD_ORIGIN: https://darts.graingers.agency
     steps:
       - uses: actions/checkout@v4
       - name: Observe main CI and deploy
         shell: bash
         run: |
-          set -uo pipefail
-          run_id=''
-          run_url=''
-          run_status='not_found'
-          run_conclusion='null'
-          verify='not_found'
-          deploy='not_found'
-          verify_url=''
-          deploy_url=''
-          observation=''
-
+          set -euo pipefail
           for attempt in $(seq 1 90); do
-            if ! runs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$TARGET_SHA&event=push&per_page=20" 2>&1)"; then
-              observation="GitHub API error while listing runs: $runs_json"
-              break
-            fi
+            runs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$TARGET_SHA&event=push&per_page=20")"
             run_id="$(jq -r '.workflow_runs[] | select(.name == "CI" and .head_branch == "main") | .id' <<<"$runs_json" | head -n1)"
             if [ -n "$run_id" ] && [ "$run_id" != 'null' ]; then
               run_status="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id and .head_branch == "main") | .status' <<<"$runs_json")"
@@ -48,52 +36,79 @@ jobs:
             fi
             sleep 5
           done
-
-          if [ -n "$run_id" ] && [ "$run_id" != 'null' ]; then
-            if jobs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100" 2>&1)"; then
-              verify="$(jq -r '[.jobs[] | select(.name == "verify")][0].conclusion // "not_found"' <<<"$jobs_json")"
-              deploy="$(jq -r '[.jobs[] | select(.name == "Deploy Worker")][0].conclusion // "not_found"' <<<"$jobs_json")"
-              verify_url="$(jq -r '[.jobs[] | select(.name == "verify")][0].html_url // ""' <<<"$jobs_json")"
-              deploy_url="$(jq -r '[.jobs[] | select(.name == "Deploy Worker")][0].html_url // ""' <<<"$jobs_json")"
-            else
-              observation="GitHub API error while listing jobs: $jobs_json"
-            fi
-          elif [ -z "$observation" ]; then
-            observation='No main CI run found for merge SHA within observation window.'
-          fi
-
+          [ -n "${run_id:-}" ] && [ "$run_id" != 'null' ]
+          [ "$run_conclusion" = 'success' ]
+          jobs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100")"
+          verify="$(jq -r '[.jobs[] | select(.name == "verify")][0].conclusion // "not_found"' <<<"$jobs_json")"
+          deploy="$(jq -r '[.jobs[] | select(.name == "Deploy Worker")][0].conclusion // "not_found"' <<<"$jobs_json")"
+          verify_url="$(jq -r '[.jobs[] | select(.name == "verify")][0].html_url // ""' <<<"$jobs_json")"
+          deploy_url="$(jq -r '[.jobs[] | select(.name == "Deploy Worker")][0].html_url // ""' <<<"$jobs_json")"
+          [ "$verify" = 'success' ]
+          [ "$deploy" = 'success' ]
           mkdir -p docs/operations/evidence
           cat > docs/operations/evidence/2026-08-22-pr17-main-release.md <<EOF
           # PR #17 main release evidence
 
           - Merge SHA: \`$TARGET_SHA\`
           - Required branch: \`main\`
-          - Main CI run: \`${run_id:-not_found}\`
-          - Main CI URL: ${run_url:-not_available}
+          - Main CI run: \`$run_id\`
+          - Main CI URL: $run_url
           - Main CI status: \`$run_status\`
           - Main CI conclusion: \`$run_conclusion\`
           - \`verify\` conclusion: \`$verify\`
-          - Verify job URL: ${verify_url:-not_available}
+          - Verify job URL: $verify_url
           - \`Deploy Worker\` conclusion: \`$deploy\`
-          - Deploy job URL: ${deploy_url:-not_available}
-          - Observation: ${observation:-Main branch CI and deploy jobs observed.}
+          - Deploy job URL: $deploy_url
           - Recorded UTC: \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
           EOF
+      - name: Smoke production scoring APIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 5 --retry-all-errors --max-time 20 "$PROD_ORIGIN/api/health" -o /tmp/health.json
+          jq -e '.ok == true' /tmp/health.json >/dev/null
+          curl -fsS --retry 5 --retry-all-errors --max-time 20 "$PROD_ORIGIN/api/public/leagues" -o /tmp/leagues.json
+          jq -e '.leagues | type == "array"' /tmp/leagues.json >/dev/null
+          public_count="$(jq '.leagues | length' /tmp/leagues.json)"
+          league_id=''
+          scoring_probe='No public league was available for league-specific scoring-field validation.'
+          standings_count='not_checked'
+          results_count='not_checked'
+          if [ "$public_count" -gt 0 ]; then
+            jq -e '.leagues[] | (.maxLegs|type=="number") and (.pointsPerWin|type=="number") and (.pointsPerDraw|type=="number") and (.pointsPerLoss|type=="number") and (.targetLegs|type=="number")' /tmp/leagues.json >/dev/null
+            league_id="$(jq -r '.leagues[0].id' /tmp/leagues.json)"
+            max_legs="$(jq -r '.leagues[0].maxLegs' /tmp/leagues.json)"
+            win_points="$(jq -r '.leagues[0].pointsPerWin' /tmp/leagues.json)"
+            draw_points="$(jq -r '.leagues[0].pointsPerDraw' /tmp/leagues.json)"
+            loss_points="$(jq -r '.leagues[0].pointsPerLoss' /tmp/leagues.json)"
+            scoring_probe="First public league exposes maxLegs=$max_legs, win=$win_points, draw=$draw_points, loss=$loss_points."
+            curl -fsS --retry 5 --retry-all-errors --max-time 20 "$PROD_ORIGIN/api/public/leagues/$league_id/standings" -o /tmp/standings.json
+            curl -fsS --retry 5 --retry-all-errors --max-time 20 "$PROD_ORIGIN/api/public/leagues/$league_id/results" -o /tmp/results.json
+            jq -e '.standings | type == "array"' /tmp/standings.json >/dev/null
+            jq -e '.results | type == "array"' /tmp/results.json >/dev/null
+            standings_count="$(jq '.standings | length' /tmp/standings.json)"
+            results_count="$(jq '.results | length' /tmp/results.json)"
+            if [ "$standings_count" -gt 0 ]; then
+              jq -e '.standings[] | (.rank|type=="number") and (.drawn|type=="number") and (.legsFor|type=="number") and (.points|type=="number")' /tmp/standings.json >/dev/null
+            fi
+          fi
+          cat > docs/operations/evidence/2026-08-22-pr17-production-smoke.md <<EOF
+          # PR #17 production smoke evidence
 
-          {
-            echo "RUN_CONCLUSION=$run_conclusion"
-            echo "VERIFY_CONCLUSION=$verify"
-            echo "DEPLOY_CONCLUSION=$deploy"
-          } >> "$GITHUB_ENV"
+          - Production origin: \`$PROD_ORIGIN\`
+          - Health endpoint: passed
+          - Public leagues endpoint: passed
+          - Public league count: \`$public_count\`
+          - League-specific probe: $scoring_probe
+          - First public league ID: \`${league_id:-not_available}\`
+          - Standings endpoint rows: \`$standings_count\`
+          - Results endpoint rows: \`$results_count\`
+          - Recorded UTC: \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
+          EOF
       - name: Commit observer evidence
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/operations/evidence/2026-08-22-pr17-main-release.md
-          git commit -m 'docs: record PR17 main release evidence'
+          git add docs/operations/evidence/2026-08-22-pr17-main-release.md docs/operations/evidence/2026-08-22-pr17-production-smoke.md
+          git commit -m 'docs: record PR17 release and smoke evidence'
           git push
-      - name: Require successful main release
-        run: |
-          test "$RUN_CONCLUSION" = 'success'
-          test "$VERIFY_CONCLUSION" = 'success'
-          test "$DEPLOY_CONCLUSION" = 'success'
