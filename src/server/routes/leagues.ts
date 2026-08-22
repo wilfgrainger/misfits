@@ -1,9 +1,7 @@
 import { Hono } from 'hono';
-import { requireClubMember, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
+import { requireClubMember, requireUser, type AuthAppEnv } from '../auth/guards';
 import { AppError, jsonError } from '../errors';
 import { getLeagueByIdOrSlug, listClubLeagues, listLeagueMembers, listUserLeagues } from '../db/leagues';
-import { getCompetitionLeague } from '../db/competition';
-import { joinLeagueByInvite } from '../db/invites';
 
 interface LeagueRouteDependencies {
   now?: () => Date;
@@ -34,9 +32,8 @@ function publicPlayers(members: Awaited<ReturnType<typeof listLeagueMembers>>) {
     .map((member) => ({ id: member.user_id, username: member.username, profileImageUrl: member.profile_image_url }));
 }
 
-export function createLeagueRoutes(dependencies: LeagueRouteDependencies = {}) {
+export function createLeagueRoutes(_dependencies: LeagueRouteDependencies = {}) {
   const routes = new Hono<AuthAppEnv>();
-  const now = dependencies.now ?? (() => new Date());
 
   routes.get('/api/public/leagues', requireUser, requireClubMember, async (c) => {
     const leagues = await listClubLeagues(c.env.DB);
@@ -60,17 +57,6 @@ export function createLeagueRoutes(dependencies: LeagueRouteDependencies = {}) {
   routes.get('/api/me/leagues', requireUser, requireClubMember, async (c) => {
     const leagues = await listUserLeagues(c.env.DB, c.get('user').id);
     return c.json({ leagues: leagues.map((league) => publicLeague(league)) }, 200, { 'Cache-Control': 'private, no-store' });
-  });
-
-  routes.post('/api/invites/:token/join', requireSameOrigin, requireUser, async (c) => {
-    try {
-      const member = await joinLeagueByInvite(c.env.DB, c.get('user').id, c.req.param('token'), now());
-      const league = await getCompetitionLeague(c.env.DB, member.league_id);
-      return c.json({ membership: { seasonId: league?.season_id ?? null, leagueId: member.league_id, userId: member.user_id, active: member.active === 1 } }, 200, { 'Cache-Control': 'private, no-store' });
-    } catch (error) {
-      if (error instanceof AppError) return jsonError(c, error);
-      return jsonError(c, new AppError('INVITE_INVALID', 'That invite link could not be used', 400));
-    }
   });
 
   return routes;
