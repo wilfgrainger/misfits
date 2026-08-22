@@ -14,14 +14,14 @@ function standings(
   return calculateStandings(players, matches, rules as never);
 }
 
-const match = (playerAId: string, playerBId: string, playerALegs: number, playerBLegs: number) => ({
-  playerAId,
-  playerBId,
-  playerALegs,
-  playerBLegs,
-  playerAAverage: 50,
-  playerBAverage: 45,
-});
+const match = (
+  playerAId: string,
+  playerBId: string,
+  playerALegs: number,
+  playerBLegs: number,
+  playerAAverage = 50,
+  playerBAverage = 45,
+) => ({ playerAId, playerBId, playerALegs, playerBLegs, playerAAverage, playerBAverage });
 
 describe('standings calculation', () => {
   it('applies configurable win draw and loss points and records W-D-L totals', () => {
@@ -51,6 +51,7 @@ describe('standings calculation', () => {
     ], legacyRules);
 
     // A and B both have two points, but A has five total legs won versus B's three.
+    // The legacy sorter incorrectly favours B's leg difference before looking at legs won.
     expect(rows.slice(0, 2).map((row) => row.playerId)).toEqual(['a', 'b']);
     expect(rows[0].rank).toBe(1);
     expect(rows[1].rank).toBe(2);
@@ -58,18 +59,23 @@ describe('standings calculation', () => {
 
   it('uses two-player head-to-head points after league points and legs won are equal', () => {
     const rows = standings([
+      { id: 'd', username: 'Delta' },
       { id: 'a', username: 'Alpha' },
       { id: 'b', username: 'Bravo' },
       { id: 'c', username: 'Charlie' },
+      { id: 'e', username: 'Echo' },
     ], [
-      match('a', 'b', 3, 0),
-      match('b', 'c', 3, 0),
+      match('a', 'b', 3, 0, 40, 60),
+      match('b', 'c', 3, 0, 60, 45),
+      match('d', 'a', 3, 0, 50, 40),
+      match('d', 'e', 3, 0, 50, 45),
     ], legacyRules);
 
-    // A and B both have two points and three legs won. A won their confirmed head-to-head.
-    expect(rows.slice(0, 2).map((row) => ({ playerId: row.playerId, rank: row.rank }))).toEqual([
-      { playerId: 'a', rank: 1 },
-      { playerId: 'b', rank: 2 },
+    // A and B both finish on two points, three legs won and zero leg difference.
+    // Legacy average would put B first, but A won their confirmed head-to-head.
+    expect(rows.filter((row) => row.playerId === 'a' || row.playerId === 'b').map((row) => ({ playerId: row.playerId, rank: row.rank }))).toEqual([
+      { playerId: 'a', rank: 2 },
+      { playerId: 'b', rank: 3 },
     ]);
   });
 
@@ -79,21 +85,29 @@ describe('standings calculation', () => {
       { id: 'b', username: 'Bravo' },
       { id: 'c', username: 'Charlie' },
       { id: 'd', username: 'Delta' },
+      { id: 'e', username: 'Echo' },
+      { id: 'f', username: 'Foxtrot' },
+      { id: 'g', username: 'Golf' },
+      { id: 'h', username: 'Hotel' },
     ], [
-      match('a', 'b', 3, 0),
-      match('a', 'c', 3, 0),
-      match('b', 'c', 3, 0),
-      match('b', 'd', 3, 0),
-      match('c', 'd', 3, 0),
-      match('c', 'd', 3, 0),
+      match('a', 'b', 3, 0, 30, 50),
+      match('a', 'c', 3, 0, 30, 70),
+      match('b', 'c', 3, 0, 50, 70),
+      match('b', 'd', 3, 0, 50, 45),
+      match('c', 'd', 3, 0, 70, 45),
+      match('c', 'e', 3, 0, 70, 45),
+      match('f', 'a', 3, 0, 55, 30),
+      match('f', 'a', 3, 0, 55, 30),
+      match('f', 'h', 3, 0, 55, 45),
+      match('g', 'b', 3, 0, 55, 50),
     ], legacyRules);
 
-    // A, B and C all finish on four league points and six total legs won.
-    // Their mini-table points are A=4, B=2, C=0. Matches against D only equalise the global totals.
-    expect(rows.slice(0, 3).map((row) => ({ playerId: row.playerId, rank: row.rank }))).toEqual([
-      { playerId: 'a', rank: 1 },
-      { playerId: 'b', rank: 2 },
-      { playerId: 'c', rank: 3 },
+    // A, B and C all finish on four league points, six total legs won and zero leg difference.
+    // Their mini-table points are A=4, B=2, C=0. Legacy average would rank them C, B, A.
+    expect(rows.filter((row) => ['a', 'b', 'c'].includes(row.playerId)).map((row) => ({ playerId: row.playerId, rank: row.rank }))).toEqual([
+      { playerId: 'a', rank: 2 },
+      { playerId: 'b', rank: 3 },
+      { playerId: 'c', rank: 4 },
     ]);
   });
 
