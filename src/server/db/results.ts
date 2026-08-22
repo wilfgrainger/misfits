@@ -359,7 +359,7 @@ export async function getLeagueStandings(db: D1Database, leagueId: string): Prom
       playerAAverage: result.player_a_average,
       playerBAverage: result.player_b_average,
     })),
-    league.points_per_win,
+    scoringRulesForLeague(league),
   );
 }
 
