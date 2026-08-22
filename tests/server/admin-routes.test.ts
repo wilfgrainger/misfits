@@ -46,6 +46,12 @@ class MemoryD1 {
     if (sql.includes('INSERT INTO sessions')) {
       const [tokenHash, userId, createdAt, expiresAt] = values as string[];
       this.sessions.set(tokenHash, { token_hash: tokenHash, user_id: userId, created_at: createdAt, expires_at: expiresAt });
+    } else if (sql.includes('UPDATE users SET role = ?, status = ?, club_status = ?')) {
+      const [role, status, clubStatus, id] = values as ['PLAYER' | 'ADMIN', 'ACTIVE' | 'SUSPENDED', User['club_status'], string];
+      const user = this.users.get(id)!;
+      user.role = role;
+      user.status = status;
+      user.club_status = clubStatus;
     } else if (sql.includes('UPDATE users SET role = ?, status = ?')) {
       const [role, status, id] = values as ['PLAYER' | 'ADMIN', 'ACTIVE' | 'SUSPENDED', string];
       const user = this.users.get(id)!;
@@ -66,7 +72,7 @@ class MemoryD1 {
       return { ...user, ...session } as T;
     }
     if (sql.includes('COUNT(*)') && sql.includes("role = 'ADMIN'") && sql.includes("status = 'ACTIVE'")) {
-      return { count: [...this.users.values()].filter((user) => user.role === 'ADMIN' && user.status === 'ACTIVE').length } as T;
+      return { count: [...this.users.values()].filter((user) => user.role === 'ADMIN' && user.status === 'ACTIVE' && user.club_status === 'APPROVED').length } as T;
     }
     if (sql.includes('FROM users WHERE id')) {
       const user = this.users.get(String(values[0]));
