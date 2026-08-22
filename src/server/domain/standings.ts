@@ -166,13 +166,12 @@ export function calculateStandings(
     || left.row.username.localeCompare(right.row.username)
     || left.row.playerId.localeCompare(right.row.playerId));
 
+  let previous: RankedStanding | undefined;
+  let previousRank = 0;
   return ranked.map((standing, index) => {
-    const previous = index > 0 ? ranked[index - 1] : null;
-    const rank = previous && sameCompetitiveRank(previous, standing)
-      ? (ranked.slice(0, index).reverse().find((candidate) => !sameCompetitiveRank(candidate, standing))
-        ? index - ranked.slice(0, index).reverse().findIndex((candidate) => !sameCompetitiveRank(candidate, standing))
-        : 1)
-      : index + 1;
+    const rank = previous && sameCompetitiveRank(previous, standing) ? previousRank : index + 1;
+    previous = standing;
+    previousRank = rank;
     return { ...standing.row, rank };
   });
 }
