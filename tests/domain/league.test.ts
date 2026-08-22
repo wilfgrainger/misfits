@@ -22,10 +22,13 @@ describe('league rules', () => {
         seasonName: '2026',
         maxPlayers: 16,
         matchesPerPair: 1,
-      pointsPerWin: 2,
-      targetLegs: 3,
-      status: 'OPEN',
-      visibility: 'PRIVATE',
+        maxLegs: 5,
+        pointsPerWin: 2,
+        pointsPerDraw: 0,
+        pointsPerLoss: 0,
+        targetLegs: 3,
+        status: 'OPEN',
+        visibility: 'PRIVATE',
       },
     });
   });
