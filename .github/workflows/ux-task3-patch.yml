@@ -1,0 +1,52 @@
+name: One-shot UX Task 3 patch
+
+on:
+  push:
+    branches:
+      - spec/ux-compression
+    paths:
+      - .ux-task3-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: spec/ux-compression
+      - name: Integrate Results directly
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          canonical = Path('src/client/components/AdminCompetitionDeskV2.tsx')
+          text = canonical.read_text()
+
+          import_anchor = "import { shareInvite } from '../invite-share';\n"
+          import_line = "import { AdminResultsWorkflow } from './AdminResultsWorkflow';\n"
+          if text.count(import_anchor) != 1:
+              raise SystemExit(f'expected one import anchor, found {text.count(import_anchor)}')
+          if import_line not in text:
+              text = text.replace(import_anchor, import_anchor + import_line)
+
+          old = "    <div role=\"tabpanel\" hidden={task !== 'results'}>{selectedLeague && <div className=\"admin-block\"><div className=\"section-heading\"><h3>Result queue</h3><span className=\"count-label\">{results.length}</span></div><ul className=\"admin-list\">{results.map((result) => <li key={result.id}><div><strong>{result.playerAUsername} {result.playerALegs} - {result.playerBLegs} {result.playerBUsername}</strong><small>{result.status} · {result.playerAAverage.toFixed(2)} / {result.playerBAverage.toFixed(2)} avg</small></div><button className=\"action-button\" type=\"button\">Edit result</button></li>)}</ul></div>}</div>\n"
+          new = "    <div role=\"tabpanel\" hidden={task !== 'results'}>{selectedLeague && <AdminResultsWorkflow leagueId={selectedLeague.id} />}</div>\n"
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one legacy Results panel, found {text.count(old)}')
+          canonical.write_text(text.replace(old, new))
+
+          wrapper = Path('src/client/components/AdminCompetitionDesk.tsx')
+          wrapper.write_text("export { AdminCompetitionDesk } from './AdminCompetitionDeskV2';\n")
+          PY
+      - name: Remove one-shot patch machinery
+        run: rm -f .ux-task3-trigger .github/workflows/ux-task3-patch.yml
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor: compose admin Results directly"
+          git push origin HEAD:spec/ux-compression
