@@ -2,145 +2,186 @@
 
 **Updated:** 22 August 2026  
 **Current branch:** `spec/ux-compression`  
-**Current focus:** Cave Pony UX compression design, written-spec approval gate  
+**Current focus:** approved Cave Pony UX compression, implementation planning complete  
 **Draft PR:** #168 `docs: define Cave Pony UX compression release`  
 **Latest production feature release:** PR #17 `feat: configurable Best-of scoring and head-to-head standings`  
 **Production merge SHA:** `3185019780f9560917dd22bb9326c342662ba420`
 
-## Current UX compression checkpoint
+## Current gate
 
-The user has explicitly parked the **33 incomplete canonical stories** and approved a separate Cave Pony user-experience compression pass.
+The user explicitly approved the written UX compression design on 22 August 2026.
 
-The approved in-chat direction is written at:
+Authorities:
 
-- `docs/superpowers/specs/2026-08-22-ux-compression-design.md`
+- Design: `docs/superpowers/specs/2026-08-22-ux-compression-design.md`
+- Implementation plan: `docs/superpowers/plans/2026-08-22-ux-compression.md`
+- Canonical story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`
+- Current 150-story evidence: `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`
+- GitHub issues: operational open/closed story state
 
-Current Superpowers gate:
+Superpowers state:
 
-- architectural path selected because the work changes player navigation hierarchy and removes an admin composition layer;
-- in-chat Cave Pony compression direction approved by the user;
-- design branch: `spec/ux-compression`;
-- written spec committed and self-reviewed for placeholders, contradictions, scope and ambiguity;
-- draft design PR: #168;
-- **no production implementation may start until the written spec is explicitly approved**;
-- after written-spec approval, invoke Superpowers `writing-plans`, then execute RED → GREEN TDD.
+- brainstorming/design gate: **APPROVED**;
+- implementation plan: **WRITTEN**;
+- next execution mode: inline `executing-plans` with RED → GREEN TDD;
+- UI authority before handoff: repo-local Impeccable;
+- final simplicity gate: Cave Pony audit.
 
-### UX compression scope
+## Parked user stories
 
-- keep the current Misfits ledger visual language;
-- reduce repeated signed-in player chrome;
-- use mobile-safe scrollable 44px member navigation;
-- remove dangerous prefilled result scores;
-- add explicit public load failure + retry and correct `Share league` wording;
-- integrate `AdminResultsWorkflow` directly into the canonical admin desk and remove the portal/event-query shim;
-- label admin result fields with actual fixture player names;
-- use minimal progressive disclosure for secondary admin actions;
-- prove and remove dead UI/dependencies (`AdminLeagueDesk`, `react-router-dom`, `zod`) only where truly unused;
-- align story/document authority without rewriting historical evidence.
+All 150 canonical stories have GitHub issues.
 
-### Explicit non-goal
+| Audience | Total | Verified/closed | Incomplete/open |
+|---|---:|---:|---:|
+| Admin | 88 | 82 | 6 |
+| Player | 55 | 29 | 26 |
+| Public | 7 | 6 | 1 |
+| **Total** | **150** | **117** | **33** |
 
-Do **not** implement or close the 33 parked story issues as part of this release. In particular, do not add player/public fixture APIs, promotion/relegation player surfaces or season health under the guise of UI polish.
+The 33 open stories remain deliberately parked during the UX compression release. Do not close them because adjacent UI improves.
 
-## User-story issue mirror
+Incomplete state remains 12 PARTIAL + 21 MISSING.
 
-All 150 canonical user stories now have GitHub issues.
+### Open Admin
 
-- 117 VERIFIED stories are closed as completed.
-- 33 incomplete stories remain open: 12 PARTIAL + 21 MISSING.
-- Open distribution: 6 Admin + 26 Player + 1 Public.
+`ADM-075`, `ADM-081`, `ADM-083`, `ADM-084`, `ADM-087`, `ADM-088`.
 
-Operational rule going forward:
+### Open Player
 
-- canonical story Markdown owns ID, wording, acceptance criteria and priority;
-- GitHub issue state owns operational open/closed tracking;
-- dated validation documents are evidence snapshots;
-- `PROGRESS.md` summarises current handoff truth.
+`PLY-009`, `PLY-012`, `PLY-014`, `PLY-016`, `PLY-022`, `PLY-023`, `PLY-024`, `PLY-026`, `PLY-027`, `PLY-028`, `PLY-029`, `PLY-030`, `PLY-031`, `PLY-032`, `PLY-033`, `PLY-034`, `PLY-035`, `PLY-036`, `PLY-037`, `PLY-038`, `PLY-039`, `PLY-040`, `PLY-050`, `PLY-052`, `PLY-053`, `PLY-055`.
 
-## Full user-story validation checkpoint
+### Open Public
 
-All **150 canonical stories** were re-evaluated against current `main`, implementation paths and available focused/relevant automated evidence before this UX pass.
+`PUB-005`.
 
-| Audience | Total | VERIFIED | PARTIAL | MISSING |
-|---|---:|---:|---:|---:|
-| Admin | 88 | 82 | 5 | 1 |
-| Player | 55 | 29 | 7 | 19 |
-| Public | 7 | 6 | 0 | 1 |
-| **Total** | **150** | **117** | **12** | **21** |
+## Next five planned releases
 
-**Current verified completion: 117 / 150 = 78%.**
+### Release 1 — UX Compression
 
-Do **not** claim 150/150 complete. Historical `DELIVERED` labels in the canonical catalogue are not evidence where the 22 August validation ledger differs.
+**Goal:** make the existing Misfits experience faster, calmer and safer without reopening the 33 parked stories.
 
-### PARTIAL stories
+Scope:
 
-- Admin: `ADM-075`, `ADM-081`, `ADM-084`, `ADM-087`, `ADM-088`.
-- Player: `PLY-009`, `PLY-012`, `PLY-016`, `PLY-022`, `PLY-037`, `PLY-038`, `PLY-050`.
+- compress repeated signed-in player chrome;
+- mobile-safe 44px scrollable member navigation;
+- blank result-score defaults;
+- explicit public load error + Retry;
+- `Share league` wording;
+- integrate admin Results directly, deleting the portal/event-query shim;
+- use actual player names in admin result entry;
+- progressively disclose infrequent admin create/copy/delete actions;
+- prove/remove dead `AdminLeagueDesk`, `react-router-dom`, `zod` where safe;
+- align story/product documentation authority;
+- Impeccable review + Cave Pony final audit.
 
-### MISSING stories
+No schema/API changes.
 
-- Admin: `ADM-083`.
-- Player: `PLY-014`, `PLY-023`, `PLY-024`, `PLY-026`, `PLY-027`, `PLY-028`, `PLY-029`, `PLY-030`, `PLY-031`, `PLY-032`, `PLY-033`, `PLY-034`, `PLY-035`, `PLY-036`, `PLY-039`, `PLY-040`, `PLY-052`, `PLY-053`, `PLY-055`.
-- Public: `PUB-005`.
+### Release 2 — Fixture-First Player Experience
 
-## Most important parked product finding: player fixtures are not player-accessible
+**Goal:** repair the largest shared root cause behind the parked player stories.
 
-Current client path:
+Expected scope:
+
+- permission-safe authenticated player fixture reads;
+- permission-safe public fixture reads for PUBLIC leagues;
+- My Fixtures vs League Fixtures;
+- outstanding/pending/disputed/confirmed/void states;
+- played/remaining and league progress counts;
+- result entry starts from an outstanding fixture;
+- remove the free-form opponent path when persisted fixtures exist;
+- map `Your/Their` score input correctly to fixed fixture Player A/B order;
+- show submitter's own pending result.
+
+Expected story impact: much of `PLY-026`–`PLY-040` plus `PUB-005`.
+
+### Release 3 — Standings, Movement & Season Context
+
+**Goal:** make promotion/relegation and season context understandable to players without changing the already-correct competition engine.
+
+Expected scope:
+
+- promotion/relegation zones in standings;
+- tie-boundary ambiguity shown rather than hidden;
+- provisional movement vs confirmed next-season placement;
+- placement-pending/unassigned state;
+- current-season selection uses explicit `is_current` authority;
+- signed-in browsing of other public leagues;
+- complete rule context, including meetings per pair.
+
+Expected story impact: `PLY-012`, `PLY-014`, `PLY-016`, `PLY-022`, `PLY-023`, `PLY-024`, `PLY-052`, `PLY-053`, `PLY-055`, plus admin ambiguity display `ADM-075`.
+
+### Release 4 — Admin Competition Readiness & Safety
+
+**Goal:** turn existing admin backend capability into a clearer whole-season operating cockpit.
+
+Expected scope:
+
+- whole-season placement readiness before fixture commit;
+- expose `seasonHealth()` through a focused admin surface;
+- outstanding/pending/disputed/unassigned readiness summary;
+- complete accessible confirmation/focus handling for destructive fixture operations;
+- resolve remaining admin acceptance gaps without adding infrastructure.
+
+Expected story impact: `ADM-081`, `ADM-083`, `ADM-084`.
+
+### Release 5 — History, Responsive Acceptance & Final Story Closure
+
+**Goal:** finish the product rather than add another subsystem.
+
+Expected scope:
+
+- complete previous-season fixture/history context;
+- close remaining player acceptance gaps (`PLY-009`, `PLY-037`, `PLY-038`, `PLY-050` as applicable after revalidation);
+- explicit 320/375/768/desktop acceptance pass;
+- mobile touch-target and desktop composition proof;
+- fresh validation of all 150 GitHub story issues;
+- comment evidence on every still-open issue;
+- close only stories whose full acceptance criteria pass;
+- final Impeccable + Cave Pony review.
+
+Expected story impact: remaining `ADM-087`, `ADM-088` and residual player gaps, with a target of 150/150 only if evidence genuinely supports it.
+
+## Release-order rationale
+
+1. **Compress first** so new work lands into the right UX rather than preserving old clutter.
+2. **Fix fixtures second** because one authority defect causes the largest group of open player stories.
+3. **Expose movement third** because the underlying engine is already correct; this is mostly user visibility/context.
+4. **Harden admin readiness fourth** once player weekly flow is coherent.
+5. **Finish history/responsive acceptance last** and then revalidate the entire story set once, rather than repeatedly reopening the same audit.
+
+## Known parked root cause
+
+Player fixtures are currently not player-accessible:
 
 ```text
 PlayerLeague
   -> ApiClient.fixtures(leagueId)
   -> GET /api/admin/competition/leagues/:leagueId/fixtures
+  -> /api/admin/* requires ADMIN
 ```
 
-Current server authority:
+A normal PLAYER receives 403 and the client currently swallows that into an empty fixture list. Do not weaken the admin guard. Release 2 must add a permission-safe player read contract.
 
-```text
-routes.use('/api/admin/*', requireUser, requireAdmin)
-```
+The same future flow has a latent score-order risk: the UI currently thinks in `Your legs / Their legs`, while the server stores fixed fixture Player A/B order. Release 2 must map those correctly before fixture-first entry is enabled.
 
-Therefore a normal `PLAYER` receives **403** when the player workspace tries to load fixtures. `PlayerLeague` catches that failure and substitutes `{ fixtures: [] }`.
+## Baseline verification
 
-This remains parked. Do not weaken the admin route guard. Future repair should introduce permission-safe player/public reads with league visibility/membership checks, then make result entry fixture-first.
+Fresh production-main verification before the UX pass:
 
-The Cave Pony UX audit also identified a latent score-order issue for that future flow: `PlayerLeague` labels fixture inputs as `Your legs / Their legs`, while the server persists fixed fixture Player A / Player B ordering. Before player fixtures become reachable, client input must be mapped to fixture participant order.
-
-## Fresh baseline verification before UX design
-
-The production `main` workflow was freshly re-run after the story validation.
-
-Workflow run: `32563097678`.
-
-Fresh jobs:
-
-- `verify`: **success**;
-- Wrangler types: **success**;
-- TypeScript: **success**;
-- full Vitest suite: **success**;
-- production build: **success**;
-- dependent `Deploy Worker`: **success**.
-
-The baseline is technically green while 33 story acceptances remain parked.
-
-## PR #17 / production release checkpoint
-
-PR #17 remains fully merged/deployed. Do not reopen it unless a new regression is found.
-
-- Final feature head: `a0d88bb48a16e160d564524938b8e725412ec129`.
-- Final PR CI: `32562994388`.
-- Production merge: `3185019780f9560917dd22bb9326c342662ba420`.
-- Production D1 migration 0005 was applied and verified before merge.
-- Main production deployment is green.
+- workflow `32563097678`;
+- Wrangler types: success;
+- TypeScript: success;
+- full Vitest suite: success;
+- production build: success;
+- Deploy Worker: success.
 
 ## Next-agent instruction
 
-1. Continue from `spec/ux-compression` while the written-spec review gate is active.
-2. Read `docs/superpowers/specs/2026-08-22-ux-compression-design.md`.
-3. Do not implement production code until the user explicitly approves the written spec.
-4. After approval, invoke Superpowers `writing-plans` and create a detailed implementation plan.
-5. Use RED → GREEN TDD for all behavior changes.
-6. Keep the 33 incomplete story issues parked and open unless the user separately resumes them.
-7. For every UI change, use the repo-local Impeccable authority before handoff.
-8. Finish with a Cave Pony audit: each material finding actioned, deferred with trigger, or rejected with evidence.
-9. Update `PROGRESS.md` at every durable checkpoint.
-10. Never weaken Worker authorization, D1 invariants or existing accessibility guarantees in the name of simplification.
+1. Continue from `spec/ux-compression` and PR #168.
+2. Read the approved UX design and implementation plan above.
+3. Use Superpowers `executing-plans` for Release 1.
+4. Follow RED → GREEN task-by-task; checkpoint `PROGRESS.md` after durable steps.
+5. Keep all 33 incomplete story issues open throughout Release 1.
+6. Use Impeccable for changed UI surfaces before handoff.
+7. Finish with Cave Pony audit and full repository verification.
+8. Do not add schema, dependencies, services or abstractions unless the approved release explicitly requires them and simpler options fail.
