@@ -6,7 +6,7 @@ on:
 
 jobs:
   finalize-release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/spec/ux-compression'
+    if: github.event_name == 'pull_request' && github.head_ref == 'spec/ux-compression'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,7 +26,6 @@ jobs:
                   raise SystemExit(f'missing replacement anchor in {path}: {old[:80]!r}')
               p.write_text(text.replace(old, new, 1))
 
-          # One Results owner. AdminResultsWorkflow owns fixtures/results/members for the Results tab.
           replace_once('src/client/components/AdminCompetitionDeskV2.tsx', '  type ResultSummary,\n', '')
           replace_once('src/client/components/AdminCompetitionDeskV2.tsx', '  const [results, setResults] = useState<ResultSummary[]>([]);\n', '')
           replace_once(
@@ -35,7 +34,6 @@ jobs:
               ''
           )
 
-          # Retire tests that exercised the deleted legacy AdminLeagueDesk rather than the canonical desk.
           p = Path('tests/client/player-app.test.tsx')
           text = p.read_text()
           text = text.replace("import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';", "import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';", 1)
@@ -61,7 +59,6 @@ jobs:
           text = text[:start] + "\n});\n"
           p.write_text(text)
 
-          # Design authority follows the compressed signed-in shell.
           replace_once(
               'DESIGN.md',
               '- **Account panel**: user name hero at 1.9rem/800 weight, role line below, season count badge.\n',
@@ -73,7 +70,6 @@ jobs:
               '- **Player workspace**: league-heading block gives season/league context, then a horizontally scrollable 44px content-tab row.\n'
           )
 
-          # Restore the permanent two-job workflow. Impeccable was a bounded review, not runtime CI authority.
           Path('.github/workflows/ci.yml').write_text('''name: CI\n\non:\n  push:\n  pull_request:\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n          cache: npm\n      - run: npm ci\n      - run: npx wrangler types\n      - run: npm run typecheck\n      - run: npm test\n      - run: npm run build\n\n  deploy:\n    name: Deploy Worker\n    if: github.event_name == 'push' && github.ref == 'refs/heads/main'\n    needs: verify\n    runs-on: ubuntu-latest\n    timeout-minutes: 15\n    concurrency:\n      group: misfits-production-deploy\n      cancel-in-progress: false\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n          cache: npm\n      - run: npm ci\n      - run: npm run build\n      - name: Check Cloudflare credentials\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }\n          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }\n      - name: Deploy Worker\n        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0\n        with:\n          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n          command: deploy --keep-vars\n''')
           PY
 
