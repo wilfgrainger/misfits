@@ -1,0 +1,159 @@
+.player-workspace {
+  padding-bottom: calc(6.4rem + env(safe-area-inset-bottom));
+}
+
+.player-league-hero {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+}
+
+.player-league-hero .league-hero-meta {
+  width: 100%;
+}
+
+.player-workspace .standings-card {
+  width: 100%;
+}
+
+.member-app-nav {
+  position: fixed;
+  z-index: 35;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  min-height: calc(4.4rem + env(safe-area-inset-bottom));
+  padding: 0.4rem max(0.6rem, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(0.6rem, env(safe-area-inset-left));
+  background: rgba(9, 14, 12, 0.98);
+  border-top: 1px solid #253129;
+  box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.3);
+}
+
+.member-app-nav-item {
+  display: grid;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0.35rem;
+  place-items: center;
+  align-content: center;
+  gap: 0.2rem;
+  color: #8f9a93;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.member-app-nav-item svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.member-app-nav-active {
+  color: var(--club-green-strong);
+  background: rgba(103, 215, 125, 0.07);
+}
+
+.player-more-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.player-more-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.player-more-action {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  color: var(--club-muted);
+  background: #111715;
+  border: 1px solid var(--club-border);
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.player-more-action svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.player-more-action-active {
+  color: var(--club-text);
+  background: #18241e;
+  border-color: var(--club-green-line);
+}
+
+.player-workspace .club-player-list {
+  padding: 0.65rem;
+}
+
+.player-workspace .club-player-list li {
+  min-height: 54px;
+  border-radius: 12px;
+}
+
+.player-workspace .result-feed,
+.player-workspace .result-form,
+.player-workspace .admin-block,
+.player-more-panel > .profile-panel {
+  padding: 1rem;
+}
+
+.player-workspace .primary-button,
+.player-workspace .secondary-button,
+.player-workspace .action-button,
+.player-workspace input,
+.player-workspace select,
+.player-workspace textarea {
+  min-height: 44px;
+}
+
+@media (min-width: 681px) {
+  .player-workspace {
+    padding-bottom: 1.5rem;
+  }
+
+  .member-app-nav {
+    position: static;
+    order: -1;
+    width: 100%;
+    min-height: auto;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .member-app-nav-item {
+    min-height: 48px;
+    grid-template-columns: auto auto;
+    align-content: center;
+    justify-content: center;
+    color: var(--club-muted);
+    background: #111715;
+    border: 1px solid var(--club-border);
+  }
+
+  .member-app-nav-active {
+    color: #08100a;
+    background: var(--club-green);
+    border-color: var(--club-green);
+  }
+}
+
+@media (min-width: 960px) {
+  .member-app-nav {
+    max-width: 42rem;
+  }
+}
