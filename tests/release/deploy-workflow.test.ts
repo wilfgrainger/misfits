@@ -13,12 +13,11 @@ function jobBlock(jobName: string): string {
 }
 
 describe('production deployment workflow', () => {
-  it('keeps verification mandatory and production deployment main-only', () => {
+  it('keeps verification mandatory, avoids duplicate branch pushes, and deploys main only', () => {
     const verify = jobBlock('verify');
     const deploy = jobBlock('deploy');
 
-    expect(workflow).toContain('\n  push:\n');
-    expect(workflow).toContain('\n  pull_request:\n');
+    expect(workflow).toContain('  push:\n    branches:\n      - main\n  pull_request:');
 
     for (const command of ['npm ci', 'npx wrangler types', 'npm run typecheck', 'npm test', 'npm run build']) {
       expect(verify).toContain(command);
