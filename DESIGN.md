@@ -39,9 +39,9 @@ and results be the thing you see first.
 ## Surfaces and hierarchy
 
 - **Header**: sticky dark chrome (`--bg`) with the club seal, brand name, avatar, sign-out.
-- **Account panel**: user name hero at 1.9rem/800 weight, role line below, season count badge.
+- **Signed-in shell**: the header owns identity; selected season/league context stays compact and close to the working surface.
 - **Workspace switcher** (admin only): segmented pill selector — ink fill with cream text on active.
-- **Player workspace**: league-heading block gives the season name/status, then a segmented tab row.
+- **Player workspace**: league-heading block gives season/league context, then a horizontally scrollable 44px content-tab row.
 - **Standings**: contained table with `--border` outline, banded header, gold first-place rank.
 - **Results**: clean list rows with generous vertical padding and subtle hover state.
 - **Admin desk**: vertical rail on desktop (960px+), horizontal scroll tabs on mobile.

@@ -10,7 +10,6 @@ import {
   type LeagueSummary,
   type PromotionMovement,
   type PromotionProjection,
-  type ResultSummary,
   type SeasonSummary,
   type UnassignedPlayer,
   type UserSummary,
@@ -90,7 +89,6 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const [fixtures, setFixtures] = useState<FixtureSummary[]>([]);
   const [fixturePreview, setFixturePreview] = useState<FixturePreview | null>(null);
   const [fixtureFilter, setFixtureFilter] = useState<'ALL' | FixtureStatus>('ALL');
-  const [results, setResults] = useState<ResultSummary[]>([]);
   const [players, setPlayers] = useState<AdminPlayer[]>([]);
   const [promotion, setPromotion] = useState<PromotionProjection | null>(null);
   const [proposal, setProposal] = useState<PromotionMovement[]>([]);
@@ -231,7 +229,6 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     if (task === 'leagues') void loadLeagueMembers();
     if (task === 'members') { void loadRoster(); void loadInvites(); }
     if (task === 'fixtures' && selectedLeague) api.fixtures(selectedLeague.id).then((payload) => setFixtures(payload.fixtures)).catch((cause) => setError(describeError(cause, 'Fixtures could not be loaded.')));
-    if (task === 'results' && selectedLeague) Promise.all([api.adminResults(selectedLeague.id), api.competitionMembers(selectedLeague.id)]).then(([r, m]) => { setResults(r.results); setMembersByLeague((current) => ({ ...current, [selectedLeague.id]: m.members })); }).catch((cause) => setError(describeError(cause, 'Results could not be loaded.')));
     if (task === 'promotion' && selectedSeason) Promise.all([api.promotionPreview(selectedSeason.id), ...orderedLeagues.map((league) => api.competitionMembers(league.id))]).then(([preview, ...memberPayloads]) => {
       setPromotion((preview as { preview: PromotionProjection }).preview);
       const next: Record<string, CompetitionMember[]> = {};
