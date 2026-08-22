@@ -89,10 +89,17 @@ describe('admin official-result workflows', () => {
     expect(screen.getByText('Score is wrong')).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText('Outstanding fixture'), { target: { value: 'f2' } });
-    fireEvent.change(screen.getByLabelText('Player A legs'), { target: { value: '3' } });
-    fireEvent.change(screen.getByLabelText('Player B legs'), { target: { value: '1' } });
-    fireEvent.change(screen.getByLabelText('Player A average'), { target: { value: '55.2' } });
-    fireEvent.change(screen.getByLabelText('Player B average'), { target: { value: '48.4' } });
+    expect(screen.getByLabelText('Bravo legs')).toBeTruthy();
+    expect(screen.getByLabelText('Charlie legs')).toBeTruthy();
+    expect(screen.getByLabelText('Bravo average')).toBeTruthy();
+    expect(screen.getByLabelText('Charlie average')).toBeTruthy();
+    expect(screen.queryByLabelText('Player A legs')).toBeNull();
+    expect(screen.queryByLabelText('Player B legs')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Bravo legs'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Charlie legs'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Bravo average'), { target: { value: '55.2' } });
+    fireEvent.change(screen.getByLabelText('Charlie average'), { target: { value: '48.4' } });
     fireEvent.click(screen.getByRole('button', { name: 'Record official result' }));
     expect(await screen.findByText('Official result recorded.')).toBeTruthy();
     const create = fetchMock.mock.calls.find(([input, init]) => String(input) === '/api/admin/leagues/l1/results' && init?.method === 'POST');
