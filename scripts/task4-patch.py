@@ -38,6 +38,7 @@ replace(
     "src/server/db/competition-leagues.ts",
     "        input.pointsPerWin,\n        input.targetLegs,",
     "        input.pointsPerWin,\n        input.pointsPerDraw,\n        input.pointsPerLoss,\n        input.maxLegs,\n        input.targetLegs,",
+    2,
 )
 replace(
     "src/server/db/competition-leagues.ts",
@@ -48,11 +49,6 @@ replace(
     "src/server/db/competition-leagues.ts",
     "          name = ?, slug = ?, points_per_win = ?, target_legs = ?, max_players = ?, matches_per_pair = ?,\n          visibility = ?, hierarchy_position = ?, promotion_places = ?, relegation_places = ?, updated_at = ?",
     "          name = ?, slug = ?, points_per_win = ?, points_per_draw = ?, points_per_loss = ?, max_legs = ?, target_legs = ?, max_players = ?, matches_per_pair = ?,\n          visibility = ?, hierarchy_position = ?, promotion_places = ?, relegation_places = ?, updated_at = ?",
-)
-replace(
-    "src/server/db/competition-leagues.ts",
-    "        input.name,\n        input.slug,\n        input.pointsPerWin,\n        input.targetLegs,\n        input.maxPlayers,",
-    "        input.name,\n        input.slug,\n        input.pointsPerWin,\n        input.pointsPerDraw,\n        input.pointsPerLoss,\n        input.maxLegs,\n        input.targetLegs,\n        input.maxPlayers,",
 )
 
 # Structural cloning copies authoritative scoring fields.
