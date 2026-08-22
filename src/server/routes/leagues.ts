@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireClubMember, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { AppError, jsonError } from '../errors';
-import { getLeagueByIdOrSlug, listLeagueMembers, listManagedLeagues as listClubLeagues, listUserLeagues } from '../db/leagues';
+import { getLeagueByIdOrSlug, listClubLeagues, listLeagueMembers, listUserLeagues } from '../db/leagues';
 import { getCompetitionLeague } from '../db/competition';
 import { joinLeagueByInvite } from '../db/invites';
 
