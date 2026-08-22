@@ -1,9 +1,9 @@
 # Misfits 501 Progress
 
 **Updated:** 22 August 2026  
-**Current branch:** `feat/mobile-experience-reset`  
-**Current focus:** Mobile Experience Reset — design authority complete; implementation planning next  
-**Main baseline:** pragmatic delivery policy merged in PR #170
+**Current branch:** `main`  
+**Current focus:** Mobile Experience Reset complete; rendered production screenshot review next  
+**Main:** PR #171 merged as `139231e6ea2df8ec1dba84a2e68991b874d0b31a` plus this documentation-only checkpoint
 
 ## Authority
 
@@ -23,54 +23,69 @@
 
 Open distribution: Admin 6, Player 26, Public 1.
 
-The `MX-001`–`MX-012` Mobile Experience stories are an experience acceptance layer. They do **not** change the 150-story functional denominator or close any parked story by themselves.
+`MX-001`–`MX-012` are an experience acceptance layer and do not change the 150-story functional denominator.
 
-## Mobile Experience Reset — STEP 1 COMPLETE
+## Mobile Experience Reset — COMPLETE
 
-The user approved a premium mobile-app direction based on the generated Misfits 501 mockup and supplied quality references.
+PR #171 merged to `main` as `139231e6ea2df8ec1dba84a2e68991b874d0b31a`.
 
-Step 1 has converted that visual into durable repo authority:
+### Delivered
 
-- `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md` treats the approved mockup as the visual target for hierarchy, composition, card rhythm, navigation, colour balance and quality;
-- `DESIGN.md` now makes the standing system green-led, app-like, league-first and card-led rather than red-led / stacked-web-page-led;
-- `docs/superpowers/specs/2026-08-22-mobile-experience-stories.md` defines `MX-001`–`MX-012` with explicit acceptance and mappings to the functional backlog;
-- the old broken mobile composition is explicitly rejected: no horizontal overflow, oversized sign-in hero, repeated league/season headings, dead vertical gaps or squeezed seven-column phone table.
+- approved mockup is encoded as durable design authority rather than informal inspiration;
+- public experience is league-first: club header → league hero → rules → standings → compact sign-in → latest results → app navigation;
+- repeated season/league headings and the old oversized sign-in-first composition are removed;
+- mobile standings prioritise POS / PLAYER / P / W-D-L / PTS while LEGS / AVG progressively return at wider widths;
+- supplied Misfits artwork is retained and the normal active accent is emerald/club green;
+- public and signed-in player experiences now share the same app-like product language;
+- member navigation is capability-aware: Fixtures is not advertised when the current fixture read is inaccessible; Record remains available through the existing result path;
+- Latest results has explicit data, genuine-empty and retryable-failure states;
+- SVG icon family, 44px controls, mobile safe-area navigation and clean reduced-motion behavior are included;
+- no new framework, dependency, Cloudflare service, schema, migration, auth authority or API authority was introduced.
 
-### Approved mobile hierarchy
+### Verification
 
-`Club header → League hero → Rules strip → Standings → contextual member/sign-in action → Latest results → bottom navigation`
+RED CI `32596330889` proved the old composition failed exactly the new experience contract: **229 existing tests passed and 2 intended tests failed**.
 
-### Hard responsive acceptance
+Final PR-head CI `32597169815` on `bc6a9b728bb710c71ac3ac025926a7e57941398f` passed:
+- `npm ci`;
+- Wrangler types;
+- both TypeScript projects;
+- full Vitest suite;
+- production build.
 
-320 / 375 / 390 / 412 / 768 / 960+ widths, zero page-level horizontal overflow, 16–20px mobile gutters, 44px targets, readable contrast and no bottom-navigation overlap.
+Deploy correctly skipped on the pull request.
 
-### Scope boundary
+### Review
 
-This reset uses current APIs/data. It does not weaken the admin fixture guard, add schema, change scoring, or silently implement the parked Fixture-First Player Experience backend.
+Impeccable source review covered hierarchy, responsive composition, contrast, touch targets, semantics, icon consistency, safe areas and reduced motion. Material findings were actioned in the implementation batch.
 
-## Next step
+Cave Pony simplicity review found no justification for new framework/service/state abstractions. The existing React + Worker + D1 boundaries remain intact.
 
-Write the Superpowers implementation plan for the UI rebuild, then implement the material responsive reset with Impeccable as UI authority. Use focused tests during implementation and one full repository gate before merge.
+### Rendered acceptance limitation
 
-## Test ownership policy
+This tool session does not expose browser/device rendering for the deployed app. The generated mockup is the design target, but an actual production screenshot at phone width has **not** been falsely claimed as verified. The next useful acceptance action is to open `darts.graingers.agency` on a phone after deployment and compare the rendered result with the approved mockup, especially at 320–412px.
 
-- `tests/domain/`: pure competition/validation invariants.
-- `tests/server/`: auth, permissions, persistence and API behaviour.
-- `tests/client/`: user journeys and presentation behaviour.
-- `tests/release/`: deployment/schema/operational guardrails not already owned elsewhere.
+The connected GitHub workflow helper in this session does not expose push-triggered `main` workflow runs, so do not claim a specific production deploy run ID unless it is independently observed later. Do not add observer infrastructure merely to obtain one.
 
-During implementation, use focused proof and batch coherent changes. Run one fresh full repository gate before review/merge. Expand proof only for material risk.
+## Next product release
 
-## Product releases after Mobile Experience Reset
+**Fixture-First Player Experience** remains next after rendered UI acceptance:
 
-1. **Fixture-First Player Experience**: permission-safe fixture reads, My/League Fixtures, progress/status, fixture-first entry, fixed-A/B score mapping, own pending result.
-2. **Standings, Movement & Season Context**: zones/ambiguity/provisional-v-final movement, explicit current season, public league browsing, full rule context.
-3. **Admin Competition Readiness & Safety**: whole-season readiness, `seasonHealth()`, operational counts, accessible destructive actions.
-4. **History, Responsive Acceptance & Final Story Closure**: historic fixture context, revalidate all 150 functional issues and close only fully evidenced stories.
+- permission-safe player fixture reads without weakening `/api/admin/*`;
+- My Fixtures and League Fixtures;
+- fixture progress/status;
+- fixture-first result entry;
+- correct fixed Player A/B score mapping;
+- own pending result visibility.
+
+Then:
+1. Standings, Movement & Season Context;
+2. Admin Competition Readiness & Safety;
+3. History, Responsive Acceptance & final functional-story revalidation.
 
 ## Guardrails
 
 - Keep all 33 incomplete functional story issues open until separately revalidated.
 - Preserve Worker authorization, same-origin security, competition invariants, auditability and accessibility.
 - No new router, state framework, component library, backend service or Cloudflare product without a real requirement.
-- Use the risk-proportionate policy in `AGENTS.md`; do not recreate micro-CI loops.
+- Use focused proof during development and one fresh full repository gate before merge; do not recreate micro-CI loops.
