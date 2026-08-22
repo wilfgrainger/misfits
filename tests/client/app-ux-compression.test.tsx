@@ -35,11 +35,12 @@ import App from '../../src/client/App';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-it('keeps meaningful league context without repeating a misleading season-count badge', async () => {
+it('keeps meaningful league context without repeating signed-in identity chrome', async () => {
   render(<App />);
 
   await screen.findByRole('heading', { name: 'Premier' });
   await waitFor(() => expect(screen.getByText(/Current season: Premier · 2026 · Open · Public/)).toBeTruthy());
   expect(screen.queryByText('1 season')).toBeNull();
   expect(document.querySelector('.account-status')).toBeNull();
+  expect(document.querySelector('.account-heading')).toBeNull();
 });
