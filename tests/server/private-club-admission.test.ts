@@ -173,6 +173,19 @@ function gisRequest(body: Record<string, unknown>) {
   });
 }
 
+async function addInvite(db: MemoryD1, token: string, overrides: Partial<Invite> = {}) {
+  db.invites.set('invite-1', {
+    id: 'invite-1',
+    token_hash: await hashToken(token),
+    created_by: 'admin-1',
+    expires_at: null,
+    uses: 0,
+    revoked_at: null,
+    created_at: '2026-08-22T19:00:00.000Z',
+    ...overrides,
+  });
+}
+
 describe('private club admission', () => {
   it('does not create an unknown Google user without a club invite', async () => {
     const { db, routes, env } = setup();
@@ -186,15 +199,7 @@ describe('private club admission', () => {
   it('creates an unknown invited Google user as pending without league placement', async () => {
     const { db, routes, env } = setup();
     const token = 'valid-club-invite';
-    db.invites.set('invite-1', {
-      id: 'invite-1',
-      token_hash: await hashToken(token),
-      created_by: 'admin-1',
-      expires_at: null,
-      uses: 0,
-      revoked_at: null,
-      created_at: '2026-08-22T19:00:00.000Z',
-    });
+    await addInvite(db, token);
 
     const response = await routes.fetch(gisRequest({ credential: 'google-id-token-123456', inviteToken: token }), env, {} as never);
 
@@ -215,6 +220,30 @@ describe('private club admission', () => {
     expect(db.users.size).toBe(0);
   });
 
+  it('does not create a user for an expired club invite', async () => {
+    const { db, routes, env } = setup();
+    const token = 'expired-club-invite';
+    await addInvite(db, token, { expires_at: '2026-08-22T19:59:59.000Z' });
+
+    const response = await routes.fetch(gisRequest({ credential: 'google-id-token-123456', inviteToken: token }), env, {} as never);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'INVITE_EXPIRED' } });
+    expect(db.users.size).toBe(0);
+  });
+
+  it('does not create a user for a revoked club invite', async () => {
+    const { db, routes, env } = setup();
+    const token = 'revoked-club-invite';
+    await addInvite(db, token, { revoked_at: '2026-08-22T19:30:00.000Z' });
+
+    const response = await routes.fetch(gisRequest({ credential: 'google-id-token-123456', inviteToken: token }), env, {} as never);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'INVITE_REVOKED' } });
+    expect(db.users.size).toBe(0);
+  });
+
   it('keeps an existing rejected member rejected even when another invite is supplied', async () => {
     const { db, routes, env } = setup({ sub: 'google-existing', email: 'member@example.com', emailVerified: true });
     db.users.set('existing-user', existingUser({ club_status: 'REJECTED' }));
@@ -224,6 +253,16 @@ describe('private club admission', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ user: { clubStatus: 'REJECTED' } });
     expect(db.users.get('existing-user')?.club_status).toBe('REJECTED');
+  });
+
+  it('does not authenticate a suspended existing account', async () => {
+    const { db, routes, env } = setup({ sub: 'google-existing', email: 'member@example.com', emailVerified: true });
+    db.users.set('existing-user', existingUser({ status: 'SUSPENDED' }));
+
+    const response = await routes.fetch(gisRequest({ credential: 'google-id-token-123456' }), env, {} as never);
+
+    expect(response.status).toBe(403);
+    expect(db.sessions.size).toBe(0);
   });
 
   it('does not let the OAuth callback create an unknown ordinary account', async () => {
