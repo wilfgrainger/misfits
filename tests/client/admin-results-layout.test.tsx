@@ -4,6 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminCompetitionDesk } from '../../src/client/components/AdminCompetitionDesk';
 import type { UserSummary } from '../../src/client/api';
 
+vi.mock('react-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-dom')>();
+  return {
+    ...actual,
+    createPortal: () => { throw new Error('legacy Results portal invoked'); },
+  };
+});
+
 const admin: UserSummary = {
   id: 'admin-1', username: 'Admin', role: 'ADMIN', status: 'ACTIVE',
   profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: true,
@@ -40,7 +48,7 @@ describe('admin results panel integration', () => {
     vi.restoreAllMocks();
   });
 
-  it('keeps the official results workflow inside the Results tabpanel lifecycle', async () => {
+  it('keeps the official results workflow inside the Results tabpanel lifecycle without a portal bridge', async () => {
     installApi();
     render(<AdminCompetitionDesk user={admin} />);
 
