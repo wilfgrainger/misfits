@@ -1,0 +1,72 @@
+name: Verify PR17 main release
+
+on:
+  push:
+    branches:
+      - ops/verify-pr17-main-release
+    paths:
+      - .github/workflows/verify-pr17-main-release.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  verify-main-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_SHA: 3185019780f9560917dd22bb9326c342662ba420
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require main CI and deploy success
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=''
+          run_url=''
+          for attempt in $(seq 1 90); do
+            runs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$TARGET_SHA&event=push&per_page=20")"
+            run_id="$(jq -r '.workflow_runs[] | select(.name == "CI") | .id' <<<"$runs_json" | head -n1)"
+            if [ -n "$run_id" ] && [ "$run_id" != 'null' ]; then
+              status="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .status' <<<"$runs_json")"
+              conclusion="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .conclusion' <<<"$runs_json")"
+              run_url="$(jq -r --argjson id "$run_id" '.workflow_runs[] | select(.id == $id) | .html_url' <<<"$runs_json")"
+              if [ "$status" = 'completed' ]; then
+                [ "$conclusion" = 'success' ] || { echo "::error::Main CI concluded $conclusion"; exit 1; }
+                break
+              fi
+            fi
+            sleep 5
+          done
+          [ -n "$run_id" ] && [ "$run_id" != 'null' ] || { echo '::error::No main CI run found for merge SHA'; exit 1; }
+
+          jobs_json="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100")"
+          verify="$(jq -r '.jobs[] | select(.name == "verify") | .conclusion' <<<"$jobs_json")"
+          deploy="$(jq -r '.jobs[] | select(.name == "Deploy Worker") | .conclusion' <<<"$jobs_json")"
+          [ "$verify" = 'success' ] || { echo "::error::verify job concluded $verify"; exit 1; }
+          [ "$deploy" = 'success' ] || { echo "::error::Deploy Worker job concluded $deploy"; exit 1; }
+
+          verify_url="$(jq -r '.jobs[] | select(.name == "verify") | .html_url' <<<"$jobs_json")"
+          deploy_url="$(jq -r '.jobs[] | select(.name == "Deploy Worker") | .html_url' <<<"$jobs_json")"
+          mkdir -p docs/operations/evidence
+          cat > docs/operations/evidence/2026-08-22-pr17-main-release.md <<EOF
+          # PR #17 main release evidence
+
+          - Merge SHA: \`$TARGET_SHA\`
+          - Main CI run: \`$run_id\`
+          - Main CI URL: $run_url
+          - \`verify\` conclusion: \`$verify\`
+          - Verify job URL: $verify_url
+          - \`Deploy Worker\` conclusion: \`$deploy\`
+          - Deploy job URL: $deploy_url
+          - Recorded UTC: \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
+          EOF
+      - name: Commit observer evidence
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/operations/evidence/2026-08-22-pr17-main-release.md
+          git commit -m 'docs: record PR17 main release evidence'
+          git push
