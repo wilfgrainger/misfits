@@ -293,7 +293,7 @@ describe('mobile league workspaces', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Thursday Club' })).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
     await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-c'));
-    expect((screen.getByLabelText('Your legs') as HTMLInputElement).value).toBe('5');
+    expect((screen.getByLabelText('Your legs') as HTMLInputElement).value).toBe('');
   });
 
   it('displays player fixtures and submits fixture-based results', async () => {

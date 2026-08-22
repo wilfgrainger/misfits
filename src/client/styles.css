@@ -269,7 +269,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .league-tabs::-webkit-scrollbar { display: none; }
 
 .content-tab {
-  min-height: 42px;
+  min-height: 44px;
   padding: .5rem 1rem;
   color: var(--text-3);
   background: transparent;

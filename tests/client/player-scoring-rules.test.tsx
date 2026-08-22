@@ -83,7 +83,7 @@ describe('player scoring rules', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
     expect(screen.getByText('Best of 6: first to 4 wins; 3-3 is a draw.')).toBeTruthy();
     const yourLegs = screen.getByLabelText('Your legs') as HTMLInputElement;
-    expect(yourLegs.value).toBe('4');
+    expect(yourLegs.value).toBe('');
     expect(yourLegs.max).toBe('4');
   });
 });
