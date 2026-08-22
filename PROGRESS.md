@@ -1,15 +1,16 @@
 # Misfits 501 Progress
 
 **Updated:** 22 August 2026  
-**Current branch:** `main`  
-**Current focus:** Mobile Experience Reset complete; rendered production screenshot review next  
-**Main:** PR #171 merged as `139231e6ea2df8ec1dba84a2e68991b874d0b31a` plus this documentation-only checkpoint
+**Current branch:** `feat/private-club-entry`  
+**Current focus:** Private club entry, admin approval and simplified app shell — design spec written; user review next  
+**Main baseline:** Mobile Experience Reset PR #171 merged as `139231e6ea2df8ec1dba84a2e68991b874d0b31a`
 
 ## Authority
 
 - Product: `PRODUCT.md`
 - Vision/platform guardrail: `VISION.md`
 - Standing UI authority: `DESIGN.md`
+- Private-club entry design: `docs/superpowers/specs/2026-08-22-private-club-entry-design.md`
 - Mobile Experience Reset design: `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md`
 - Mobile experience acceptance stories: `docs/superpowers/specs/2026-08-22-mobile-experience-stories.md`
 - Functional story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`
@@ -21,71 +22,64 @@
 
 **117/150 functional stories are verified/closed. 33 remain deliberately parked and open: 12 PARTIAL + 21 MISSING.**
 
-Open distribution: Admin 6, Player 26, Public 1.
+The private-club release does not close parked stories merely by changing access/UI.
 
-`MX-001`–`MX-012` are an experience acceptance layer and do not change the 150-story functional denominator.
+## Private Club Entry — DESIGN CHECKPOINT
 
-## Mobile Experience Reset — COMPLETE
+User-approved product decisions:
 
-PR #171 merged to `main` as `139231e6ea2df8ec1dba84a2e68991b874d0b31a`.
+- Misfits is private: anonymous users see no league, season, player, standings or result data.
+- A brand-new person must arrive through a valid club invite before Google sign-in may create a membership request.
+- Normal homepage Google sign-in is only for existing known users.
+- New invited users become `PENDING`; they do not become club members or league players automatically.
+- A club admin must `APPROVE` or `REJECT` each pending request in Club access.
+- Club approval is permanent Misfits membership.
+- Season/league assignment remains a separate admin decision in `league_players`.
+- Approved but unassigned members may browse private club leagues/standings/results but cannot participate as competitors.
+- Pending users see only the Misfits logo, `Membership request sent`, `Waiting for a club admin to approve you`, and Sign out.
+- Returning approved users see a brief Misfits splash before the app appears.
+- Primary app navigation becomes `League · Record · Results · More`; Admin moves under More for admins.
+- Normal interaction accent changes from emerald to the red in the Misfits logo; green becomes semantic success/status only.
 
-### Delivered
+### Architecture
 
-- approved mockup is encoded as durable design authority rather than informal inspiration;
-- public experience is league-first: club header → league hero → rules → standings → compact sign-in → latest results → app navigation;
-- repeated season/league headings and the old oversized sign-in-first composition are removed;
-- mobile standings prioritise POS / PLAYER / P / W-D-L / PTS while LEGS / AVG progressively return at wider widths;
-- supplied Misfits artwork is retained and the normal active accent is emerald/club green;
-- public and signed-in player experiences now share the same app-like product language;
-- member navigation is capability-aware: Fixtures is not advertised when the current fixture read is inaccessible; Record remains available through the existing result path;
-- Latest results has explicit data, genuine-empty and retryable-failure states;
-- SVG icon family, 44px controls, mobile safe-area navigation and clean reduced-motion behavior are included;
-- no new framework, dependency, Cloudflare service, schema, migration, auth authority or API authority was introduced.
+Use the existing domains rather than introducing a redundant club-members subsystem:
 
-### Verification
+`Google identity → users.club_status → league_players`
 
-RED CI `32596330889` proved the old composition failed exactly the new experience contract: **229 existing tests passed and 2 intended tests failed**.
+- `users.status` remains ACTIVE/SUSPENDED account safety.
+- new `users.club_status`: PENDING / APPROVED / REJECTED.
+- new hashed `club_invites` table owns club-admission tokens.
+- existing `league_players` continues to own season/league participation only.
+- existing player-side league-invite self-assignment is retired from the product flow.
+- Worker `requireClubMember` becomes the server-side privacy boundary for club data.
+- approved membership owns club-wide read access; league placement owns participation.
 
-Final PR-head CI `32597169815` on `bc6a9b728bb710c71ac3ac025926a7e57941398f` passed:
-- `npm ci`;
-- Wrangler types;
-- both TypeScript projects;
-- full Vitest suite;
-- production build.
+### Migration
 
-Deploy correctly skipped on the pull request.
+Implementation requires one additive migration after `0005_configurable_match_scoring.sql` for `club_status`, `club_invites`, deterministic existing-user backfill and league visibility hardening to PRIVATE.
 
-### Review
+Per `AGENTS.md`, CI must not remotely migrate D1. Remote migration remains an explicit guarded production action before code that depends on it is deployed.
 
-Impeccable source review covered hierarchy, responsive composition, contrast, touch targets, semantics, icon consistency, safe areas and reduced motion. Material findings were actioned in the implementation batch.
+### Design spec
 
-Cave Pony simplicity review found no justification for new framework/service/state abstractions. The existing React + Worker + D1 boundaries remain intact.
+`docs/superpowers/specs/2026-08-22-private-club-entry-design.md`
 
-### Rendered acceptance limitation
+Self-review tightened two important points:
 
-This tool session does not expose browser/device rendering for the deployed app. The generated mockup is the design target, but an actual production screenshot at phone width has **not** been falsely claimed as verified. The next useful acceptance action is to open `darts.graingers.agency` on a phone after deployment and compare the rendered result with the approved mockup, especially at 320–412px.
+1. all non-admin/non-current-member historical users deterministically remain PENDING; there is no heuristic approval;
+2. approved-but-unassigned members can read all club competition data regardless legacy league visibility/membership, while league participation remains separately authorized.
 
-The connected GitHub workflow helper in this session does not expose push-triggered `main` workflow runs, so do not claim a specific production deploy run ID unless it is independently observed later. Do not add observer infrastructure merely to obtain one.
+## Next step
 
-## Next product release
-
-**Fixture-First Player Experience** remains next after rendered UI acceptance:
-
-- permission-safe player fixture reads without weakening `/api/admin/*`;
-- My Fixtures and League Fixtures;
-- fixture progress/status;
-- fixture-first result entry;
-- correct fixed Player A/B score mapping;
-- own pending result visibility.
-
-Then:
-1. Standings, Movement & Season Context;
-2. Admin Competition Readiness & Safety;
-3. History, Responsive Acceptance & final functional-story revalidation.
+User reviews/approves the written private-club design spec. After approval, use Superpowers `writing-plans` to create the implementation plan. Implementation must include security-first RED/GREEN tests, additive migration handling, Impeccable review of the entry/navigation/brand changes, and one fresh full repository gate before merge.
 
 ## Guardrails
 
-- Keep all 33 incomplete functional story issues open until separately revalidated.
-- Preserve Worker authorization, same-origin security, competition invariants, auditability and accessibility.
-- No new router, state framework, component library, backend service or Cloudflare product without a real requirement.
-- Use focused proof during development and one fresh full repository gate before merge; do not recreate micro-CI loops.
+- Cloudflare free tier only: existing Worker + static assets + D1.
+- No KV, R2, Durable Objects, Queues, scheduled jobs or additional runtime.
+- Do not edit applied migrations.
+- Do not automate remote D1 migration.
+- Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
+- No private club data may be exposed before `APPROVED` club membership is verified by the Worker.
+- Keep all 33 parked functional stories open until separately revalidated.
