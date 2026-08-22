@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles.css';
 import './mobile-experience.css';
+import './member-experience.css';
 
 console.log('Misfits 501 Client Initialized');
 
