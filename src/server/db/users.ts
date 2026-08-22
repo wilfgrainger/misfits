@@ -2,6 +2,7 @@ import type { GoogleIdentity } from '../auth/google';
 
 export type UserRole = 'PLAYER' | 'ADMIN';
 export type UserStatus = 'ACTIVE' | 'SUSPENDED';
+export type ClubStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface UserRecord {
   id: string;
@@ -10,6 +11,7 @@ export interface UserRecord {
   username: string | null;
   role: UserRole;
   status: UserStatus;
+  club_status: ClubStatus;
   is_master_admin: number;
   profile_image_url: string | null;
   darts_counter_url: string | null;
@@ -22,17 +24,19 @@ export interface PublicUserSummary {
   username: string | null;
   role: UserRole;
   status: UserStatus;
+  clubStatus: ClubStatus;
   profileImageUrl: string | null;
   dartsCounterUrl: string | null;
   isMasterAdmin: boolean;
 }
 
-export function publicUser(user: Pick<UserRecord, 'id' | 'username' | 'role' | 'status' | 'profile_image_url' | 'darts_counter_url' | 'is_master_admin'>): PublicUserSummary {
+export function publicUser(user: Pick<UserRecord, 'id' | 'username' | 'role' | 'status' | 'club_status' | 'profile_image_url' | 'darts_counter_url' | 'is_master_admin'>): PublicUserSummary {
   return {
     id: user.id,
     username: user.username,
     role: user.role,
     status: user.status,
+    clubStatus: user.club_status,
     profileImageUrl: user.profile_image_url ?? null,
     dartsCounterUrl: user.darts_counter_url ?? null,
     isMasterAdmin: user.is_master_admin === 1,
@@ -84,7 +88,7 @@ export async function upsertGoogleUser(
 
   const configuredMasterEmail = (masterAdminEmail ?? bootstrapAdminEmail)?.trim().toLowerCase();
   if (configuredMasterEmail && user.email.toLowerCase() === configuredMasterEmail) {
-    await db.prepare("UPDATE users SET role = 'ADMIN', is_master_admin = 1 WHERE id = ?").bind(user.id).run();
+    await db.prepare("UPDATE users SET role = 'ADMIN', is_master_admin = 1, club_status = 'APPROVED' WHERE id = ?").bind(user.id).run();
   } else {
     await db.prepare('UPDATE users SET is_master_admin = 0 WHERE id = ?').bind(user.id).run();
     if (
@@ -92,7 +96,7 @@ export async function upsertGoogleUser(
       user.email.toLowerCase() === bootstrapAdminEmail.trim().toLowerCase() &&
       (await countAdmins(db)) === 0
     ) {
-      await db.prepare("UPDATE users SET role = 'ADMIN' WHERE id = ?").bind(user.id).run();
+      await db.prepare("UPDATE users SET role = 'ADMIN', club_status = 'APPROVED' WHERE id = ?").bind(user.id).run();
     }
   }
 
