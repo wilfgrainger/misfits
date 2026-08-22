@@ -6,9 +6,7 @@ const bestOf5: LeagueScoringRules = { maxLegs: 5, pointsPerWin: 2, pointsPerDraw
 const bestOf6: LeagueScoringRules = { maxLegs: 6, pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0 };
 
 function validate(input: unknown, rules: LeagueScoringRules) {
-  // The cast keeps this RED test executable against the legacy numeric API.
-  // It is removed once validatePlayerResult accepts the scoring contract.
-  return validatePlayerResult(input, rules as never);
+  return validatePlayerResult(input, rules);
 }
 
 function result(playerALegs: number, playerBLegs: number) {
