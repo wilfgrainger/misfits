@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { issueSession } from '../../src/server/auth/session';
 import { createCompetitionRoutes } from '../../src/server/routes/competition';
 
-type User = { id: string; username: string; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE' | 'SUSPENDED'; is_master_admin: number };
+type User = { id: string; username: string; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE' | 'SUSPENDED'; club_status: 'APPROVED'; is_master_admin: number };
 type Session = { token_hash: string; user_id: string; created_at: string; expires_at: string };
 type League = { id: string; season_id: string; name: string; slug: string; season_name: string; status: 'OPEN'; points_per_win: number; target_legs: number; created_at: string; updated_at: string; created_by: string; max_players: number; matches_per_pair: number; visibility: 'PRIVATE'; hierarchy_position: number; promotion_places: number; relegation_places: number };
 type Membership = { league_id: string; season_id: string; user_id: string; active: number; joined_at: string };
@@ -39,7 +39,7 @@ class MemoryD1 {
 }
 
 const now = new Date('2026-08-21T16:30:00.000Z');
-function setup() { const db = new MemoryD1(); db.users.set('admin', { id: 'admin', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1 }); for (let i=1;i<=4;i++) db.users.set(`p${i}`, { id: `p${i}`, username: `Player ${i}`, role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0 }); db.leagues.set('l1', { id:'l1', season_id:'s1', name:'Premier', slug:'premier', season_name:'2026/27', status:'OPEN', points_per_win:2, target_legs:3, created_at:now.toISOString(), updated_at:now.toISOString(), created_by:'admin', max_players:8, matches_per_pair:1, visibility:'PRIVATE', hierarchy_position:1, promotion_places:0, relegation_places:0 }); for (let i=1;i<=4;i++) db.memberships.set(`l1:p${i}`, { league_id:'l1', season_id:'s1', user_id:`p${i}`, active:1, joined_at:now.toISOString() }); return { db, env:{ DB:db as never, ASSETS:{} as never, APP_ORIGIN:'https://misfits.test' }, routes:createCompetitionRoutes({ now:()=>now }) }; }
+function setup() { const db = new MemoryD1(); db.users.set('admin', { id: 'admin', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 1 }); for (let i=1;i<=4;i++) db.users.set(`p${i}`, { id: `p${i}`, username: `Player ${i}`, role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0 }); db.leagues.set('l1', { id:'l1', season_id:'s1', name:'Premier', slug:'premier', season_name:'2026/27', status:'OPEN', points_per_win:2, target_legs:3, created_at:now.toISOString(), updated_at:now.toISOString(), created_by:'admin', max_players:8, matches_per_pair:1, visibility:'PRIVATE', hierarchy_position:1, promotion_places:0, relegation_places:0 }); for (let i=1;i<=4;i++) db.memberships.set(`l1:p${i}`, { league_id:'l1', season_id:'s1', user_id:`p${i}`, active:1, joined_at:now.toISOString() }); return { db, env:{ DB:db as never, ASSETS:{} as never, APP_ORIGIN:'https://misfits.test' }, routes:createCompetitionRoutes({ now:()=>now }) }; }
 async function cookieFor(db: MemoryD1) { const session=await issueSession(db as never,'admin',now); return `misfits_session=${session.token}`; }
 function mutation(cookie:string, body?:unknown, method='POST') { return { method, headers:{ Cookie:cookie, Origin:'https://misfits.test', ...(body===undefined?{}:{'Content-Type':'application/json'}) }, ...(body===undefined?{}:{body:JSON.stringify(body)}) }; }
 
