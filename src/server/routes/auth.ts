@@ -18,7 +18,7 @@ import {
   sessionCookie,
   SESSION_COOKIE,
 } from '../auth/session';
-import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
+import { requireClubMember, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 
 interface AuthRouteDependencies {
   exchange?: (config: Parameters<typeof exchangeGoogleCode>[0], code: string) => Promise<GoogleIdentity>;
@@ -179,7 +179,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     return c.json(authPayload(user), 200, { 'Cache-Control': 'private, no-store' });
   });
 
-  routes.post('/api/me/username', requireSameOrigin, requireUser, async (c) => {
+  routes.post('/api/me/username', requireSameOrigin, requireUser, requireClubMember, async (c) => {
     const body = await c.req.json().catch(() => null) as { username?: unknown } | null;
     if (!body || typeof body.username !== 'string') {
       return jsonError(c, new AppError('VALIDATION_ERROR', 'A username is required', 400));
