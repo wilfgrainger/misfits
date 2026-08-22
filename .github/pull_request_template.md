@@ -1,43 +1,41 @@
-## Misfits PR record
+## Summary
 
-### Product and scope
+What changed and why?
 
-- [ ] One-club Misfits direction preserved; no white-label or multi-club behavior introduced.
-- [ ] Mobile-first behavior checked; desktop browser view checked where UI changes.
-- [ ] No unapproved fixture, archive, social, live-scoring or statistics feature implied as complete.
+## Risk
 
-### Superpowers, Impeccable and Cave Pony
+Check only what applies:
 
-- [ ] Applicable Superpowers skills used and recorded below.
-- [ ] UI change: Impeccable critique and technical audit completed for mobile and desktop, or not applicable.
-- [ ] UI change: accepted Impeccable findings polished and re-audited, or deferrals recorded.
-- [ ] Cave Pony critical review completed.
+- [ ] Authentication / authorization / security boundary changed
+- [ ] D1 schema, migration or production data changed
+- [ ] Cloudflare architecture, service or deployment behaviour changed
+- [ ] Material UI / interaction design changed
+- [ ] None of the above — routine bounded change
 
-| Cave Pony finding | Decision: actioned / deferred / rejected | Evidence or trigger |
-| --- | --- | --- |
-|  |  |  |
+If a checked risk needs special handling, describe it briefly here:
 
-| Impeccable finding | Decision: actioned / deferred / rejected | Evidence or trigger |
-| --- | --- | --- |
-|  |  |  |
+## Proof
 
-### Platform and data
+Focused proof used while developing:
 
-- [ ] Google-only authentication and Worker-side authorization preserved.
-- [ ] No paid Cloudflare service, queue, R2, scheduled job, polling or extra runtime service added.
-- [ ] No D1 schema change, or an additive migration was manually applied and verified before merge.
-- [ ] CI does not run remote D1 migrations.
+- 
 
-### Proof
+Final repository gate:
 
-- [ ] Focused test(s):
-- [ ] `npm run typecheck`
-- [ ] `npm test`
-- [ ] `npm run build`
-- [ ] `npx wrangler types`
-- [ ] `npx wrangler deploy --dry-run`, or environment blocker recorded:
-- [ ] `git diff --check`
+- [ ] Wrangler types
+- [ ] TypeScript
+- [ ] Full Vitest suite
+- [ ] Production build
 
-### Handoff
+## Specialist review — only when applicable
 
-- [ ] `PROGRESS.md` updated with current truth, verification and blockers.
+- Superpowers: architectural / multi-step / high-risk work, or explicitly requested.
+- Impeccable: material UI / interaction work, or explicitly requested.
+- Cave Pony: meaningful simplification / refactor / architecture review, or explicitly requested.
+
+Record only material findings or deferrals. Routine PRs do not need empty review tables.
+
+## Handoff
+
+- [ ] `PROGRESS.md` updated if release scope, blocker, completion state or agent handoff changed.
+- [ ] Not needed for this routine change.
