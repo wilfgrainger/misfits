@@ -7,6 +7,7 @@ let user = {
   username: 'Admin',
   role: 'ADMIN' as const,
   status: 'ACTIVE' as const,
+  clubStatus: 'APPROVED' as const,
   profileImageUrl: null,
   dartsCounterUrl: null,
   isMasterAdmin: true,
@@ -23,7 +24,8 @@ vi.mock('../../src/client/api', () => {
     adminLeagues() { return Promise.resolve({ leagues: [] }); }
     adminSeasons() { return Promise.resolve({ seasons: [] }); }
     seasonLeagues() { return Promise.resolve({ leagues: [] }); }
-    adminPlayers() { return Promise.resolve({ players: [{ id: 'player-1', username: 'Player', role: 'PLAYER', status: 'ACTIVE', profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false, email: 'player@example.com', leagueActive: false }] }); }
+    adminClubInvites() { return Promise.resolve({ invites: [] }); }
+    adminPlayers() { return Promise.resolve({ players: [{ id: 'player-1', username: 'Player', role: 'PLAYER', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-01T00:00:00.000Z', profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false, email: 'player@example.com', leagueActive: false }] }); }
   }
   return { ApiClient: MockApiClient, ApiClientError: MockApiClientError };
 });
@@ -62,7 +64,7 @@ describe('account profile access', () => {
 
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Club access' })).toBeTruthy());
     fireEvent.click(screen.getByRole('tab', { name: 'Club access' }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Club access' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Club members' })).toBeTruthy());
     await waitFor(() => expect(screen.getByRole('button', { name: /Make .* admin/ })).toBeTruthy());
   });
 });
