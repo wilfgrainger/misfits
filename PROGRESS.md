@@ -24,11 +24,11 @@
 - **Chunk 3, ADM-046–ADM-059:** PR #13 merged as `b1b68d215180951b016f6638a68dedc48a46eed1`; final gate `32528766451` green with 196/196 tests.
 - **Chunk 4, ADM-060–ADM-069:** PR #14 merged as `eb6d566a01ce86ac6580bdf28b707d1b68739cda`; final gate `32531365934` green.
 - **Post-merge Results UI fix:** PR #15 merged into main at `39490132c2f8aecef880bdfb138b2006c9e12734`; GREEN gate `32553662981` with 200/200 tests.
-- **Scoring design/plan:** PR #16 merged as `b8d42ea479fd6afc5c754d444704693e85477f55`; docs PR-head gate `32554850181` passed Wrangler types, TypeScript, full tests and production build.
+- **Scoring design/plan:** PR #16 merged as `b8d42ea479fd6afc5c754d444704693e85477f55`; PR-head gate passed Wrangler types, TypeScript, full tests and production build.
 
 ## Approved scoring model
 
-Each league will own:
+Each league owns:
 
 ```text
 Best of / maximum legs
@@ -41,50 +41,66 @@ Matches per pair
 Rules:
 
 - `legsToWin = floor(maxLegs / 2) + 1`.
-- Best of 6 ends at `4-0`, `4-1`, `4-2`, or the exhausted `3-3` draw.
+- Best of 6 ends at `4-0`, `4-1`, `4-2`, or exhausted `3-3`.
 - Best of 5 remains decisive first-to-3.
 - Existing `target_legs = T` migrates to `max_legs = (T * 2) - 1`.
-- During the migration, `target_legs` may remain only as a derived compatibility mirror, never a second editable authority.
+- `target_legs` remains a derived compatibility mirror only.
 - Competitive standings order is **Points → total legs won → head-to-head**.
 - Two-player head-to-head aggregates confirmed meetings between the pair.
-- Three-or-more tied players use a mini-table of confirmed matches within the tied group.
-- Still-equal players share competitive rank. Username/player ID can stabilise presentation only.
+- Three-or-more tied players use a mini-table of confirmed matches inside the tied group.
+- Still-equal players share competitive rank; username/player ID may stabilise display only.
 - Promotion/relegation must block if a shared rank crosses a movement boundary.
 
 ## Canonical ledger checkpoint
 
-Task 1 of the implementation plan is complete:
+Task 1 is complete. The master catalogue and story audit now reflect the approved Best-of/draw/tie rules rather than the superseded decisive-only model. ADM-024 and ADM-025 are reopened until the new behavior is fully evidenced, and ADM-070 is no longer product-gated but remains undelivered until its standings implementation is GREEN.
 
-- ADM-024 reopened as **PARTIAL · P0** for Best-of/max-leg support.
-- ADM-025 reopened as **PARTIAL · P0** for configurable win/draw/loss points.
-- ADM-070 product gate removed and story marked **MISSING · P0** until implementation evidence exists.
-- Player stories PLY-016, PLY-020, PLY-022 and PLY-037 were aligned so the canonical backlog no longer claims ties are invalid or the old rule set is complete.
-- The story audit preserves historical evidence while clearly reopening the superseded acceptance criteria.
+## TDD delivery checkpoint
 
-## Current TDD checkpoint
+### Task 2 — schema + shared scoring contract — GREEN
 
-First RED contract commit: `ef185521543cd7db715601493fcebdb433502d07`.
+- Migration: `migrations/0005_configurable_match_scoring.sql`.
+- Shared contract: `src/server/domain/scoring.ts`.
+- Compatible validators accept `maxLegs`, win/draw/loss points and derive `targetLegs`.
+- Initial TypeScript seam in season cloning was root-caused and fixed without weakening the contract.
+- GREEN CI: `32555367533` passed Wrangler types, TypeScript, complete tests and production build.
 
-RED CI run `32555046374`:
+### Task 3 — Best-of result validation — GREEN
 
-- Wrangler types: PASS.
-- TypeScript: PASS.
-- Existing behavior: **200 tests passed**.
-- New scoring contract: exactly **3 tests failed**.
-- Failure 1: validators ignore `maxLegs`, `pointsPerDraw` and `pointsPerLoss` and still return legacy `targetLegs` only.
-- Failure 2: negative draw points are currently ignored rather than rejected.
-- Failure 3: `migrations/0005_configurable_match_scoring.sql` does not exist.
-- Production build skipped because the intentional RED test gate failed.
+- Focused RED CI `32555425552`: 206 assertions passed and exactly 9 score-rule assertions failed.
+- `validatePlayerResult` now supports odd decisive formats plus even exhausted draws.
+- Best of 6 accepts `4-0`, `4-1`, `4-2`, `3-3`; rejects incomplete/impossible states such as `3-2`, `4-3`, `4-4`, `5-1`.
+- GREEN CI: `32555506609` passed Wrangler types, TypeScript, complete tests and production build.
 
-No production scoring implementation existed at this RED checkpoint.
+### Task 4 — persistence/API/rule-lock integration — GREEN candidate, final gate running
+
+Focused RED CI `32555672236` preserved **218 passing tests** and isolated exactly **7 intended failures**:
+
+1. scoring fields were not persisted/round-tripped;
+2. season clone reconstructed legacy target legs instead of copying the full scoring contract;
+3. fixture settlement still validated through numeric `target_legs`;
+4. maxLegs/draw/loss changes were not locked after competition history existed.
+
+Production candidate commit: `68324c44f92b000e9d43c76adb84b2e781f98ab6`.
+
+It now:
+
+- persists and reads `max_legs`, `points_per_win`, `points_per_draw`, `points_per_loss`;
+- copies the complete scoring rules when cloning season structure;
+- validates fixture-backed and compatibility result paths through one persisted scoring adapter;
+- locks every result-interpreting scoring rule once fixtures/results exist;
+- exposes Best-of plus win/draw/loss values through public/admin league contracts while retaining `targetLegs` compatibility.
+
+A temporary Actions-assisted patch mechanism was used only because the chat container cannot resolve GitHub. It self-removed from the production candidate commit. The bot-authored commit itself did not receive a normal verification job, so this documentation checkpoint intentionally triggers a standard PR CI run over the exact candidate before Task 4 can be called GREEN.
 
 ## Next execution steps
 
-1. Complete Task 2 GREEN: additive migration + shared scoring rules contract + compatible validators.
-2. Preserve `targetLegs` temporarily as a derived compatibility mirror so intermediate commits stay buildable; Best of 6 derives `targetLegs = 4`.
-3. Run focused/full verification before starting Task 3.
-4. Continue Task 3 onward in the committed implementation plan, adding and observing RED before each production behavior change.
-5. Keep this file, the master catalogue and audit current at durable checkpoints.
+1. Require a fully green normal CI gate on the Task 4 candidate plus this checkpoint.
+2. If failures are limited to old in-memory D1 fakes misreading the new bind order, update only those test adapters and re-run the complete gate.
+3. Once Task 4 is GREEN, start Task 5 with focused RED tests for configurable W/D/L standings points and the approved two-way / mini-table head-to-head ranking.
+4. Keep username/player ID out of competitive rank decisions.
+5. Then make promotion/relegation consume the shared authoritative rank before UI work.
+6. Keep this file, the master catalogue and audit current at durable checkpoints.
 
 ## Production migration guardrail
 
