@@ -7,7 +7,7 @@ type Session = { token_hash: string; user_id: string; created_at: string; expire
 type Season = { id: string; name: string; status: 'DRAFT' | 'OPEN' | 'CLOSED'; is_current: number; created_at: string; updated_at: string; closed_at: string | null };
 type League = {
   id: string; name: string; slug: string; season_name: string; season_id: string | null; status: 'OPEN' | 'CLOSED';
-  points_per_win: number; target_legs: number; created_at: string; updated_at: string; created_by: string | null;
+  max_legs: number; points_per_win: number; points_per_draw: number; points_per_loss: number; target_legs: number; created_at: string; updated_at: string; created_by: string | null;
   max_players: number; matches_per_pair: number; visibility: 'PUBLIC' | 'PRIVATE'; hierarchy_position: number;
   promotion_places: number; relegation_places: number;
 };
@@ -56,12 +56,12 @@ class MemoryD1 {
     } else if (sql.startsWith('DELETE FROM seasons')) {
       this.seasons.delete(String(values[0]));
     } else if (sql.includes('INSERT INTO leagues')) {
-      const [id, name, slug, seasonName, seasonId, status, points, legs, createdAt, updatedAt, createdBy, maxPlayers, repeats, visibility, hierarchy, promotion, relegation] = values as [string, string, string, string, string, 'OPEN' | 'CLOSED', number, number, string, string, string, number, number, 'PUBLIC' | 'PRIVATE', number, number, number];
-      this.leagues.set(id, { id, name, slug, season_name: seasonName, season_id: seasonId, status, points_per_win: points, target_legs: legs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: repeats, visibility, hierarchy_position: hierarchy, promotion_places: promotion, relegation_places: relegation });
+      const [id, name, slug, seasonName, seasonId, status, win, draw, loss, maxLegs, targetLegs, createdAt, updatedAt, createdBy, maxPlayers, repeats, visibility, hierarchy, promotion, relegation] = values as [string, string, string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, number, string, string, string, number, number, 'PUBLIC' | 'PRIVATE', number, number, number];
+      this.leagues.set(id, { id, name, slug, season_name: seasonName, season_id: seasonId, status, max_legs: maxLegs, points_per_win: win, points_per_draw: draw, points_per_loss: loss, target_legs: targetLegs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: repeats, visibility, hierarchy_position: hierarchy, promotion_places: promotion, relegation_places: relegation });
     } else if (sql.includes('UPDATE leagues') && sql.includes('hierarchy_position')) {
-      const [name, slug, points, legs, maxPlayers, repeats, visibility, hierarchy, promotion, relegation, updatedAt, id] = values as [string, string, number, number, number, number, 'PUBLIC' | 'PRIVATE', number, number, number, string, string];
+      const [name, slug, win, draw, loss, maxLegs, targetLegs, maxPlayers, repeats, visibility, hierarchy, promotion, relegation, updatedAt, id] = values as [string, string, number, number, number, number, number, number, number, 'PUBLIC' | 'PRIVATE', number, number, number, string, string];
       const league = this.leagues.get(id)!;
-      Object.assign(league, { name, slug, points_per_win: points, target_legs: legs, max_players: maxPlayers, matches_per_pair: repeats, visibility, hierarchy_position: hierarchy, promotion_places: promotion, relegation_places: relegation, updated_at: updatedAt });
+      Object.assign(league, { name, slug, max_legs: maxLegs, points_per_win: win, points_per_draw: draw, points_per_loss: loss, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: repeats, visibility, hierarchy_position: hierarchy, promotion_places: promotion, relegation_places: relegation, updated_at: updatedAt });
     } else if (sql.includes("UPDATE leagues SET status = 'OPEN'")) {
       const [updatedAt, seasonId] = values as [string, string];
       for (const league of this.leagues.values()) if (league.season_id === seasonId) {

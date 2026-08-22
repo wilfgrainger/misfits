@@ -28,7 +28,10 @@ type League = {
   slug: string;
   season_name: string;
   status: 'OPEN' | 'CLOSED';
+  max_legs: number;
   points_per_win: number;
+  points_per_draw: number;
+  points_per_loss: number;
   target_legs: number;
   created_at: string;
   updated_at: string;
@@ -95,14 +98,14 @@ class FlowD1 {
     } else if (sql.startsWith('DELETE FROM sessions')) {
       this.sessions.delete(String(values[0]));
     } else if (sql.startsWith('INSERT INTO leagues')) {
-      const [id, name, slug, seasonName, status, pointsPerWin, targetLegs, createdAt, updatedAt, createdBy, maxPlayers, matchesPerPair, visibility] = values as [string, string, string, string, League['status'], number, number, string, string, string, number, number, League['visibility']];
-      this.leagues.set(id, { id, name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility });
+      const [id, name, slug, seasonName, status, win, draw, loss, maxLegs, targetLegs, createdAt, updatedAt, createdBy, maxPlayers, matchesPerPair, visibility] = values as [string, string, string, string, League['status'], number, number, number, number, number, string, string, string, number, number, League['visibility']];
+      this.leagues.set(id, { id, name, slug, season_name: seasonName, status, max_legs: maxLegs, points_per_win: win, points_per_draw: draw, points_per_loss: loss, target_legs: targetLegs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility });
     } else if (sql.startsWith('UPDATE leagues')) {
-      const [name, slug, seasonName, status, pointsPerWin, targetLegs, maxPlayers, matchesPerPair, visibility, updatedAt, id] = values as [string, string, string, string, League['status'], number, number, number, League['visibility'], string, string];
+      const [name, slug, seasonName, status, win, draw, loss, maxLegs, targetLegs, maxPlayers, matchesPerPair, visibility, updatedAt, id] = values as [string, string, string, League['status'], number, number, number, number, number, number, number, League['visibility'], string, string];
       const league = this.leagues.get(id)!;
       const activeCount = [...this.memberships.values()].filter((member) => member.league_id === id && member.active === 1).length;
       if (activeCount > maxPlayers) return { success: true, meta: { changes: 0 } };
-      Object.assign(league, { name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility, updated_at: updatedAt });
+      Object.assign(league, { name, slug, season_name: seasonName, status, max_legs: maxLegs, points_per_win: win, points_per_draw: draw, points_per_loss: loss, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility, updated_at: updatedAt });
     } else if (sql.startsWith('INSERT OR IGNORE INTO league_players')) {
       const leagueId = String(values[0]);
       const userId = String(values[1]);

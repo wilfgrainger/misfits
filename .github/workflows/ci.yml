@@ -19,33 +19,6 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  task4_test_adapters:
-    name: One-shot Task 4 test adapters
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/configurable-match-scoring'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: feat/configurable-match-scoring
-          fetch-depth: 0
-      - name: Update migration-aware in-memory D1 adapters
-        run: python scripts/task4-test-adapters.py
-      - name: Commit test adapter updates and remove transient helper
-        shell: bash
-        run: |
-          git fetch origin main
-          git checkout origin/main -- .github/workflows/ci.yml
-          rm -f scripts/task4-test-adapters.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git diff --cached --quiet && { echo "No adapter changes produced"; exit 1; }
-          git commit -m "test: align D1 fakes with configurable scoring schema"
-          git push origin HEAD:feat/configurable-match-scoring
-
   deploy:
     name: Deploy Worker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
