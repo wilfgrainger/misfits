@@ -2,6 +2,7 @@
 
 **Updated:** 22 August 2026  
 **Current branch:** `main`  
+**Current focus:** full canonical user-story validation and next implementation handoff  
 **Latest production feature release:** PR #17 `feat: configurable Best-of scoring and head-to-head standings`  
 **Production merge SHA:** `3185019780f9560917dd22bb9326c342662ba420`
 
@@ -10,122 +11,166 @@
 - Product truth: `PRODUCT.md`.
 - Strategic/platform guardrail: `VISION.md`.
 - UI authority: `DESIGN.md` and the repo-local Impeccable skill.
-- Canonical backlog: `docs/superpowers/specs/2026-08-21-user-stories.md`.
-- Story-level evidence: `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
+- Canonical story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`.
+- Prior detailed delivery audit through ADM-070: `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
+- **Current full 150-story validation authority:** `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`.
 - Approved scoring design: `docs/superpowers/specs/2026-08-22-configurable-match-scoring-design.md`.
-- Approved implementation plan: `docs/superpowers/plans/2026-08-22-configurable-match-scoring.md`.
 - Production migration evidence: `docs/operations/evidence/2026-08-22-d1-migration-0005.md`.
 
-## Durable release checkpoint
+## Full user-story validation checkpoint
 
-PR #17 is **merged and deployed**. No PR #17 release action remains pending.
+All **150 canonical stories** have now been re-evaluated against current `main`, implementation paths and available focused/relevant automated evidence.
 
-Final verified feature head:
+| Audience | Total | VERIFIED | PARTIAL | MISSING |
+|---|---:|---:|---:|---:|
+| Admin | 88 | 82 | 5 | 1 |
+| Player | 55 | 29 | 7 | 19 |
+| Public | 7 | 6 | 0 | 1 |
+| **Total** | **150** | **117** | **12** | **21** |
 
-- Head SHA: `a0d88bb48a16e160d564524938b8e725412ec129`.
-- Final PR CI: `32562994388`.
-- Wrangler types: passed.
-- TypeScript: passed.
-- Full Vitest suite: passed.
-- Production build: passed.
+**Current verified completion: 117 / 150 = 78%.**
 
-Production integration:
+Do **not** claim 150/150 complete. Historical `DELIVERED` labels in the canonical catalogue are not evidence where the 22 August validation ledger differs.
 
-- Merge SHA: `3185019780f9560917dd22bb9326c342662ba420`.
-- Main CI run: `32563097678`.
-- Main `verify` job: **success**.
-- Main `Deploy Worker` job: **success**.
-- Production Worker target remains `https://darts.graingers.agency`.
+### PARTIAL stories
 
-## Configurable match-scoring rules now delivered
+- Admin: `ADM-075`, `ADM-081`, `ADM-084`, `ADM-087`, `ADM-088`.
+- Player: `PLY-009`, `PLY-012`, `PLY-016`, `PLY-022`, `PLY-037`, `PLY-038`, `PLY-050`.
 
-Each league owns:
+### MISSING stories
+
+- Admin: `ADM-083`.
+- Player: `PLY-014`, `PLY-023`, `PLY-024`, `PLY-026`, `PLY-027`, `PLY-028`, `PLY-029`, `PLY-030`, `PLY-031`, `PLY-032`, `PLY-033`, `PLY-034`, `PLY-035`, `PLY-036`, `PLY-039`, `PLY-040`, `PLY-052`, `PLY-053`, `PLY-055`.
+- Public: `PUB-005`.
+
+## Most important audit finding: player fixtures are not player-accessible
+
+This is the main reason the player completion number is much lower than the historical catalogue implied.
+
+Current client path:
 
 ```text
-Best of / maximum legs
-Points for win
-Points for draw
-Points for loss
-Matches per pair
+PlayerLeague
+  -> ApiClient.fixtures(leagueId)
+  -> GET /api/admin/competition/leagues/:leagueId/fixtures
 ```
 
-Rules:
+Current server authority:
 
-- `legsToWin = floor(maxLegs / 2) + 1`.
-- Best of 6 terminates at `4-0`, `4-1`, `4-2`, or exhausted `3-3` draw.
-- Best of 5 remains decisive first-to-3.
-- Existing legacy `target_legs = T` maps to `max_legs = (T * 2) - 1`.
-- `target_legs` remains a compatibility mirror, not the editable authority.
-- Standings order is **Points → total legs won → head-to-head points**.
-- Two-player head-to-head aggregates confirmed meetings between the pair.
-- Three-or-more tied players use a mini-table of confirmed matches inside the tied group.
-- Players still equal after approved competitive criteria share rank.
-- Username/player ID may stabilise display only and never becomes a sporting tie-break.
-- Promotion/relegation consumes authoritative standings rank and blocks when a shared rank crosses a movement boundary.
+```text
+routes.use('/api/admin/*', requireUser, requireAdmin)
+```
 
-Canonical story state for this release:
+Therefore a normal `PLAYER` receives **403** when the player workspace tries to load fixtures. `PlayerLeague` currently catches that failure and substitutes `{ fixtures: [] }`, so the defect is visually disguised as “no fixtures”.
 
-- ADM-024: **DELIVERED · P0 / VERIFIED**.
-- ADM-025: **DELIVERED · P0 / VERIFIED**.
-- ADM-070: **DELIVERED · P0 / VERIFIED**.
+Consequences include the incomplete fixture-first cluster `PLY-026` through `PLY-040`:
 
-## TDD evidence for PR #17
+- players cannot see their real fixtures or league fixtures;
+- outstanding/pending/disputed/completed/void fixture UX is not usable by normal players;
+- played/remaining and league-progress counts do not exist;
+- the fixture-first result button cannot be reached by a normal player;
+- the legacy free-form `Add result` opponent selector still appears even though the server correctly rejects arbitrary result creation once persisted fixtures exist;
+- the submitting player's own PENDING result is not rendered because the current pending filter only selects opponent-submitted results.
 
-- Task 2 schema/scoring contract: GREEN `32555367533`.
-- Task 3 Best-of validation: RED `32555425552`, GREEN `32555506609`.
-- Task 4 persistence/API/rule locks: RED `32555672236`, GREEN `32559244717` with 225 tests.
-- Task 5 standings/head-to-head: RED `32559458511`, GREEN `32560372522` with 230 tests.
-- Task 6 promotion rank authority: RED `32560471929`, GREEN `32560541080` with 234 tests.
-- Task 7 admin scoring UI: RED `32560656189`, GREEN `32560845059` with 236 tests.
-- Task 8 player/public rules: RED `32560958867`, GREEN `32561215701` with 238 tests.
-- Task 9 canonical re-audit: clean full gate `32561427365` with 238 tests.
-- Post-review cleanup: `3e05ca2be95bb1762b04d00cfd7617bda5a27987`; GREEN `32562784439`.
-- Exact final PR-head gate: `32562994388`.
+Do not weaken the admin route guard. The repair should introduce permission-safe player/public read contracts with league visibility/membership checks, then make the player result flow truly fixture-first.
 
-## Review record
+## Other important incomplete areas
 
-A fresh `@codex review` was requested before integration. Codex did **not** return a code review because the account's Codex code-review usage limit had been reached. Do not reinterpret that as Codex approval.
+### Player standings and movement
 
-A focused fallback review inspected the migration, scoring/result/standings domains, promotion rank authority, persistence and route compatibility, and admin/player/public presentation. It found one transitional `as never` cast in season cloning. Commit `3e05ca2be95bb1762b04d00cfd7617bda5a27987` removed it, followed by a complete green verification run. No Critical or Important fallback-review defect remained known at merge.
+- `PLY-022`: backend tie rules/shared ranks are correct, but player UI does not surface promotion-boundary ambiguity.
+- `PLY-023` / `PLY-024`: promotion/relegation zones are not shown in player standings.
+- `PLY-052` / `PLY-053`: player has no provisional vs approved movement surface.
+- `PLY-055`: no explicit next-season placement-pending/unassigned state.
 
-## Production D1 migration — complete
+### Player context/history
 
-Migration `migrations/0005_configurable_match_scoring.sql` was applied before schema-dependent code was merged.
+- `PLY-012`: default league selection is ordered OPEN/updated/name rather than by explicit season `is_current`, so current-season preference is not guaranteed.
+- `PLY-014`: signed-in players cannot browse other PUBLIC leagues; signed-in workspace shows only `myLeagues`.
+- `PLY-016`: visible rules omit meetings-per-pair and do not consistently show the derived winning target outside result entry.
+- `PLY-050`: old table/results are reachable through historical league tabs, but complete historic fixture context is not.
 
-Production identity:
+### Admin
 
-- Binding: `DB`.
-- Database: `misfits`.
-- Database ID: `9702b993-f0b7-479b-9679-7e32a1c35214`.
+- `ADM-075`: projection is labelled provisional/final, but `promotion.ambiguities` is not rendered in admin UI.
+- `ADM-081`: fixture generation validates one league's roster, not the whole-season rule that all active competitors are assigned before fixtures are committed anywhere.
+- `ADM-083`: `seasonHealth()` computes unassigned/outstanding/pending/dispute counts but is not exposed by route/UI.
+- `ADM-084`: confirmation coverage/focus management is incomplete; fixture void/restore is direct.
+- `ADM-087` / `ADM-088`: repo Impeccable review still records sub-44px mobile controls and desktop behaving like a widened mobile composition.
 
-Verification:
+### Public
 
-- Evidence workflow: `32562916750`.
-- Evidence commit: `8553ad63cc52e8afdb552e2bf82365de4c5af3ca`.
-- No unapplied migrations remained after verification.
-- Remote schema probe successfully selected `max_legs`, `points_per_draw`, and `points_per_loss`.
-- The one-shot migration workflow was removed after use.
-- Normal `main` Worker deployment remains migration-free by design. Preserve this boundary for future migrations.
+- `PUB-005`: public league view has standings/results/share but no permission-safe public fixtures API or fixture rendering.
 
-## Production smoke note
+## Positive corrections from the audit
 
-A post-deploy automated smoke was attempted from a GitHub-hosted runner. Cloudflare's browser challenge intercepted both `/api/health` and `/api/public/leagues` before the requests reached the Worker and returned its `Just a moment...` 403 challenge page.
+The audit also found stale pessimistic labels. Most notably:
 
-Treat this as an **automation limitation**, not an application failure. The main Worker deployment job itself is verified successful. A browser/session-capable smoke can be used later if production behaviour needs another independent runtime check.
+- `PLY-020` is now **VERIFIED** after PR #17: the player table exposes position, player, played, W-D-L, total legs won, average and points, plus the published tie-break explanation.
+- Best-of/draw scoring work remains fully verified for `ADM-024`, `ADM-025` and `ADM-070`.
 
-## Previous audited delivery chunks
+## Recommended implementation sequence
 
-- ADM-001–ADM-018: PR #11, merge `c2fd8599615b1687b5746b49ddd86cfd50263225`, final gate `32523295692`.
-- ADM-019–ADM-045: PR #12, merge `e1c3957c06d78da782fe865f1015c2898c9a01c9`, final gate `32527554443`.
-- ADM-046–ADM-059: PR #13, merge `b1b68d215180951b016f6638a68dedc48a46eed1`, final gate `32528766451`.
-- ADM-060–ADM-069: PR #14, merge `eb6d566a01ce86ac6580bdf28b707d1b68739cda`, final gate `32531365934`.
-- Results-tab integration fix: PR #15, merge `39490132c2f8aecef880bdfb138b2006c9e12734`, GREEN `32553662981`.
-- Scoring design/plan: PR #16, merge `b8d42ea479fd6afc5c754d444704693e85477f55`.
+### Chunk 5A — P0 fixture-first player repair
+
+Start here.
+
+1. Add an authenticated player fixture read using membership/admin permission, without exposing private leagues.
+2. Add PUBLIC fixture read only for PUBLIC leagues for `PUB-005`.
+3. Change player Fixtures UX to separate **My Fixtures** from **League Fixtures**.
+4. Surface outstanding, pending, disputed, confirmed and void state with result context where applicable.
+5. Add player played/remaining and league played/total/outstanding counts.
+6. Remove/disable the legacy free-form opponent result path when persisted fixtures exist; result entry must start from an outstanding fixture.
+7. Show the submitting player's own pending result.
+8. TDD-close `PLY-026`–`PLY-040` as appropriate, then re-audit dependent stories.
+
+### Chunk 5B — P0 competition lifecycle safety
+
+- Close `ADM-081` with whole-season placement readiness before fixture commit.
+- Close `ADM-084` with complete destructive-action confirmation and accessible focus behavior.
+
+### Chunk 5C — standings/movement UX
+
+Close `PLY-022`, `PLY-023`, `PLY-024`, `PLY-052`, `PLY-053`, `PLY-055` and admin ambiguity display `ADM-075`.
+
+### Chunk 5D — operational/responsive polish
+
+Wire `ADM-083`, resolve player context/history gaps, then perform explicit mobile/desktop acceptance work for `ADM-087`/`ADM-088`.
+
+## Fresh verification after the audit
+
+The production `main` workflow was freshly re-run after the story validation rather than relying only on historical green evidence.
+
+Workflow run: `32563097678` (re-run attempt of the production merge workflow).
+
+Fresh jobs:
+
+- `verify` job `97010521272`: **success**.
+- Wrangler types: **success**.
+- TypeScript: **success**.
+- Full Vitest suite: **success**.
+- Production build: **success**.
+- dependent `Deploy Worker` job `97010599029`: **success**.
+
+This means the baseline is technically green while 33 story acceptances remain incomplete. The missing/partial verdict is therefore a product/acceptance audit result, not a failing-build result.
+
+## PR #17 / production release checkpoint
+
+PR #17 remains fully merged/deployed. Do not reopen it unless a new regression is found.
+
+- Final feature head: `a0d88bb48a16e160d564524938b8e725412ec129`.
+- Final PR CI: `32562994388`.
+- Production merge: `3185019780f9560917dd22bb9326c342662ba420`.
+- Production D1 migration 0005 was applied and verified before merge.
+- Main production deployment is green.
 
 ## Next-agent instruction
 
-Do **not** reopen PR #17 release work unless new evidence identifies a defect. Start from `main`, read the canonical user-story catalogue and story-by-story audit, and continue with the next story/audit chunk that is not yet VERIFIED. Preserve strict RED → GREEN TDD, update this file at durable checkpoints, and keep production migrations explicit rather than coupling them to Worker deploys.
-
-## Operational constraint
-
-The chat container used during this release could not resolve GitHub DNS. GitHub Actions and the connected GitHub API were therefore the authoritative execution/verification environment.
+1. Start from current `main`.
+2. Read `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md` before trusting any old story status label.
+3. Treat canonical `docs/superpowers/specs/2026-08-21-user-stories.md` as story wording/acceptance authority, but use the 22 August validation ledger as current completion state.
+4. Start with **Chunk 5A**, the fixture-first player repair.
+5. Use Superpowers brainstorming/design gate for any behaviour change, then RED → GREEN TDD.
+6. Update the validation ledger, canonical status where appropriate, and this `PROGRESS.md` at every durable checkpoint.
+7. Never mark a story VERIFIED from a catalogue label alone.
+8. Keep remote D1 migrations explicit and separate from ordinary Worker deployment.
