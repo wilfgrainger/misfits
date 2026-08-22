@@ -1,8 +1,8 @@
 # Misfits 501 — Story-by-Story Delivery Audit
 
 **Started:** 21 August 2026  
-**Current branch:** `feat/story-audit-chunk-4-results-standings`  
-**Current base:** `main` at `b1b68d215180951b016f6638a68dedc48a46eed1`  
+**Current branch:** `feat/configurable-match-scoring`  
+**Current base:** `main` at `b8d42ea479fd6afc5c754d444704693e85477f55`  
 **Authority:** `docs/superpowers/specs/2026-08-21-user-stories.md`  
 **Method:** Superpowers executing-plans + TDD + systematic-debugging + verification-before-completion.
 
@@ -64,6 +64,8 @@ Merged via PR #11 to `main` as `c2fd8599615b1687b5746b49ddd86cfd50263225`. Final
 
 Merged via PR #12 to `main` as `e1c3957c06d78da782fe865f1015c2898c9a01c9`. Exact final PR head was `8979543a09119909eefde3424abe459b0a4721d8`. Final PR-head CI run `32527554443` passed Wrangler types, TypeScript, **191/191 tests across 48 files**, and production build.
 
+The historical ADM-024/025 implementation remains real evidence for the older contract, but the club approved a broader rules model on 22 August 2026. Their audit state is therefore reopened to `PARTIAL` until the expanded Best-of/draw/scoring acceptance criteria are implemented and reverified.
+
 | Story | Audit state | Evidence / gap | Fix / CI |
 |---|---|---|---|
 | ADM-019 | VERIFIED | Season-scoped creation persists stable league identity and supports multiple leagues per season. | competition routes + admin UI; GREEN `32527554443`. |
@@ -71,8 +73,8 @@ Merged via PR #12 to `main` as `e1c3957c06d78da782fe865f1015c2898c9a01c9`. Exact
 | ADM-021 | VERIFIED | Explicit hierarchy is persisted/sorted and duplicate positions are rejected. | `story-admin-league-structure.test.ts`; GREEN `32527554443`. |
 | ADM-022 | VERIFIED | Capacity persists, assignments/invites enforce it, lowering below active membership is rejected, and admin overview shows count/capacity. | league routes + `admin-league-summary.test.tsx`; GREEN `32527554443`. |
 | ADM-023 | VERIFIED | Positive `matchesPerPair` persists and fixture generation uses it exactly. | fixture/domain tests; GREEN `32527554443`. |
-| ADM-024 | VERIFIED | `targetLegs` persists and decisive result validation follows it. | result tests; GREEN `32527554443`. |
-| ADM-025 | VERIFIED | `pointsPerWin` drives confirmed-result standings and consequential scoring changes are protected after play begins. | standings + `story-adm-030.test.ts`; GREEN `32527554443`. |
+| ADM-024 | PARTIAL | Historical behavior is verified: `targetLegs` persists and decisive result validation follows it. Expanded acceptance now requires authoritative `maxLegs`, derived target, even-format draws and player-visible Best-of rules. | Historical GREEN `32527554443`; superseding design `2026-08-22-configurable-match-scoring-design.md`; new RED `32555046374`. |
+| ADM-025 | PARTIAL | Historical behavior is verified: `pointsPerWin` drives confirmed-result standings and consequential changes are protected. Expanded acceptance now requires configurable draw/loss points and correct draw awards. | Historical GREEN `32527554443`; superseding design; new RED `32555046374`. |
 | ADM-026 | VERIFIED | PUBLIC is anonymous-readable; PRIVATE requires permitted context; private identity fields do not leak. | league/public tests; GREEN `32527554443`. |
 | ADM-027 | VERIFIED | Stable league link resolves intended competition; sharing fallback works; private reads remain protected. | share/public tests; GREEN `32527554443`. |
 | ADM-028 | VERIFIED | Audit exposed false-ready UI state because `every()` is true for an empty array. Overview now becomes accessible only after leagues and all membership summaries load. | fix `678482dbd`; league-summary tests; GREEN final `32527554443`. |
@@ -117,27 +119,29 @@ The audit found one genuine fixture-state integrity gap. RED run `32528138189` i
 | ADM-058 | VERIFIED | Audit found unsafe restore. Restore now requires `VOID`, rejects contradictory result state, restores `OUTSTANDING`, clears void timestamp and audits. | RED `32528138189`; GREEN `32528766451`. |
 | ADM-059 | VERIFIED | Generation validates active eligible membership and blocks suspended/inactive/invalid roster writes. | roster + fixture tests; GREEN `32528766451`. |
 
-## Chunk 4 — results, disputes and standings integrity — VERIFIED / READY FOR FINAL DOC RE-GATE
+## Chunk 4 — results, disputes and standings integrity — VERIFIED THROUGH ADM-069 / ADM-070 REOPENED
 
-PR #14 is based on merged Chunk 3 commit `b1b68d215180951b016f6638a68dedc48a46eed1`. RED evidence reached **196 passing / 3 intentional failures**, isolating the actual gaps: the unified admin desk lacked the complete official-result settlement workflow, `RESULT_UPDATED_BY_ADMIN` audit material omitted resolved status/confirmation detail, and fixture-backed standings could still include free-floating confirmed legacy results.
-
-The implementation adds `AdminResultsWorkflow` for fixture-first admin entry, pending/disputed/confirmed queues, resolution, correction and confirmed-result deletion; strengthens reconstructable result audit state; and makes standings use confirmed results joined to fixtures in the selected league+season whenever persisted fixtures exist. Compatibility/debugging then removed wrapper timing races without weakening the new acceptance contracts. Code-head run `32531189939` passed Wrangler types, TypeScript, **199/199 tests across 50 files**, and the production build.
+PR #14 established fixture-first admin result settlement, reconstructable result audit state and season+league-scoped confirmed-only standings. Code-head run `32531189939` passed Wrangler types, TypeScript, **199/199 tests across 50 files**, and the production build. PR #15 then fixed the post-merge Results-tab integration defects and landed on `main` before the scoring redesign began.
 
 | Story | Audit state | Evidence / gap | Fix / CI |
 |---|---|---|---|
 | ADM-060 | VERIFIED | Fixture-backed ordinary/admin results retain a single `fixtureId`, validate fixture participants and reject duplicate settlement through the existing fixture-result authority. | `fixture-results.test.ts`, result route regressions; GREEN `32531189939`. |
-| ADM-061 | VERIFIED | Admin Results workspace now selects an outstanding fixture; participants come from that fixture; validated legs/averages are posted fixture-first and immediately settle the official fixture result. | `admin-results-workflow.test.tsx`, fixture result routes; GREEN `32531189939`. |
+| ADM-061 | VERIFIED | Admin Results workspace selects an outstanding fixture; participants come from that fixture; validated legs/averages are posted fixture-first and settle the official fixture result. | `admin-results-workflow.test.tsx`, fixture result routes; GREEN `32531189939`. |
 | ADM-062 | VERIFIED | Pending queue exposes fixture identity, submitter, opponent, score, averages and age/status context. | `admin-results-workflow.test.tsx`; GREEN `32531189939`. |
 | ADM-063 | VERIFIED | Disputed queue keeps dispute note and fixture context visible, provides admin resolution action, and disputed records remain excluded from standings. | admin workflow + standings/result tests; GREEN `32531189939`. |
 | ADM-064 | VERIFIED | Authorised admin can resolve an unresolved result to CONFIRMED; fixture state synchronises and confirmed result contributes once. Mutation is audited. | admin workflow + fixture result/update tests; GREEN `32531189939`. |
-| ADM-065 | VERIFIED | Previously inert Edit action is replaced by a correction workflow. Server revalidates legs/averages/participants/state and preserves fixture participant integrity before synchronisation. | `admin-results-workflow.test.tsx`, admin result/fixture safeguards; GREEN `32531189939`. |
-| ADM-066 | VERIFIED | Result deletion is explicit and confirmed in UI, soft-deletes the official match, records audit, restores linked fixture to OUTSTANDING where safe, and removes its derived standings contribution. | admin workflow + admin league delete route/fixture sync tests; GREEN `32531189939`. |
-| ADM-067 | VERIFIED | Audit found incomplete `after_json`. Admin update audit now records corrected score/averages plus status, dispute state, confirmer and confirmation timestamp; delete retains reconstructable before state. | `admin-result-integrity.test.ts`; GREEN `32531189939`. |
+| ADM-065 | VERIFIED | Correction workflow revalidates legs/averages/participants/state and preserves fixture participant integrity before synchronisation. | `admin-results-workflow.test.tsx`, admin result/fixture safeguards; GREEN `32531189939`. |
+| ADM-066 | VERIFIED | Result deletion is explicit and confirmed in UI, soft-deletes the official match, records audit, restores linked fixture to OUTSTANDING where safe, and removes its derived standings contribution. | admin workflow + delete/fixture sync tests; GREEN `32531189939`. |
+| ADM-067 | VERIFIED | Admin update audit records corrected score/averages plus status, dispute state, confirmer and confirmation timestamp; delete retains reconstructable before state. | `admin-result-integrity.test.ts`; GREEN `32531189939`. |
 | ADM-068 | VERIFIED | Standings remain computed from confirmed result records only; pending/disputed never contribute, and corrections/deletions change derived totals rather than editing totals directly. | result/standings tests + integrity regression; GREEN `32531189939`. |
-| ADM-069 | VERIFIED | Once fixtures exist, standings query joins confirmed matches to fixtures and requires fixture league plus fixture season to match the selected league record, excluding free-floating/cross-season contamination. Legacy fixture-less leagues retain compatibility. | `admin-result-integrity.test.ts`; GREEN `32531189939`. |
+| ADM-069 | VERIFIED | Once fixtures exist, standings query joins confirmed matches to fixtures and requires fixture league plus fixture season to match the selected league record, excluding free-floating/cross-season contamination. | `admin-result-integrity.test.ts`; GREEN `32531189939`. |
+| ADM-070 | MISSING / APPROVED FOR TDD | Product gate is resolved: competitive order is **Points → total legs won → head-to-head**. Two-player head-to-head aggregates confirmed meetings; 3+ ties use a mini-table; unresolved equality shares rank; presentation fallback is non-competitive; promotion boundaries must remain ambiguous when a shared rank crosses them. Current production still sorts by legacy leg difference/legs-for/average/username behavior. | Approved design `2026-08-22-configurable-match-scoring-design.md`; implementation plan `2026-08-22-configurable-match-scoring.md`; implementation evidence pending. |
 
-## Current boundary
+## Current execution checkpoint — PR #17
 
-- **ADM-070 is GATED · P0.** The club must approve the equal-points standings tie-break order before the audit can claim it or continue strict ID-order functional delivery beyond that rule dependency.
-- PR #14 still needs one final CI run on this documentation head before merge. Do not merge based only on the earlier code-head gate.
-- After PR #14 is merged, functional integrity pauses at ADM-070 for the product decision. The separate visual/UI quality pass may then begin only through the approved Superpowers design process, as requested by the user.
+- Implementation branch: `feat/configurable-match-scoring` from docs/design merge `b8d42ea479fd6afc5c754d444704693e85477f55`.
+- Draft PR: #17, `feat: configurable Best-of scoring and head-to-head standings`.
+- First RED commit: `ef185521543cd7db715601493fcebdb433502d07`.
+- RED CI run `32555046374`: Wrangler types and TypeScript passed; **200 existing tests passed**; exactly the three new configurable-scoring contract tests failed because `maxLegs`/draw/loss fields and migration 0005 do not yet exist. Build was correctly skipped after test failure.
+- No production scoring implementation existed at this RED checkpoint.
+- Next: implement the minimal scoring schema/domain GREEN, then continue the committed plan in order.
