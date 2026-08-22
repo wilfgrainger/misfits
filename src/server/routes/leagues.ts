@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireClubMember, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { AppError, jsonError } from '../errors';
-import { getLeagueByIdOrSlug, listLeagueMembers, listManagedLeagues, listUserLeagues } from '../db/leagues';
+import { getLeagueByIdOrSlug, listLeagueMembers, listManagedLeagues as listClubLeagues, listUserLeagues } from '../db/leagues';
 import { getCompetitionLeague } from '../db/competition';
 import { joinLeagueByInvite } from '../db/invites';
 
@@ -39,7 +39,7 @@ export function createLeagueRoutes(dependencies: LeagueRouteDependencies = {}) {
   const now = dependencies.now ?? (() => new Date());
 
   routes.get('/api/public/leagues', requireUser, requireClubMember, async (c) => {
-    const leagues = await listManagedLeagues(c.env.DB);
+    const leagues = await listClubLeagues(c.env.DB);
     return c.json({ leagues: leagues.map((league) => publicLeague(league)) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
