@@ -4,7 +4,7 @@
 **Current branch:** `feat/configurable-match-scoring`
 **Current base:** `main` at `b8d42ea479fd6afc5c754d444704693e85477f55`
 **Current PR:** #17 `feat: configurable Best-of scoring and head-to-head standings`
-**Current scope:** execute the approved configurable match-scoring plan under strict RED → GREEN TDD
+**Current scope:** final PR review/release gate for the approved configurable match-scoring plan
 
 ## Authority
 
@@ -24,7 +24,7 @@
 - **Chunk 3, ADM-046–ADM-059:** PR #13 merged as `b1b68d215180951b016f6638a68dedc48a46eed1`; final gate `32528766451` green with 196/196 tests.
 - **Chunk 4, ADM-060–ADM-069:** PR #14 merged as `eb6d566a01ce86ac6580bdf28b707d1b68739cda`; final gate `32531365934` green.
 - **Post-merge Results UI fix:** PR #15 merged into main at `39490132c2f8aecef880bdfb138b2006c9e12734`; GREEN gate `32553662981` with 200/200 tests.
-- **Scoring design/plan:** PR #16 merged as `b8d42ea479fd6afc5c754d444704693e85477f55`; PR-head gate passed Wrangler types, TypeScript, full tests and production build.
+- **Scoring design/plan:** PR #16 merged as `b8d42ea479fd6afc5c754d444704693e85477f55`.
 
 ## Approved scoring model
 
@@ -49,83 +49,76 @@ Rules:
 - Two-player head-to-head aggregates confirmed meetings between the pair.
 - Three-or-more tied players use a mini-table of confirmed matches inside the tied group.
 - Still-equal players share competitive rank; username/player ID may stabilise display only.
-- Promotion/relegation must block if a shared rank crosses a movement boundary.
+- Promotion/relegation blocks if a shared rank crosses a movement boundary.
 
-## Canonical ledger checkpoint
-
-Task 1 is complete. The master catalogue and story audit now reflect the approved Best-of/draw/tie rules rather than the superseded decisive-only model. ADM-024 and ADM-025 remain reopened until the complete UI/evidence slice is delivered. ADM-070 now has GREEN standings and promotion-rank behavior but remains open until visible explanation and final story audit are complete.
-
-## TDD delivery checkpoint
+## PR #17 TDD evidence
 
 ### Task 2 — schema + shared scoring contract — GREEN
 
+- RED commit `ef185521543cd7db715601493fcebdb433502d07`, CI `32555046374`.
 - Migration: `migrations/0005_configurable_match_scoring.sql`.
 - Shared contract: `src/server/domain/scoring.ts`.
-- Compatible validators accept `maxLegs`, win/draw/loss points and derive `targetLegs`.
-- GREEN CI: `32555367533` passed Wrangler types, TypeScript, complete tests and production build.
+- GREEN CI `32555367533`.
 
 ### Task 3 — Best-of result validation — GREEN
 
-- Focused RED CI `32555425552`: 206 assertions passed and exactly 9 score-rule assertions failed.
-- Best of 6 accepts `4-0`, `4-1`, `4-2`, `3-3`; rejects incomplete/impossible states such as `3-2`, `4-3`, `4-4`, `5-1`.
-- GREEN CI: `32555506609` passed Wrangler types, TypeScript, complete tests and production build.
+- RED commit `191d8163c9d66cbb5cbf849bf7857449d205e04f`, CI `32555425552`: 206 passed / 9 intended failures.
+- Best of 6 accepts `4-0`, `4-1`, `4-2`, `3-3`; rejects incomplete/impossible states.
+- GREEN CI `32555506609`.
 
-### Task 4 — persistence/API/rule-lock integration — GREEN
+### Task 4 — persistence/API/rule locks — GREEN
 
-- Focused RED CI `32555672236`: 218 passing tests plus exactly 7 intended failures.
-- Full scoring contract is persisted, cloned, exposed, used for result validation and locked after competition history exists.
-- Final GREEN CI `32559244717`: Wrangler types, TypeScript, **225/225 tests across 54 files**, production build.
+- RED commit `7520b4460ab6fe85b7e35fde97fe1597ea1dd629`, CI `32555672236`: 218 passed / 7 intended failures.
+- Full scoring contract persists, clones, round-trips, drives fixture/result validation and locks after competition history exists.
+- Final GREEN CI `32559244717`: **225/225 tests across 54 files**, Wrangler types, TypeScript and production build.
 
-### Task 5 — configurable standings + approved tie-breaks — GREEN
+### Task 5 — standings + head-to-head — GREEN
 
-- Definitive RED CI `32559458511`: **224 passing / exactly 6 intended standings failures** after strengthening the head-to-head cases against accidental legacy-sort agreement.
-- Standings now record W-D-L, apply configurable win/draw/loss points, order by points then total legs won, use two-player or tied-group head-to-head points, and assign genuine shared ranks.
-- Leg difference and average remain presentation statistics only; username/player ID are stable display order only.
-- `getLeagueStandings()` passes the complete persisted scoring contract.
-- Final GREEN CI `32560372522`: Wrangler types, TypeScript, **230/230 tests**, production build.
+- RED commit `2b199e852e20904d5728116a3d90410e8ae247df`, CI `32559458511`: 224 passed / exactly 6 intended failures.
+- W-D-L points, total legs won, two-player H2H, 3+ mini-table and shared ranks implemented.
+- Leg difference/average are presentation only; username/player ID are display-only.
+- GREEN CI `32560372522`: **230/230 tests**, Wrangler types, TypeScript and production build.
 
-### Task 6 — promotion/relegation rank authority — GREEN
+### Task 6 — promotion rank authority — GREEN
 
-- RED CI `32560471929` preserved **230 passing tests** and produced exactly **4 intended failures** across domain and ADM-070 release evidence.
-- RED proved both failure directions:
-  - already-separated authoritative ranks were incorrectly reopened when legacy raw metrics matched;
-  - genuine shared ranks were incorrectly split when leg difference/average differed.
-- `sameCompetitiveRank()` now compares standings `position` only.
-- `tiedUserIds` therefore collects every competitor sharing the authoritative boundary rank.
-- Existing proposal/finalisation blocking behavior remains unchanged and now consumes standings rank rather than reimplementing tie rules.
-- GREEN CI `32560541080`: Wrangler types, TypeScript, **234/234 tests across 55 files**, production build.
+- RED commit `7b5874829dc09ce4d2eecbc8ff0f620a671ec1dc`, CI `32560471929`: 230 passed / exactly 4 intended failures.
+- Promotion/relegation now consumes authoritative standings rank only and blocks shared-rank movement boundaries.
+- GREEN CI `32560541080`: **234/234 tests across 55 files**, Wrangler types, TypeScript and production build.
 
-### Task 7 — admin match & table rules — GREEN candidate, final gate running
+### Task 7 — admin Match & table rules — GREEN
 
-- RED CI `32560656189` preserved **234 passing tests** and failed exactly the **2 new client assertions**.
-- RED proved the existing admin surface lacked both the compact rules editor and derived Best-of explanation.
-- Client league normalization now exposes `maxLegs`, `pointsPerWin`, `pointsPerDraw` and `pointsPerLoss`, while retaining `targetLegs` only as a derived read-compatibility mirror until Task 8 finishes legacy player presentation.
-- The league editor now presents one **Match & table rules** section with:
-  - Best of;
-  - matches per pair;
-  - points for win;
-  - points for draw;
-  - points for loss.
-- The editable **Legs to win** field has been removed.
-- Admin PATCH writes the authoritative scoring fields and does not send `targetLegs`.
-- Derived guidance explains even and odd formats, including `Best of 6: first to 4 wins; 3-3 is a draw.` and `Best of 5: first to 3 wins; no draw.`
-- New leagues default compatibly to Best of 5, win 2, draw 0, loss 0.
-- Production candidate head before this checkpoint: `aa606bda285c66432f96a97b9449b8c4de2b979c`.
-- The Actions-assisted patch helper self-removed; this documentation commit intentionally triggers the normal full verification gate over the real candidate.
+- RED commit `9f3eacd089f50c772e43c93d1f96a1c1d712cd84`, CI `32560656189`: 234 passed / exactly 2 intended failures.
+- Admin edits Best-of, matches per pair and W/D/L points; writes never send editable `targetLegs`.
+- Derived copy explains even and odd formats, including Best of 6 first-to-4 / 3-3 draw.
+- GREEN CI `32560845059`: **236/236 tests across 56 files**, Wrangler types, TypeScript and production build.
 
-## Next execution steps
+### Task 8 — player/public rules and draws — GREEN
 
-1. Require Task 7 normal CI to pass Wrangler types, TypeScript, all **236 tests**, and production build.
-2. Start Task 8 with RED player/public tests for visible rules, Best-of 6 result entry, explicit draws and W-D-L standings.
-3. Complete player/public rule explanation: `Best of 6 · Win 3 · Draw 1 · Loss 0` and `Table: Points → Legs won → Head-to-head`.
-4. Re-audit ADM-024, ADM-025 and ADM-070 under Task 9, then run the complete PR/Codex/release gate.
-5. Keep this file, the master catalogue and audit current at durable checkpoints.
+- RED commit `05d32241ed5990bb92b5bd128a44b6c9fc4f4a7f`, CI `32560958867`: 235 passed / exactly 3 intended failures.
+- Member and public surfaces now show `Best of N · Win X · Draw Y · Loss Z` and `Table: Points → Legs won → Head-to-head`.
+- Confirmed equal scores display `Draw`, result-entry help follows Best-of rules, standings show W-D-L and total legs won.
+- First candidate left one obsolete historical W-L assertion; only that test contract was aligned.
+- Final GREEN CI `32561215701`: **238/238 tests across 57 files**, Wrangler types, TypeScript and production build.
+
+### Task 9 — canonical re-audit — COMPLETE, clean PR gate pending
+
+- Canonical master now marks ADM-024, ADM-025 and ADM-070 **DELIVERED · P0**.
+- Story audit marks all three **VERIFIED** with exact RED/GREEN evidence.
+- `tests/release/story-adm-070.test.ts` pins promotion-boundary rank authority.
+- Temporary audit staging run `32561337615` had **237/238 passing**; the sole failure was the release guardrail detecting the temporary `task9_docs` workflow job. The audit helper restored the canonical two-job workflow and self-removed successfully.
+- Current durable branch head before this checkpoint: `615d01180314fe33087280d0b83fb1c840c50e3a`.
+
+## Release gates remaining
+
+1. This checkpoint must receive a clean ordinary CI run: Wrangler types, TypeScript, **238/238 tests**, production build.
+2. Request Codex review on PR #17 and address any substantive findings with focused RED → GREEN evidence.
+3. Run a fresh final PR-head CI after review changes, if any.
+4. **Production D1 migration `0005_configurable_match_scoring.sql` must be explicitly applied and evidenced before merge.** The ordinary Worker deployment intentionally does not run migrations.
+5. Only after the migration gate is satisfied may PR #17 be merged; then verify the `main` CI and production Worker deployment.
 
 ## Production migration guardrail
 
-The normal `main` Worker deployment intentionally does **not** apply remote D1 migrations automatically. Preserve that boundary.
-
-Before schema-dependent implementation is merged/deployed, production D1 must explicitly receive `migrations/0005_configurable_match_scoring.sql` through the authorised remote-migration process. Do not weaken `tests/release/deploy-workflow.test.ts` to bypass this gate.
+Do not merge schema-dependent code before production D1 has received `migrations/0005_configurable_match_scoring.sql` through the authorised remote-migration process. Do not add migration execution to the normal Worker deploy and do not weaken `tests/release/deploy-workflow.test.ts`.
 
 ## Known operational constraint
 
