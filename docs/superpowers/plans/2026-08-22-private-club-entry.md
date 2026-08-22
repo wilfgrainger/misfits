@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make Misfits 501 a genuinely private, invite-only, admin-approved club while simplifying the entry experience and signed-in navigation.
+**Goal:** Make Misfits 501 a genuinely private, invite-only, admin-approved club while simplifying entry, navigation and brand language.
 
-**Architecture:** Keep one permanent `users` record per Google identity and add `club_status` for permanent club admission. Keep `league_players` as the independent season/league participation authority. Add one hashed `club_invites` table, enforce `APPROVED` membership at Worker route guards, then render the splash/pending/private app shell from explicit server state.
+**Architecture:** Keep one permanent `users` record per Google identity and add `club_status` for permanent club admission. Keep `league_players` as the independent season/league participation authority. Add one hashed `club_invites` table, enforce `APPROVED` membership at Worker guards, retire legacy self-service league invites, then render the splash/pending/private app shell from explicit server state.
 
-**Tech Stack:** React + TypeScript client, Hono Cloudflare Worker, Cloudflare D1, Vitest, existing Google Identity Services integration, existing CSS/SVG icon system.
+**Tech Stack:** React + TypeScript client, Hono Cloudflare Worker, Cloudflare D1, Vitest, Google Identity Services, existing CSS/SVG icon system.
 
 **Spec:** `docs/superpowers/specs/2026-08-22-private-club-entry-design.md`
 
@@ -16,7 +16,7 @@
 - Do not add KV, R2, Durable Objects, Queues, scheduled jobs, another runtime or paid Cloudflare service.
 - Google Identity Services remains the only authentication method.
 - Worker authorization is authoritative; React must never be the privacy boundary.
-- `users.status` remains `ACTIVE | SUSPENDED`; new permanent club admission is `PENDING | APPROVED | REJECTED`.
+- `users.status` remains `ACTIVE | SUSPENDED`; permanent club admission is `PENDING | APPROVED | REJECTED`.
 - Club approval and season/league assignment remain separate operations.
 - Approved but unassigned members may browse club leagues, standings and results but may not perform competition actions requiring league participation.
 - Existing admins/master admin remain approved and protected.
@@ -26,6 +26,8 @@
 - The ordinary interaction accent becomes Misfits-logo red; green is semantic success/open/confirmed only.
 - Signed-out UI reveals no league, season, standings, results, player or member data.
 - Pending/rejected sessions may exist but must fail all club-data authorization checks.
+- `/api/me` remains available to authenticated pending/rejected users so the client can render their restricted state. Nickname/profile/club-data routes do not.
+- Legacy `league_invites` data may remain in historical schema, but its server/client self-service join flow is retired in this release.
 - Keep the parked fixture-first release out of scope.
 
 ---
@@ -34,30 +36,32 @@
 
 ### New files
 
-- `migrations/0006_private_club_membership.sql` — adds `users.club_status`, creates `club_invites`, backfills legitimate existing club members, and sets existing leagues private.
-- `src/server/db/club-invites.ts` — club-invite creation, lookup, validation, revocation and usage accounting.
-- `tests/server/private-club-access.test.ts` — end-to-end Worker authorization and admission contract.
-- `tests/client/private-club-entry.test.tsx` — splash, pending/rejected, no-data-flash and invite-entry client contract.
+- `migrations/0006_private_club_membership.sql` — `users.club_status`, `club_invites`, deterministic backfill, private league visibility.
+- `src/server/db/club-invites.ts` — create/list/validate/consume/revoke club invitation tokens.
+- `tests/server/private-club-access.test.ts` — Worker privacy/admission contract.
+- `tests/client/private-club-entry.test.tsx` — splash, invite, pending/rejected and no-data-flash contract.
 
-### Existing files to modify
+### Existing files to modify or remove
 
-- `src/server/db/users.ts` — `ClubStatus`, user record/public payload, lookup-only sign-in path, invite-authorized pending creation, approval updates.
-- `src/server/auth/session.ts` — expose `clubStatus` in `AuthUser`; preserve pending/rejected sessions while still blocking suspended accounts.
-- `src/server/auth/guards.ts` — add `requireClubMember`.
-- `src/server/db/leagues.ts` — club-wide league listing for approved members; remove league-assignment-as-read-authority from club reads.
-- `src/server/routes/auth.ts` — normal sign-in cannot create unknown users; invite sign-in can create pending users; explicit membership responses.
-- `src/server/routes/leagues.ts` — all club reads require approved membership; league join invite route no longer self-enrols users.
-- `src/server/routes/results.ts` — standings/results reads require approved membership and private caching.
-- `src/server/routes/admin.ts` — pending/member approval and rejection plus club-invite administration.
-- `src/client/api.ts` — `clubStatus`, error code, club invite/admin methods, club-wide private league read.
-- `src/client/App.tsx` — private splash, invite context, pending/rejected state, approved-session transition, unified app shell.
-- `src/client/components/PlayerLeague.tsx` — support approved-but-unassigned browsing/navigation and one primary `League · Record · Results · More` model.
-- `src/client/components/AdminCompetitionDeskV2.tsx` — `Club access` becomes admission authority; old league invites removed from member admission flow.
+- `src/server/errors.ts` — add `INVITE_REQUIRED`, `MEMBERSHIP_PENDING`, `MEMBERSHIP_REJECTED`.
+- `src/server/db/users.ts` — `ClubStatus`, public/session payload support, explicit existing-user refresh and invited pending creation.
+- `src/server/auth/session.ts` — expose `clubStatus`; keep suspended-account rejection only at session resolution.
+- `src/server/auth/guards.ts` — add `requireClubMember`; admin guard also requires approved membership.
+- `src/server/db/leagues.ts` — protected club-wide league listing; read visibility is no longer active league membership.
+- `src/server/routes/auth.ts` — normal GIS and OAuth callback cannot create unknown users; invite-authorized GIS creation; approved-only nickname setup.
+- `src/server/routes/leagues.ts` — protected league reads; remove `/api/invites/:token/join` self-enrolment.
+- `src/server/routes/results.ts` — protected standings/results/member-result routes.
+- `src/server/routes/profile.ts` — approved-only profile read/update.
+- `src/server/routes/admin.ts` — club approval/rejection and club-invite management.
+- `src/server/routes/admin-leagues.ts` — remove legacy league-invite create/list/revoke endpoints and imports.
+- Delete: `src/server/db/invites.ts` once no runtime caller remains.
+- `src/client/api.ts` — `clubStatus`, API error code, club invitation/admin methods, remove league-invite join methods.
+- `src/client/App.tsx` — private splash, invite context, pending/rejected state, approved-session transition, unified shell; remove anonymous public view and legacy invite join.
+- `src/client/components/PlayerLeague.tsx` — participation-aware `League · Record · Results · More` navigation.
+- `src/client/components/AdminCompetitionDeskV2.tsx` — Club access owns admission/invites; season membership no longer owns invite admission.
 - `src/client/mobile-experience.css` — splash and red brand tokens.
-- `src/client/member-experience.css` — unified signed-in navigation and More/Admin treatment.
-- `DESIGN.md` — private-entry and red-accent standing authority.
-- `PROGRESS.md` — release evidence/handoff state.
-- Existing focused tests under `tests/server/` and `tests/client/` where contracts already have a clear owner.
+- `src/client/member-experience.css` — unified navigation/More/Admin treatment.
+- `DESIGN.md` and `PROGRESS.md` — durable UI/release authority and handoff evidence.
 
 ---
 
@@ -67,19 +71,21 @@
 - Create: `migrations/0006_private_club_membership.sql`
 - Modify: `src/server/db/users.ts`
 - Modify: `src/server/auth/session.ts`
-- Test: `tests/server/private-club-access.test.ts`
-- Test: existing auth/session tests under `tests/server/`
+- Modify: `src/server/errors.ts`
+- Modify: `tests/server/schema.test.ts`
+- Create: `tests/server/private-club-access.test.ts`
+- Modify: `tests/server/auth-routes.test.ts`
 
 **Interfaces:**
 - Produces: `type ClubStatus = 'PENDING' | 'APPROVED' | 'REJECTED'`
 - Produces: `UserRecord.club_status: ClubStatus`
 - Produces: `PublicUserSummary.clubStatus: ClubStatus`
 - Produces: `AuthUser.clubStatus: ClubStatus`
-- Produces: migration table `club_invites(id, token_hash, created_by, expires_at, uses, revoked_at, created_at)`
+- Produces error codes: `INVITE_REQUIRED | MEMBERSHIP_PENDING | MEMBERSHIP_REJECTED`
 
-- [ ] **Step 1: Write the failing migration/account-state test**
+- [ ] **Step 1: Write failing schema/account-state tests**
 
-Add assertions that the post-migration schema supports `club_status`, that legitimate existing admins/active league members become approved, other historical users become pending, and existing leagues become private.
+In `tests/server/schema.test.ts`, assert migration `0006` exists and contains `club_status`, `club_invites`, the approval backfill, and private visibility update. In `tests/server/private-club-access.test.ts`, create representative existing admin, active league member and Google-only users, apply schema/migrations using the existing D1 test harness, then assert:
 
 ```ts
 expect(admin.club_status).toBe('APPROVED');
@@ -88,19 +94,15 @@ expect(googleOnlyUser.club_status).toBe('PENDING');
 expect(league.visibility).toBe('PRIVATE');
 ```
 
-- [ ] **Step 2: Run the focused test and confirm RED**
-
-Run:
+- [ ] **Step 2: Run RED tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/server/private-club-access.test.ts
+./node_modules/.bin/vitest run tests/server/schema.test.ts tests/server/private-club-access.test.ts
 ```
 
-Expected: failure because `club_status` and `club_invites` do not exist.
+Expected: failure because migration `0006`, `club_status`, and `club_invites` do not exist.
 
-- [ ] **Step 3: Add migration `0006_private_club_membership.sql`**
-
-Use an additive column and deterministic backfill:
+- [ ] **Step 3: Add `0006_private_club_membership.sql`**
 
 ```sql
 ALTER TABLE users ADD COLUMN club_status TEXT NOT NULL DEFAULT 'PENDING'
@@ -132,7 +134,7 @@ WHERE role = 'ADMIN'
 UPDATE leagues SET visibility = 'PRIVATE';
 ```
 
-- [ ] **Step 4: Extend user/session types without changing suspension semantics**
+- [ ] **Step 4: Extend user/session/error types**
 
 In `src/server/db/users.ts`:
 
@@ -140,91 +142,83 @@ In `src/server/db/users.ts`:
 export type ClubStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 ```
 
-Add `club_status` to `UserRecord`, add `clubStatus` to `PublicUserSummary`, and map it in `publicUser()`.
+Add `club_status` to `UserRecord`; add `clubStatus` to `PublicUserSummary`; map it in `publicUser()`.
 
-In `src/server/auth/session.ts`, include `users.club_status` in the session query and return:
-
-```ts
-return {
-  id: row.id,
-  username: row.username,
-  role: row.role,
-  status: row.status,
-  clubStatus: row.club_status,
-  isMasterAdmin: row.is_master_admin === 1,
-};
-```
-
-Keep this rule unchanged:
+In `src/server/auth/session.ts`, add `clubStatus` to `AuthUser`, select `users.club_status`, and return it. Keep suspended account behavior:
 
 ```ts
 if (!row || row.status !== 'ACTIVE') return null;
 ```
 
-Do not reject pending/rejected users at session resolution.
+Do not reject pending/rejected membership here.
 
-- [ ] **Step 5: Run focused auth/session/migration tests**
+In `src/server/errors.ts`, extend `ApiErrorCode` with the three new codes.
 
-Run:
+- [ ] **Step 5: Run GREEN focused tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/server/private-club-access.test.ts tests/server/auth.test.ts tests/server/session.test.ts
+./node_modules/.bin/vitest run tests/server/schema.test.ts tests/server/private-club-access.test.ts tests/server/auth-routes.test.ts
 ```
 
-If exact existing filenames differ, select the existing auth/session owners rather than creating duplicate contract tests.
-
-- [ ] **Step 6: Commit Task 1**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add migrations/0006_private_club_membership.sql src/server/db/users.ts src/server/auth/session.ts tests/server/private-club-access.test.ts tests/server
+git add migrations/0006_private_club_membership.sql src/server/db/users.ts src/server/auth/session.ts src/server/errors.ts tests/server/schema.test.ts tests/server/private-club-access.test.ts tests/server/auth-routes.test.ts
 git commit -m "feat: add permanent club membership state"
 ```
 
 ---
 
-### Task 2: Add club invites and invite-authorized pending account creation
+### Task 2: Add club invites and close unknown-user auth creation
 
 **Files:**
 - Create: `src/server/db/club-invites.ts`
 - Modify: `src/server/db/users.ts`
 - Modify: `src/server/routes/auth.ts`
 - Modify: `src/client/api.ts`
-- Test: `tests/server/private-club-access.test.ts`
-- Test: existing auth route tests
+- Modify: `tests/server/private-club-access.test.ts`
+- Modify: `tests/server/auth-routes.test.ts`
+- Modify: `tests/client/api.test.ts`
 
 **Interfaces:**
-- Produces: `validateClubInvite(db, token, now): Promise<ClubInviteRecord>`
-- Produces: `createClubInvite(db, actorUserId, now, expiresAt): Promise<{ invite: ClubInviteRecord; token: string }>`
-- Produces: `revokeClubInvite(db, actorUserId, inviteId, now): Promise<void>`
-- Produces: `getExistingGoogleUser(db, identity): Promise<UserRecord | null>` via existing Google-sub lookup/update behavior
-- Produces: `createPendingInvitedUser(db, identity, now): Promise<UserRecord>`
-- Changes: `POST /api/auth/google` accepts optional `inviteToken` in its JSON body
+- Produces: `ClubInviteRecord`
+- Produces: `createClubInvite(db, actorUserId, now, expiresAt)`
+- Produces: `listClubInvites(db)`
+- Produces: `validateClubInvite(db, token, now)`
+- Produces: `consumeClubInvite(db, inviteId)`
+- Produces: `revokeClubInvite(db, actorUserId, inviteId, now)`
+- Produces: `refreshGoogleUser(db, user, identity, now)`
+- Produces: `createPendingInvitedUser(db, identity, now)`
+- Changes: `POST /api/auth/google` JSON to `{ credential: string; inviteToken?: string }`
 
-- [ ] **Step 1: Write failing admission tests**
+- [ ] **Step 1: Write RED admission tests**
 
-Cover these exact cases:
+Add exact cases:
 
 ```ts
 it('does not create an unknown Google user without a club invite');
 it('creates an unknown invited Google user as PENDING only');
-it('does not create a user for an invalid, expired or revoked invite');
+it('does not create a user for an invalid club invite');
+it('does not create a user for an expired club invite');
+it('does not create a user for a revoked club invite');
 it('signs an existing approved member in without requiring an invite');
-it('returns an existing pending/rejected member to their restricted state');
+it('keeps an existing pending member pending on later sign-in');
+it('keeps an existing rejected member rejected even when another invite token is supplied');
+it('does not authenticate a suspended account');
+it('OAuth callback does not create an unknown user');
 ```
 
-Verify an unknown normal sign-in returns an error code `INVITE_REQUIRED` and leaves `users` unchanged.
+For unknown normal sign-in, assert `403`, error code `INVITE_REQUIRED`, and no new `users` row.
 
-- [ ] **Step 2: Run focused admission tests and confirm RED**
+- [ ] **Step 2: Run RED admission tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/server/private-club-access.test.ts
+./node_modules/.bin/vitest run tests/server/private-club-access.test.ts tests/server/auth-routes.test.ts
 ```
 
-- [ ] **Step 3: Implement `src/server/db/club-invites.ts`**
+- [ ] **Step 3: Implement hashed club invite storage**
 
-Follow the existing league-invite token pattern: 32 random bytes, base64url token, SHA-256 hash stored in D1.
-
-Required validation order:
+Follow the existing cryptographic pattern: 32 random bytes, base64url token, SHA-256 token hash in D1. Validation order:
 
 ```ts
 if (!invite) throw new AppError('INVITE_INVALID', 'That invitation is not valid', 404);
@@ -234,13 +228,11 @@ if (invite.expires_at && invite.expires_at <= now.toISOString()) {
 }
 ```
 
-Club invite use never inserts into `league_players`.
+Increment `uses` only when a new pending user is created. Never insert into `league_players`.
 
-- [ ] **Step 4: Split user sign-in creation from existing-user refresh**
+- [ ] **Step 4: Split existing-user refresh from account creation**
 
-Refactor `upsertGoogleUser` responsibilities so normal sign-in cannot silently create an account. Preserve email/picture/last-login refresh for existing users.
-
-Use explicit functions such as:
+Replace generic unknown-user upsert behavior with explicit functions:
 
 ```ts
 export async function refreshGoogleUser(
@@ -257,38 +249,42 @@ export async function createPendingInvitedUser(
 ): Promise<UserRecord>;
 ```
 
-Master/bootstrap admin handling remains an explicit approved exception, not a generic unknown-user path.
+Configured master/bootstrap admin email remains the only unknown-user exception and must be created as `APPROVED` + `ADMIN`.
 
-- [ ] **Step 5: Make auth route admission explicit**
+- [ ] **Step 5: Make GIS sign-in admission-aware**
 
-`POST /api/auth/google` body becomes:
-
-```ts
-{ credential: string; inviteToken?: string }
-```
-
-Flow:
+Order is significant:
 
 ```ts
 const existing = await getUserByGoogleSub(db, identity.sub);
+
 if (existing) {
-  user = await refreshGoogleUser(...);
-} else if (isConfiguredBootstrapOrMaster(identity.email)) {
+  // Existing PENDING/REJECTED state is preserved; invite cannot reset it.
+  user = await refreshGoogleUser(db, existing, identity, now());
+} else if (isConfiguredMasterOrBootstrap(identity.email)) {
   user = await createConfiguredAdminUser(...);
 } else if (inviteToken) {
-  await validateClubInvite(db, inviteToken, now());
+  const invite = await validateClubInvite(db, inviteToken, now());
   user = await createPendingInvitedUser(db, identity, now());
-  await consumeClubInvite(db, inviteToken);
+  await consumeClubInvite(db, invite.id);
 } else {
   throw new AppError('INVITE_REQUIRED', 'A Misfits invitation is required', 403);
 }
+
+if (user.status !== 'ACTIVE') {
+  throw new AppError('FORBIDDEN', 'This account is suspended', 403);
+}
 ```
 
-Issue a secure session for existing approved/pending/rejected users and for newly-created pending users.
+Preserve `AppError` codes rather than collapsing them to generic validation errors.
 
-- [ ] **Step 6: Preserve machine-readable error codes in `ApiClientError`**
+- [ ] **Step 6: Close the OAuth callback back door**
 
-Change the response parser to read both code and message:
+`GET /auth/google/callback` may refresh/sign in an existing account or configured master/bootstrap admin, but it must not create an ordinary unknown account. Unknown OAuth callback identity returns the private entry flow with invite-required failure; club-invite account creation is supported only by the GIS credential flow that can carry `inviteToken`.
+
+- [ ] **Step 7: Preserve API error codes client-side**
+
+In `src/client/api.ts`:
 
 ```ts
 export class ApiClientError extends Error {
@@ -302,72 +298,73 @@ export class ApiClientError extends Error {
 }
 ```
 
-and throw with `payload?.error?.code`.
-
-Change sign-in signature to:
+Parse `{ error: { code, message } }`. Change:
 
 ```ts
 signIn(credential: string, inviteToken?: string): Promise<AuthPayload>
 ```
 
-- [ ] **Step 7: Run focused admission/API tests**
+and include `inviteToken` only when present.
+
+- [ ] **Step 8: Run GREEN admission/API tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/server/private-club-access.test.ts tests/client/api.test.ts
+./node_modules/.bin/vitest run tests/server/private-club-access.test.ts tests/server/auth-routes.test.ts tests/client/api.test.ts
 ```
 
-Expected: all admission cases pass; no league membership is created.
-
-- [ ] **Step 8: Commit Task 2**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add src/server/db/club-invites.ts src/server/db/users.ts src/server/routes/auth.ts src/client/api.ts tests/server/private-club-access.test.ts tests/client/api.test.ts
+git add src/server/db/club-invites.ts src/server/db/users.ts src/server/routes/auth.ts src/client/api.ts tests/server/private-club-access.test.ts tests/server/auth-routes.test.ts tests/client/api.test.ts
 git commit -m "feat: require club invite for new accounts"
 ```
 
 ---
 
-### Task 3: Enforce approved club membership on every club-data read
+### Task 3: Enforce approved membership across all club/member routes
 
 **Files:**
 - Modify: `src/server/auth/guards.ts`
 - Modify: `src/server/db/leagues.ts`
+- Modify: `src/server/routes/auth.ts`
 - Modify: `src/server/routes/leagues.ts`
 - Modify: `src/server/routes/results.ts`
-- Modify: other route modules found to expose club/season/member data without admin-only protection
-- Test: `tests/server/private-club-access.test.ts`
-- Test: `tests/server/league-routes.test.ts`
-- Test: `tests/server/result-routes.test.ts`
+- Modify: `src/server/routes/profile.ts`
+- Modify: `tests/server/private-club-access.test.ts`
+- Modify: `tests/server/league-routes.test.ts`
+- Modify: `tests/server/result-routes.test.ts`
+- Modify: `tests/server/auth-routes.test.ts`
+- Modify: existing profile route tests in `tests/server/` if their assertions change
 
 **Interfaces:**
 - Produces: `requireClubMember: MiddlewareHandler<AuthAppEnv>`
 - Produces: `listClubLeagues(db): Promise<LeagueRecord[]>`
-- Club-data reads require `requireUser, requireClubMember`
 
-- [ ] **Step 1: Write failing privacy tests before changing guards**
+- [ ] **Step 1: Write RED privacy tests**
 
-Prove:
+Prove all of these:
 
 ```ts
-expect(await anonymous('/api/public/leagues')).toHaveStatus(401);
-expect(await pending('/api/public/leagues')).toHaveStatus(403);
-expect(await rejected('/api/public/leagues')).toHaveStatus(403);
-expect(await approvedUnassigned('/api/public/leagues')).toHaveStatus(200);
-expect(await approvedUnassigned('/api/public/leagues/misfits-501/standings')).toHaveStatus(200);
-expect(await approvedUnassigned('/api/public/leagues/misfits-501/results')).toHaveStatus(200);
+anonymous GET /api/public/leagues -> 401
+pending GET /api/public/leagues -> 403 MEMBERSHIP_PENDING
+rejected GET /api/public/leagues -> 403 MEMBERSHIP_REJECTED
+approved unassigned GET /api/public/leagues -> 200
+approved unassigned GET standings/results/players -> 200
+pending GET /api/me/results -> 403
+pending GET/PATCH /api/me/profile -> 403
+pending POST /api/me/username -> 403
+approved unassigned result submission -> denied by league participation rule
 ```
 
-Also assert cache headers are `private, no-store`.
+Assert every successful club-data read uses `Cache-Control: private, no-store`.
 
-- [ ] **Step 2: Run focused privacy tests and confirm RED**
+- [ ] **Step 2: Run RED privacy tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/server/private-club-access.test.ts tests/server/league-routes.test.ts tests/server/result-routes.test.ts
+./node_modules/.bin/vitest run tests/server/private-club-access.test.ts tests/server/league-routes.test.ts tests/server/result-routes.test.ts tests/server/auth-routes.test.ts
 ```
 
 - [ ] **Step 3: Add `requireClubMember`**
-
-In `src/server/auth/guards.ts`:
 
 ```ts
 export const requireClubMember: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
@@ -385,77 +382,70 @@ export const requireClubMember: MiddlewareHandler<AuthAppEnv> = async (c, next) 
 };
 ```
 
-- [ ] **Step 4: Make club reads club-wide, not league-membership-wide**
+Make `requireAdmin` also require `clubStatus === 'APPROVED'` in addition to role, providing defense in depth for the admin-always-approved invariant.
 
-Add:
+- [ ] **Step 4: Create approved-member club league listing**
 
-```ts
-export async function listClubLeagues(db: D1Database): Promise<LeagueRecord[]> {
-  // same ordering as managed leagues, no visibility filter
-}
+Replace `listPublicLeagues()` with `listClubLeagues()` that returns all club-managed leagues in the existing open/recent/name ordering. Do not filter on league visibility and do not join `league_players`.
+
+`listUserLeagues()` remains participation-only.
+
+- [ ] **Step 5: Guard exact league/result/profile routes**
+
+Apply `requireUser, requireClubMember` to:
+
+```text
+GET  /api/public/leagues
+GET  /api/public/leagues/:key
+GET  /api/public/leagues/:key/players
+GET  /api/me/leagues
+GET  /api/public/leagues/:leagueId/standings
+GET  /api/public/leagues/:leagueId/results
+GET  /api/me/results
+POST /api/leagues/:leagueId/results
+POST /api/results/:resultId/confirm
+POST /api/results/:resultId/dispute
+POST /api/me/username
+GET  /api/me/profile
+PATCH /api/me/profile
 ```
 
-For approved reads, stop using `canViewLeague()` as a league-membership gate. Approval owns read access; `league_players` owns competition participation only.
+Do not add `requireClubMember` to `/api/me`, because pending/rejected clients need that endpoint to discover their restricted state.
 
-Keep `canViewLeague()` only where legacy internal code still genuinely needs it, or simplify/remove it if no caller remains after the route change.
+- [ ] **Step 6: Remove league-membership-as-read-authority**
 
-- [ ] **Step 5: Guard league and result reads**
+`canViewLeague()` must no longer allow/deny the protected club browsing routes based on `league_players`. Remove it if no runtime caller remains after route changes. Approved club membership owns reads; league membership owns participation only.
 
-The existing `/api/public/*` paths may remain for this release but must be protected:
-
-```ts
-routes.get('/api/public/leagues', requireUser, requireClubMember, ...);
-routes.get('/api/public/leagues/:key', requireUser, requireClubMember, ...);
-routes.get('/api/public/leagues/:key/players', requireUser, requireClubMember, ...);
-routes.get('/api/public/leagues/:leagueId/standings', requireUser, requireClubMember, ...);
-routes.get('/api/public/leagues/:leagueId/results', requireUser, requireClubMember, ...);
-```
-
-Always return:
-
-```http
-Cache-Control: private, no-store
-```
-
-- [ ] **Step 6: Audit other non-admin club-data GET routes**
-
-Search route modules for unauthenticated reads and add `requireClubMember` wherever data exposes club users, seasons, fixtures, standings or results. Do not weaken existing admin guards.
-
-- [ ] **Step 7: Preserve participation checks**
-
-Add/retain a test proving an approved unassigned member can browse but cannot submit a result:
-
-```ts
-expect(await approvedUnassigned.post('/api/leagues/misfits-501/results', validResult)).toHaveStatus(403);
-```
-
-Use the existing result-domain membership error rather than duplicating it in `requireClubMember`.
-
-- [ ] **Step 8: Run privacy/league/result tests**
+- [ ] **Step 7: Run GREEN privacy tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/server/private-club-access.test.ts tests/server/league-routes.test.ts tests/server/result-routes.test.ts
+./node_modules/.bin/vitest run tests/server/private-club-access.test.ts tests/server/league-routes.test.ts tests/server/result-routes.test.ts tests/server/auth-routes.test.ts
 ```
 
-- [ ] **Step 9: Commit Task 3**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/server/auth/guards.ts src/server/db/leagues.ts src/server/routes tests/server
-git commit -m "feat: enforce private club data access"
+git add src/server/auth/guards.ts src/server/db/leagues.ts src/server/routes/auth.ts src/server/routes/leagues.ts src/server/routes/results.ts src/server/routes/profile.ts tests/server
+git commit -m "feat: enforce approved club access"
 ```
 
 ---
 
-### Task 4: Turn Club access into the admission authority
+### Task 4: Replace league self-invites with admin-controlled club admission
 
 **Files:**
 - Modify: `src/server/db/admin.ts`
 - Modify: `src/server/routes/admin.ts`
-- Modify: `src/server/db/club-invites.ts`
+- Modify: `src/server/routes/admin-leagues.ts`
+- Delete: `src/server/db/invites.ts`
 - Modify: `src/client/api.ts`
 - Modify: `src/client/components/AdminCompetitionDeskV2.tsx`
-- Test: existing admin route tests
-- Test: existing admin client tests
+- Modify: `tests/server/admin-routes.test.ts`
+- Modify: `tests/server/season-invite.test.ts`
+- Modify: `tests/server/league-routes.test.ts`
+- Modify: `tests/client/admin-access-protection.test.tsx`
+- Modify: `tests/client/admin-membership-invites.test.tsx`
+- Modify: `tests/client/admin-competition.test.tsx`
 
 **Interfaces:**
 - Extends: `AdminPlayer` with `clubStatus` and `createdAt`
@@ -464,30 +454,30 @@ git commit -m "feat: enforce private club data access"
 - Produces: `GET /api/admin/club-invites`
 - Produces: `POST /api/admin/club-invites`
 - Produces: `POST /api/admin/club-invites/:id/revoke`
+- Removes runtime routes: league invite list/create/revoke and `/api/invites/:token/join`
 
-- [ ] **Step 1: Write failing admin admission tests**
+- [ ] **Step 1: Write RED admin/admission tests**
 
 Prove:
 
 ```ts
-it('lists pending club requests separately from approved members');
-it('admin approval changes clubStatus without assigning a league');
-it('admin rejection changes clubStatus and remains unauthorised');
-it('approval and rejection write audit entries');
-it('creates and revokes club invite links without league membership');
+it('lists pending club requests with request date');
+it('approves a pending member without creating league_players');
+it('rejects a pending member without creating league_players');
+it('audits approval and rejection');
+it('does not allow ADMIN role unless clubStatus is APPROVED');
+it('creates a club invite without a league id');
+it('revokes a club invite');
+it('does not expose legacy league invite creation or self-join routes');
 ```
 
-- [ ] **Step 2: Run focused admin tests and confirm RED**
+- [ ] **Step 2: Run RED admin/invite tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/server/admin-routes.test.ts tests/client/admin-competition-desk.test.tsx
+./node_modules/.bin/vitest run tests/server/admin-routes.test.ts tests/server/season-invite.test.ts tests/server/league-routes.test.ts tests/client/admin-access-protection.test.tsx tests/client/admin-membership-invites.test.tsx tests/client/admin-competition.test.tsx
 ```
 
-Use the actual existing admin test filenames if named differently.
-
-- [ ] **Step 3: Extend admin DB update contract**
-
-`AdminPlayerChanges` becomes:
+- [ ] **Step 3: Extend admin user update authority**
 
 ```ts
 export interface AdminPlayerChanges {
@@ -497,17 +487,43 @@ export interface AdminPlayerChanges {
 }
 ```
 
-Persist `club_status` in the same audited update. Preserve last-admin/master-admin protections. Prevent an admin/master-admin from being transitioned away from approved club status.
+Persist role/status/club_status in one audited update. Include `clubStatus` in before/after JSON. Preserve master-admin and last-active-admin protections. Reject `role: 'ADMIN'` unless resulting club status is `APPROVED`. Reject attempts to make an existing admin/master admin pending/rejected.
 
-Audit before/after JSON must include `clubStatus`.
+- [ ] **Step 4: Add club invite admin endpoints**
 
-- [ ] **Step 4: Add club-invite admin routes**
+All endpoints use `requireUser, requireAdmin`; writes also use `requireSameOrigin`.
 
-Use admin-only routes protected by existing `requireUser, requireAdmin`, with same-origin on writes.
+Create returns raw token URL only once:
 
-Return raw invite token only at creation time so the UI can copy/share the URL; list endpoints return metadata only, never historical raw tokens.
+```json
+{
+  "invite": {
+    "id": "...",
+    "expiresAt": null,
+    "url": "https://darts.graingers.agency/join/<raw-token>"
+  }
+}
+```
 
-- [ ] **Step 5: Update client API types/methods**
+List returns metadata only, never raw token/hash.
+
+- [ ] **Step 5: Retire legacy league invite runtime code**
+
+Remove these routes from `src/server/routes/admin-leagues.ts`:
+
+```text
+GET  /api/admin/leagues/:id/invites
+POST /api/admin/leagues/:id/invites
+POST /api/admin/invites/:id/revoke
+```
+
+Remove `/api/invites/:token/join` from `src/server/routes/leagues.ts`.
+
+Delete `src/server/db/invites.ts` when no runtime import remains. Keep the historical `league_invites` table in old migrations untouched.
+
+- [ ] **Step 6: Update client API**
+
+Remove old `AdminInvite`, `adminInvites`, `createInvite`, `revokeInvite`, and `joinInvite` client methods when no caller remains.
 
 Add:
 
@@ -521,7 +537,7 @@ export interface AdminClubInvite {
 }
 ```
 
-and methods:
+and:
 
 ```ts
 adminClubInvites()
@@ -529,136 +545,127 @@ createAdminClubInvite(expiresAt?: string | null)
 revokeAdminClubInvite(id: string)
 ```
 
-- [ ] **Step 6: Rebuild the `Club access` task in `AdminCompetitionDeskV2.tsx`**
+- [ ] **Step 7: Rebuild `Club access` UI**
 
-Render two clear sections:
+In `AdminCompetitionDeskV2.tsx`, `Club access` renders:
 
 ```text
 Pending requests
   email · requested date · Approve · Reject
 
 Members
-  username/email · Player/Admin · Active/Suspended · current league context
+  username/email · Player/Admin · Active/Suspended · league placement context
+
+Club invitation
+  Create invite · optional expiry · active/revoked invite metadata
 ```
 
-Place club invite creation/revocation in `Club access`, not `Members & invites`.
+Rename task label `Members & invites` to `Season members`. Remove league-invite state/actions from that task; it remains season placement only.
 
-Rename the season task label `Members & invites` to `Season members` and remove club-admission semantics from it. Existing league invite controls must not remain as a way for a player to self-assign into competition.
-
-- [ ] **Step 7: Run admin server/client tests**
+- [ ] **Step 8: Run GREEN admin/invite tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/server tests/client
+./node_modules/.bin/vitest run tests/server/admin-routes.test.ts tests/server/season-invite.test.ts tests/server/league-routes.test.ts tests/client/admin-access-protection.test.tsx tests/client/admin-membership-invites.test.tsx tests/client/admin-competition.test.tsx
 ```
 
-Use focused admin filters during development; this broader command is acceptable once the coherent admin batch is complete.
-
-- [ ] **Step 8: Commit Task 4**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add src/server/db/admin.ts src/server/db/club-invites.ts src/server/routes/admin.ts src/client/api.ts src/client/components/AdminCompetitionDeskV2.tsx tests
-git commit -m "feat: add admin club approval workflow"
+git add src/server/db/admin.ts src/server/db/club-invites.ts src/server/routes/admin.ts src/server/routes/admin-leagues.ts src/server/routes/leagues.ts src/client/api.ts src/client/components/AdminCompetitionDeskV2.tsx tests
+git rm src/server/db/invites.ts
+git commit -m "feat: add admin-controlled club admission"
 ```
 
 ---
 
-### Task 5: Build the private splash, invite and pending/rejected entry states
+### Task 5: Build the private splash and membership entry states
 
 **Files:**
 - Modify: `src/client/App.tsx`
 - Modify: `src/client/api.ts`
 - Modify: `src/client/mobile-experience.css`
-- Test: `tests/client/private-club-entry.test.tsx`
-- Test: `tests/client/public-league.test.tsx`
-- Test: `tests/client/app-ux-compression.test.tsx`
+- Create: `tests/client/private-club-entry.test.tsx`
+- Modify: `tests/client/public-league.test.tsx`
+- Modify: `tests/client/app-ux-compression.test.tsx`
+- Modify: `tests/client/account-profile.test.tsx`
 
 **Interfaces:**
-- Client `ViewState` must distinguish at least: loading/splash, signed-out, pending, rejected, onboarding, signed-in.
+- `ViewState`: loading/splash, signed-out, pending, rejected, onboarding, signed-in.
 - `AuthPayload.user.clubStatus` is authoritative.
-- Invite token is read from `/join/:token` and sent only with Google authentication.
+- Invite token from `/join/:token` is sent only during GIS sign-in for unknown-user admission.
 
-- [ ] **Step 1: Replace the old public-first tests with failing private-entry tests**
+- [ ] **Step 1: Write RED private-entry tests**
 
-Assert signed-out DOM contains:
-
-```text
-Misfits Darts Club
-Sign in with Google
-```
-
-and does **not** contain league/season/standings/results copy.
-
-Assert invite entry contains only the additional line:
+Signed-out DOM must contain only club identity/sign-in content and must not contain league data. Invite entry adds only:
 
 ```text
 You've been invited to join Misfits
 ```
 
-Assert pending contains exactly the approved state content plus Sign out.
-
-- [ ] **Step 2: Run client entry tests and confirm RED**
-
-```bash
-./node_modules/.bin/vitest run tests/client/private-club-entry.test.tsx tests/client/public-league.test.tsx tests/client/app-ux-compression.test.tsx
-```
-
-- [ ] **Step 3: Remove anonymous public data loading from `App.tsx`**
-
-Do not call league APIs until `api.me()` proves `clubStatus === 'APPROVED'`.
-
-The initial render must be a privacy-safe splash, not the league app.
-
-- [ ] **Step 4: Route Google sign-in through membership state**
-
-When calling:
-
-```ts
-api.signIn(credential, inviteToken ?? undefined)
-```
-
-map the returned `clubStatus`:
-
-```ts
-PENDING -> pending screen
-REJECTED -> rejected screen
-APPROVED + username null -> onboarding
-APPROVED + username present -> signed-in
-```
-
-An `INVITE_REQUIRED` error on normal sign-in renders a concise invite-required message without exposing data.
-
-- [ ] **Step 5: Implement approved returning-member splash timing**
-
-The splash should remain visible approximately 800–1000ms total from initial mount when an approved remembered session resolves quickly. Authorization must finish before app content mounts.
-
-Use CSS opacity/transform only; no new animation library.
-
-For reduced motion, remove the fade/delay beyond what is needed for auth resolution.
-
-- [ ] **Step 6: Implement pending/rejected screens**
-
-Pending screen:
+Pending contains:
 
 ```text
-[Misfits logo]
 Membership request sent
 Waiting for a club admin to approve you
 Sign out
 ```
 
-Rejected screen uses a clear rejection message and Sign out. Do not show Google profile data.
+Rejected contains rejection copy + Sign out only. Add an assertion that league API mocks are not called before approved membership resolves.
 
-- [ ] **Step 7: Add splash/private-entry CSS**
-
-Use full viewport dark composition, supplied logo intact, centered club identity, 44px+ Google/sign-out targets, safe-area padding, and no dead-scroll space.
-
-- [ ] **Step 8: Run entry/auth client tests**
+- [ ] **Step 2: Run RED client tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/client/private-club-entry.test.tsx tests/client/api.test.ts tests/client/account-profile.test.tsx
+./node_modules/.bin/vitest run tests/client/private-club-entry.test.tsx tests/client/public-league.test.tsx tests/client/app-ux-compression.test.tsx tests/client/account-profile.test.tsx
 ```
 
-- [ ] **Step 9: Commit Task 5**
+- [ ] **Step 3: Remove anonymous public composition/data loading**
+
+Delete `PublicLeagueView` and signed-out league loading from `App.tsx`. Do not call league/standings/results APIs until `/api/me` returns `clubStatus: 'APPROVED'`.
+
+The initial frame is always the privacy-safe Misfits splash.
+
+- [ ] **Step 4: Reuse `/join/:token` strictly as club admission context**
+
+Store the token under one club-specific session-storage key, for example:
+
+```ts
+misfits_pending_club_invite
+```
+
+Delete `league_pending_invite`, `misfits_pending_invite`, `joinPendingInvite()` and any call to the removed `joinInvite` API.
+
+On successful invited sign-in, clear the token and `history.replaceState({}, '', '/')` so the raw admission token does not linger in the address bar/history view.
+
+- [ ] **Step 5: Map auth state explicitly**
+
+```ts
+PENDING -> pending screen
+REJECTED -> rejected screen
+APPROVED + username === null -> onboarding
+APPROVED + username !== null -> signed-in
+```
+
+Normal unknown account error `INVITE_REQUIRED` stays on signed-out splash with concise invite-required copy.
+
+Invalid/expired/revoked invite errors stay outside the app and reveal no club data.
+
+- [ ] **Step 6: Add remembered-session splash transition**
+
+For an approved remembered session, keep splash visible about 800–1000ms total from mount, then fade into the app. Authorization must finish before app content mounts.
+
+Under `prefers-reduced-motion`, remove the decorative delay/fade and transition immediately once authorization resolves.
+
+- [ ] **Step 7: Add splash CSS**
+
+Use full viewport near-black composition, supplied logo intact, club name, 44px+ targets, safe-area padding, no horizontal overflow and no decorative data leakage.
+
+- [ ] **Step 8: Run GREEN entry tests**
+
+```bash
+./node_modules/.bin/vitest run tests/client/private-club-entry.test.tsx tests/client/public-league.test.tsx tests/client/app-ux-compression.test.tsx tests/client/account-profile.test.tsx tests/client/api.test.ts
+```
+
+- [ ] **Step 9: Commit**
 
 ```bash
 git add src/client/App.tsx src/client/api.ts src/client/mobile-experience.css tests/client
@@ -667,26 +674,24 @@ git commit -m "feat: add private Misfits entry experience"
 
 ---
 
-### Task 6: Unify navigation and support approved unassigned members
+### Task 6: Unify signed-in navigation and approved-unassigned browsing
 
 **Files:**
 - Modify: `src/client/App.tsx`
 - Modify: `src/client/components/PlayerLeague.tsx`
 - Modify: `src/client/member-experience.css`
 - Modify: `src/client/api.ts`
-- Test: `tests/client/player-app.test.tsx`
-- Test: `tests/client/player-scoring-rules.test.tsx`
-- Test: `tests/client/private-club-entry.test.tsx`
+- Modify: `tests/client/player-app.test.tsx`
+- Modify: `tests/client/player-scoring-rules.test.tsx`
+- Modify: `tests/client/account-profile.test.tsx`
+- Modify: `tests/client/private-club-entry.test.tsx`
 
 **Interfaces:**
-- Primary signed-in navigation: `League · Record · Results · More`
-- `More`: Players, Profile, Admin only for admins, Sign out
-- Club-wide league browse uses approved-member league list, not only `/api/me/leagues` participation list
-- Participation state still comes from `/api/me/leagues`
+- Primary navigation: `League · Record · Results · More`
+- More: Players, Profile, Admin only for admins, Sign out.
+- `clubLeagues` is browse scope; `myLeagues` is participation scope.
 
-- [ ] **Step 1: Write failing navigation/unassigned-member tests**
-
-Prove:
+- [ ] **Step 1: Write RED navigation/unassigned tests**
 
 ```ts
 expect(nav).toHaveTextContent('League');
@@ -697,56 +702,50 @@ expect(screen.queryByText('Season admin')).not.toBeInTheDocument();
 expect(screen.queryByText('Club table')).not.toBeInTheDocument();
 ```
 
-For an approved unassigned member, prove league/standings can render and result entry cannot be submitted.
-
-- [ ] **Step 2: Run navigation tests and confirm RED**
-
-```bash
-./node_modules/.bin/vitest run tests/client/player-app.test.tsx tests/client/private-club-entry.test.tsx
-```
-
-- [ ] **Step 3: Load two separate league concepts after approval**
-
-In `App.tsx` keep:
-
-```ts
-clubLeagues: LeagueSummary[]       // browseable by all approved members
-myLeagues: LeagueSummary[]         // active participation only
-```
-
-Use the protected club league endpoint for `clubLeagues` and `/api/me/leagues` for `myLeagues`.
-
-Selection defaults to the user's active league when possible; otherwise the first current/open club league.
-
-- [ ] **Step 4: Remove top-level admin/player mode switch**
-
-Delete the `Season admin / Club table` segmented switch from the app shell.
-
-Open admin workbench only from `More` for admin users.
-
-- [ ] **Step 5: Make Record participation-aware**
-
-If selected league is not in `myLeagues`, Record must not expose a working result form. Render concise state:
+For approved unassigned users, prove club league/standings/results render while result entry says:
 
 ```text
 Not assigned to a league this season
 ```
 
-Do not infer participation from club approval.
+and no submission form is available.
 
-- [ ] **Step 6: Preserve existing player result behavior for assigned members**
-
-Keep existing submission/confirmation/dispute contracts unchanged except for the navigation entry point.
-
-Do not implement fixture-first behavior in this release.
-
-- [ ] **Step 7: Run player navigation/result tests**
+- [ ] **Step 2: Run RED navigation tests**
 
 ```bash
-./node_modules/.bin/vitest run tests/client/player-app.test.tsx tests/client/player-scoring-rules.test.tsx tests/client/account-profile.test.tsx
+./node_modules/.bin/vitest run tests/client/player-app.test.tsx tests/client/private-club-entry.test.tsx
 ```
 
-- [ ] **Step 8: Commit Task 6**
+- [ ] **Step 3: Load browse and participation scopes separately**
+
+After approval:
+
+```ts
+clubLeagues: LeagueSummary[]; // protected club list for every approved member
+myLeagues: LeagueSummary[];   // /api/me/leagues, active competition participation
+```
+
+Prefer the active user league for selection; otherwise select the first open/current club league.
+
+- [ ] **Step 4: Remove the top-level admin/player switch**
+
+Delete `Season admin / Club table` mode from `App.tsx`. Admin workbench opens from More only for `role === 'ADMIN'`.
+
+- [ ] **Step 5: Make Record participation-aware**
+
+If selected league is absent from `myLeagues`, render the non-participation state and do not mount result entry controls. Club approval never implies competitor rights.
+
+- [ ] **Step 6: Preserve existing assigned-player behavior**
+
+Existing result submit/confirm/dispute contracts remain unchanged. Do not implement fixture-first behavior in this release.
+
+- [ ] **Step 7: Run GREEN player tests**
+
+```bash
+./node_modules/.bin/vitest run tests/client/player-app.test.tsx tests/client/player-scoring-rules.test.tsx tests/client/account-profile.test.tsx tests/client/private-club-entry.test.tsx
+```
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/client/App.tsx src/client/components/PlayerLeague.tsx src/client/member-experience.css src/client/api.ts tests/client
@@ -755,43 +754,39 @@ git commit -m "feat: simplify private club navigation"
 
 ---
 
-### Task 7: Correct brand accent and run Impeccable/Cave Pony review
+### Task 7: Correct the brand accent and complete UI/simplicity review
 
 **Files:**
 - Modify: `src/client/mobile-experience.css`
 - Modify: `src/client/member-experience.css`
 - Modify: `DESIGN.md`
-- Modify: focused UI tests only where they assert semantic classes/copy
+- Modify focused UI tests only when semantic copy/classes intentionally change.
 
 **Interfaces:**
-- Normal brand interaction token: Misfits logo red
-- Green: semantic open/confirmed/success only
+- Normal interaction accent: Misfits-logo red.
+- Green: OPEN/confirmed/success/positive state only.
 
-- [ ] **Step 1: Update standing design authority before final polish**
+- [ ] **Step 1: Update `DESIGN.md` authority**
 
-Change `DESIGN.md` from green-led normal navigation to red-led club interaction and document private splash as the only signed-out surface.
+Document private splash as the only signed-out surface, admin-approved membership as the entry boundary, unified navigation, and red-led interaction palette. Remove the standing rule that normal navigation is green-led.
 
-Keep green explicitly semantic.
+- [ ] **Step 2: Replace normal green interaction usage**
 
-- [ ] **Step 2: Replace normal green interaction usage with a red brand token**
+Define one red brand token derived consistently from the supplied Misfits artwork and apply it to selected navigation, focus-visible, primary club actions and active non-status accents. Do not recolor the supplied logo image itself.
 
-Define one primary token in `mobile-experience.css`, sampled/derived consistently from the supplied club artwork rather than scattering hard-coded reds.
+Keep green for semantic OPEN/confirmed/success states. Destructive red must remain distinguishable through labeling, iconography, tone and context rather than color alone.
 
-Apply it to normal selected navigation, focus-visible, primary club actions and active non-status accents.
-
-Keep green classes for OPEN/confirmed/success states.
-
-- [ ] **Step 3: Run repo-local Impeccable detection/audit**
+- [ ] **Step 3: Run repo-local Impeccable review**
 
 ```bash
 node .agents/skills/impeccable/scripts/detect.mjs --json src/client
 ```
 
-Then review the changed entry shell/navigation against `.agents/skills/impeccable/SKILL.md` and its audit/craft-floor guidance. Action material findings in one coherent batch.
+Read/apply `.agents/skills/impeccable/SKILL.md`, `reference/audit.md` and `reference/craft-floor.md` to the changed entry/nav surfaces. Fix material findings in one coherent batch.
 
-- [ ] **Step 4: Perform Cave Pony simplicity review**
+- [ ] **Step 4: Run Cave Pony simplicity gate**
 
-Confirm the implementation still uses:
+The accepted architecture must still be exactly:
 
 ```text
 users.club_status
@@ -801,15 +796,15 @@ existing Worker + D1
 existing React state
 ```
 
-Reject proposals for a second membership table, router/state framework, polling service, new Cloudflare service or UI dependency unless a concrete requirement proves necessary.
+Reject a second club-membership table, polling, new router/state framework, UI dependency or Cloudflare service unless a concrete failing requirement proves it necessary.
 
-- [ ] **Step 5: Run focused UI/server regression set**
+- [ ] **Step 5: Run focused UI/privacy regression**
 
 ```bash
 ./node_modules/.bin/vitest run tests/client/private-club-entry.test.tsx tests/client/player-app.test.tsx tests/server/private-club-access.test.ts
 ```
 
-- [ ] **Step 6: Commit Task 7**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add DESIGN.md src/client/mobile-experience.css src/client/member-experience.css tests
@@ -818,16 +813,15 @@ git commit -m "style: align Misfits private app branding"
 
 ---
 
-### Task 8: Full gate, remote migration approval, release and handoff
+### Task 8: Full gate, production migration gate, merge and rendered acceptance
 
 **Files:**
 - Modify: `PROGRESS.md`
-- Create after remote migration: `docs/operations/evidence/2026-08-22-d1-migration-0006.md`
-- PR metadata only after verification
+- Create after migration: `docs/operations/evidence/2026-08-22-d1-migration-0006.md`
 
 **Interfaces:**
-- Required local/repository gate: Wrangler types, both TypeScript projects, full Vitest suite, production build, `git diff --check`
-- Required production sequence: remote migration first, verified, then code deployment
+- Full code gate: Wrangler types, both TypeScript projects, full Vitest, production build, diff check.
+- Production sequence: remote migration verified before code depending on `club_status` deploys.
 
 - [ ] **Step 1: Run one fresh full repository gate**
 
@@ -842,29 +836,17 @@ git diff --check
 
 Do not claim completion if any command fails.
 
-- [ ] **Step 2: Open/update the PR and wait for PR CI**
+- [ ] **Step 2: Open/update PR and wait for PR CI**
 
-PR body must call out:
-
-- privacy boundary change;
-- additive migration `0006`;
-- club approval vs league placement separation;
-- anonymous data closure;
-- splash/navigation/brand changes;
-- Impeccable and Cave Pony review results;
-- full local/repository evidence.
+PR body records privacy boundary change, migration `0006`, club approval vs league placement, closure of anonymous/legacy invite paths, splash/navigation/brand changes, Impeccable findings, Cave Pony result and fresh gate evidence.
 
 - [ ] **Step 3: STOP for explicit remote D1 migration approval**
 
-This is a production data/schema operation and `AGENTS.md` requires explicit approval.
+`AGENTS.md` requires explicit user approval for remote D1 migration. Ask before applying `0006_private_club_membership.sql`. Do not merge/deploy application code that reads `club_status` before migration succeeds.
 
-Ask the user to approve applying `0006_private_club_membership.sql` to the production D1 database. Do not deploy code depending on `club_status` before this step succeeds.
+- [ ] **Step 4: Apply and verify the approved remote migration**
 
-- [ ] **Step 4: Apply the approved remote additive migration**
-
-Use the existing Wrangler/D1 operational pattern documented in `docs/operations/` for database `misfits` / binding `DB`.
-
-After applying, verify at minimum:
+Use the repo's existing Wrangler/D1 operational pattern for database `misfits` / binding `DB`. Verify:
 
 ```sql
 PRAGMA table_info(users);
@@ -873,19 +855,19 @@ SELECT club_status, COUNT(*) FROM users GROUP BY club_status;
 SELECT visibility, COUNT(*) FROM leagues GROUP BY visibility;
 ```
 
-Record actual command/output evidence in `docs/operations/evidence/2026-08-22-d1-migration-0006.md`. Never include secrets or invite tokens.
+Record actual commands/results in `docs/operations/evidence/2026-08-22-d1-migration-0006.md`. Never record secrets, raw invite tokens or Google credentials.
 
-- [ ] **Step 5: Re-run the fresh full repository gate if code changed after CI**
+- [ ] **Step 5: Re-run the full gate if code changed after the previous green SHA**
 
-Run the exact Step 1 command sequence if any implementation changed after the prior green gate.
+Use the exact Step 1 command sequence.
 
-- [ ] **Step 6: Merge only after migration verification and green PR gate**
+- [ ] **Step 6: Merge after verified migration + green PR gate**
 
-Normal `main` push workflow may deploy after verify. Do not add observer workflows merely to obtain a run ID.
+Use the existing `main` workflow. Do not add temporary observer workflows merely to obtain a deploy run ID.
 
 - [ ] **Step 7: Perform rendered production acceptance**
 
-On a phone-width rendered production view verify:
+Verify at phone width:
 
 ```text
 signed out -> logo + Misfits Darts Club + Google only
@@ -900,27 +882,20 @@ no private data flash before auth
 no horizontal overflow at 320–412px
 ```
 
-If browser tooling is unavailable, explicitly request a production screenshot from the user and do not falsely claim rendered acceptance.
+If rendered browser tooling is unavailable, request a production screenshot and state that rendered acceptance remains pending rather than claiming it passed.
 
-- [ ] **Step 8: Update `PROGRESS.md` at the handoff**
+- [ ] **Step 8: Update `PROGRESS.md`**
 
-Record:
+Record PR/merge SHA, migration evidence path, fresh gate/CI evidence, rendered acceptance status, preservation of the parked functional backlog, and Fixture-First Player Experience as the next functional release.
 
-- PR number and merge SHA;
-- migration evidence path;
-- final green CI/run evidence available in the harness;
-- rendered acceptance status;
-- the 33 parked functional stories remain parked;
-- Fixture-First Player Experience remains the next functional product release after this privacy/UI correction.
-
-- [ ] **Step 9: Commit final evidence/docs if needed**
+- [ ] **Step 9: Commit final evidence/docs when needed**
 
 ```bash
 git add PROGRESS.md docs/operations/evidence/2026-08-22-d1-migration-0006.md
 git commit -m "docs: record private club release evidence"
 ```
 
-Use `[skip ci]` only if this final commit is documentation-only and the already-verified code SHA remains unchanged.
+Use `[skip ci]` only for a documentation-only final checkpoint where the already-verified code SHA is unchanged.
 
 ---
 
@@ -928,31 +903,15 @@ Use `[skip ci]` only if this final commit is documentation-only and the already-
 
 ### Spec coverage
 
-The plan explicitly covers:
+Every approved requirement has an owning task: permanent club approval, club invite proof, normal-sign-in invite requirement, pending/rejected state, OAuth back-door closure, Worker privacy enforcement, approved-unassigned browsing, independent league participation, admin approval/rejection/audit, retirement of self-service league invites, splash/no-data-flash, unified navigation, red brand correction, additive migration, production migration gate, Impeccable, Cave Pony, full verification and rendered acceptance.
 
-- permanent club membership state;
-- club invite creation/validation/revocation;
-- unknown-user invite requirement;
-- pending/rejected restricted sessions;
-- approved-only Worker read authorization;
-- approved-but-unassigned browsing;
-- independent league participation;
-- admin approval/rejection/audit;
-- removal of invite-driven league self-assignment;
-- private splash and remembered-session transition;
-- no private-data flash;
-- unified `League · Record · Results · More` navigation;
-- admin under More;
-- red brand correction with green semantic-only;
-- additive D1 migration/backfill/private visibility;
-- remote migration safety gate;
-- Impeccable review;
-- Cave Pony simplicity review;
-- full verification and rendered acceptance.
+### Placeholder scan
+
+The implementation tasks name concrete files, endpoints, error codes, types, commands and acceptance assertions. There are no deferred implementation placeholders.
 
 ### Type consistency
 
-The plan uses these canonical names throughout:
+Canonical names used throughout:
 
 ```ts
 type ClubStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -961,6 +920,7 @@ PublicUserSummary.clubStatus
 AuthUser.clubStatus
 requireClubMember
 AdminPlayerChanges.clubStatus
+AdminClubInvite
 ```
 
-No second permanent membership model is introduced.
+No second permanent club-membership domain is introduced.
