@@ -72,16 +72,11 @@ Task 1 is complete. The master catalogue and story audit now reflect the approve
 - Best of 6 accepts `4-0`, `4-1`, `4-2`, `3-3`; rejects incomplete/impossible states such as `3-2`, `4-3`, `4-4`, `5-1`.
 - GREEN CI: `32555506609` passed Wrangler types, TypeScript, complete tests and production build.
 
-### Task 4 — persistence/API/rule-lock integration — GREEN candidate, final gate running
+### Task 4 — persistence/API/rule-lock integration — final normal gate running
 
-Focused RED CI `32555672236` preserved **218 passing tests** and isolated exactly **7 intended failures**:
+Focused RED CI `32555672236` preserved **218 passing tests** and isolated exactly **7 intended failures** covering persistence/clone, Best-of fixture settlement and consequential rule locks.
 
-1. scoring fields were not persisted/round-tripped;
-2. season clone reconstructed legacy target legs instead of copying the full scoring contract;
-3. fixture settlement still validated through numeric `target_legs`;
-4. maxLegs/draw/loss changes were not locked after competition history existed.
-
-Production candidate commit: `68324c44f92b000e9d43c76adb84b2e781f98ab6`.
+Production implementation commit: `68324c44f92b000e9d43c76adb84b2e781f98ab6`.
 
 It now:
 
@@ -91,16 +86,26 @@ It now:
 - locks every result-interpreting scoring rule once fixtures/results exist;
 - exposes Best-of plus win/draw/loss values through public/admin league contracts while retaining `targetLegs` compatibility.
 
-A temporary Actions-assisted patch mechanism was used only because the chat container cannot resolve GitHub. It self-removed from the production candidate commit. The bot-authored commit itself did not receive a normal verification job, so this documentation checkpoint intentionally triggers a standard PR CI run over the exact candidate before Task 4 can be called GREEN.
+Normal verification run `32559093115` proved the production layer type-safe and showed the new Task 4 tests GREEN. Its eight failures were isolated to four old in-memory D1 fakes decoding the pre-0005 SQL bind positions. No production behavior change was required.
+
+Test-adapter alignment commit: `057df17b91f178641f76fa2f986c6d3b283c704a`.
+
+The affected fakes now model migration-0005 create/update bind order in:
+
+- `tests/server/league-routes.test.ts`;
+- `tests/server/authenticated-league-flow.test.ts`;
+- `tests/server/competition-routes.test.ts`;
+- `tests/release/story-admin-league-structure.test.ts`.
+
+Transient Actions patch helpers are absent from the PR diff. This checkpoint triggers the clean standard CI re-gate on production + migration-aware test adapters. Task 4 is not claimed GREEN until that run passes Wrangler types, TypeScript, all tests and production build.
 
 ## Next execution steps
 
-1. Require a fully green normal CI gate on the Task 4 candidate plus this checkpoint.
-2. If failures are limited to old in-memory D1 fakes misreading the new bind order, update only those test adapters and re-run the complete gate.
-3. Once Task 4 is GREEN, start Task 5 with focused RED tests for configurable W/D/L standings points and the approved two-way / mini-table head-to-head ranking.
-4. Keep username/player ID out of competitive rank decisions.
-5. Then make promotion/relegation consume the shared authoritative rank before UI work.
-6. Keep this file, the master catalogue and audit current at durable checkpoints.
+1. Require the clean standard Task 4 CI re-gate to be fully GREEN.
+2. Start Task 5 with focused RED tests for configurable W/D/L standings points and approved two-way / mini-table head-to-head ranking.
+3. Keep username/player ID out of competitive rank decisions.
+4. Then make promotion/relegation consume the shared authoritative rank before UI work.
+5. Keep this file, the master catalogue and audit current at durable checkpoints.
 
 ## Production migration guardrail
 
