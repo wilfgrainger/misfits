@@ -1,21 +1,138 @@
 import { describe, expect, it } from 'vitest';
 import { calculateStandings } from '../../src/server/domain/standings';
+import type { LeagueScoringRules } from '../../src/server/domain/scoring';
+
+const legacyRules: LeagueScoringRules = { maxLegs: 5, pointsPerWin: 2, pointsPerDraw: 0, pointsPerLoss: 0 };
+const drawRules: LeagueScoringRules = { maxLegs: 6, pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0 };
+
+function standings(
+  players: Array<{ id: string; username: string }>,
+  matches: Array<{ playerAId: string; playerBId: string; playerALegs: number; playerBLegs: number; playerAAverage: number; playerBAverage: number }>,
+  rules: LeagueScoringRules,
+) {
+  // Keep the RED suite executable against the legacy numeric API until GREEN changes the contract.
+  return calculateStandings(players, matches, rules as never);
+}
+
+const match = (playerAId: string, playerBId: string, playerALegs: number, playerBLegs: number) => ({
+  playerAId,
+  playerBId,
+  playerALegs,
+  playerBLegs,
+  playerAAverage: 50,
+  playerBAverage: 45,
+});
 
 describe('standings calculation', () => {
-  it('aggregates only confirmed games and orders deterministically', () => {
-    const rows = calculateStandings([
+  it('applies configurable win draw and loss points and records W-D-L totals', () => {
+    const rules: LeagueScoringRules = { maxLegs: 6, pointsPerWin: 3, pointsPerDraw: 2, pointsPerLoss: 1 };
+    const rows = standings([
+      { id: 'a', username: 'Alpha' },
+      { id: 'b', username: 'Bravo' },
+      { id: 'c', username: 'Charlie' },
+    ], [
+      match('a', 'b', 3, 3),
+      match('a', 'c', 4, 1),
+    ], rules);
+
+    expect(rows.find((row) => row.playerId === 'a')).toMatchObject({ played: 2, won: 1, drawn: 1, lost: 0, points: 5 });
+    expect(rows.find((row) => row.playerId === 'b')).toMatchObject({ played: 1, won: 0, drawn: 1, lost: 0, points: 2 });
+    expect(rows.find((row) => row.playerId === 'c')).toMatchObject({ played: 1, won: 0, drawn: 0, lost: 1, points: 1 });
+  });
+
+  it('uses total legs won before head-to-head when league points are equal', () => {
+    const rows = standings([
+      { id: 'a', username: 'Alpha' },
+      { id: 'b', username: 'Bravo' },
+      { id: 'c', username: 'Charlie' },
+    ], [
+      match('b', 'a', 3, 2),
+      match('a', 'c', 3, 2),
+    ], legacyRules);
+
+    // A and B both have two points, but A has five total legs won versus B's three.
+    expect(rows.slice(0, 2).map((row) => row.playerId)).toEqual(['a', 'b']);
+    expect(rows[0].rank).toBe(1);
+    expect(rows[1].rank).toBe(2);
+  });
+
+  it('uses two-player head-to-head points after league points and legs won are equal', () => {
+    const rows = standings([
+      { id: 'a', username: 'Alpha' },
+      { id: 'b', username: 'Bravo' },
+      { id: 'c', username: 'Charlie' },
+    ], [
+      match('a', 'b', 3, 0),
+      match('b', 'c', 3, 0),
+    ], legacyRules);
+
+    // A and B both have two points and three legs won. A won their confirmed head-to-head.
+    expect(rows.slice(0, 2).map((row) => ({ playerId: row.playerId, rank: row.rank }))).toEqual([
+      { playerId: 'a', rank: 1 },
+      { playerId: 'b', rank: 2 },
+    ]);
+  });
+
+  it('uses a mini-table of only tied-player matches for a three-player head-to-head group', () => {
+    const rows = standings([
+      { id: 'a', username: 'Alpha' },
+      { id: 'b', username: 'Bravo' },
+      { id: 'c', username: 'Charlie' },
+      { id: 'd', username: 'Delta' },
+    ], [
+      match('a', 'b', 3, 0),
+      match('a', 'c', 3, 0),
+      match('b', 'c', 3, 0),
+      match('b', 'd', 3, 0),
+      match('c', 'd', 3, 0),
+      match('c', 'd', 3, 0),
+    ], legacyRules);
+
+    // A, B and C all finish on four league points and six total legs won.
+    // Their mini-table points are A=4, B=2, C=0. Matches against D only equalise the global totals.
+    expect(rows.slice(0, 3).map((row) => ({ playerId: row.playerId, rank: row.rank }))).toEqual([
+      { playerId: 'a', rank: 1 },
+      { playerId: 'b', rank: 2 },
+      { playerId: 'c', rank: 3 },
+    ]);
+  });
+
+  it('gives unresolved equal competitors the same rank and uses username only for stable display', () => {
+    const rows = standings([
+      { id: 'b', username: 'Bravo' },
+      { id: 'a', username: 'Alpha' },
+      { id: 'c', username: 'Charlie' },
+    ], [
+      match('a', 'b', 3, 3),
+    ], drawRules);
+
+    expect(rows.map((row) => ({ playerId: row.playerId, rank: row.rank }))).toEqual([
+      { playerId: 'a', rank: 1 },
+      { playerId: 'b', rank: 1 },
+      { playerId: 'c', rank: 3 },
+    ]);
+  });
+
+  it('retains derived averages and leg difference for presentation without using them as tie-breakers', () => {
+    const rows = standings([
       { id: 'a', username: 'Alpha' },
       { id: 'b', username: 'Bravo' },
       { id: 'c', username: 'Charlie' },
     ], [
       { playerAId: 'a', playerBId: 'b', playerALegs: 3, playerBLegs: 1, playerAAverage: 50, playerBAverage: 40 },
       { playerAId: 'b', playerBId: 'c', playerALegs: 3, playerBLegs: 2, playerAAverage: 45, playerBAverage: 44 },
-    ], 2);
+    ], legacyRules);
 
-    expect(rows).toEqual([
-      { rank: 1, playerId: 'a', username: 'Alpha', played: 1, won: 1, lost: 0, legsFor: 3, legsAgainst: 1, legDifference: 2, points: 2, average: 50 },
-      { rank: 2, playerId: 'b', username: 'Bravo', played: 2, won: 1, lost: 1, legsFor: 4, legsAgainst: 5, legDifference: -1, points: 2, average: 42.5 },
-      { rank: 3, playerId: 'c', username: 'Charlie', played: 1, won: 0, lost: 1, legsFor: 2, legsAgainst: 3, legDifference: -1, points: 0, average: 44 },
-    ]);
+    expect(rows.find((row) => row.playerId === 'b')).toMatchObject({
+      played: 2,
+      won: 1,
+      drawn: 0,
+      lost: 1,
+      legsFor: 4,
+      legsAgainst: 5,
+      legDifference: -1,
+      points: 2,
+      average: 42.5,
+    });
   });
 });
