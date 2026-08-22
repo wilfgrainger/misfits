@@ -1,0 +1,101 @@
+name: UX Task 4 Apply
+
+on:
+  push:
+    branches: [spec/ux-compression]
+    paths: [.ux-task4-apply-trigger]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: spec/ux-compression
+          fetch-depth: 0
+      - name: Apply approved Task 4 compression
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/client/components/AdminCompetitionDeskV2.tsx')
+          source = path.read_text()
+
+          season_delete = "{selectedSeason.status === 'DRAFT' && <button className=\"secondary-button\" type=\"button\" onClick={() => setConfirm({ title: 'Delete empty draft season?', message: 'Only an empty draft can be removed. Competition history is protected by the server.', action: async () => { await api.deleteAdminSeason(selectedSeason.id); setSeasons((current) => current.filter((season) => season.id !== selectedSeason.id)); setSelectedSeasonId(''); setMessage('Draft season deleted.'); } })}>Delete empty draft</button>}"
+          if season_delete not in source:
+              raise SystemExit('season delete block not found')
+          source = source.replace(season_delete, '', 1)
+
+          season_forms = """      <form className=\"admin-block stack-form\" onSubmit={createSeason}><h3>Create season</h3><label>New season name<input value={newSeasonName} onChange={(e) => setNewSeasonName(e.target.value)} required /></label><button className=\"primary-button\" type=\"submit\" disabled={busy === 'create-season'}>Create season</button></form>
+      {selectedSeason && <form className=\"admin-block stack-form\" onSubmit={cloneSeason}><h3>Copy season structure</h3><p className=\"form-help\">Copy leagues and competition rules only. Players, fixtures and results are not copied.</p><label>Copy structure into season<input value={cloneName} onChange={(e) => setCloneName(e.target.value)} required /></label><button className=\"secondary-button\" type=\"submit\">Copy league structure</button></form>}"""
+          season_disclosure = """      <details className=\"admin-disclosure\"><summary>Create or copy season</summary><div className=\"admin-disclosure-body\">
+        <form className=\"admin-block stack-form\" onSubmit={createSeason}><h3>Create season</h3><label>New season name<input value={newSeasonName} onChange={(e) => setNewSeasonName(e.target.value)} required /></label><button className=\"primary-button\" type=\"submit\" disabled={busy === 'create-season'}>Create season</button></form>
+        {selectedSeason && <form className=\"admin-block stack-form\" onSubmit={cloneSeason}><h3>Copy season structure</h3><p className=\"form-help\">Copy leagues and competition rules only. Players, fixtures and results are not copied.</p><label>Copy structure into season<input value={cloneName} onChange={(e) => setCloneName(e.target.value)} required /></label><button className=\"secondary-button\" type=\"submit\">Copy league structure</button></form>}
+        {selectedSeason?.status === 'DRAFT' && <button className=\"secondary-button\" type=\"button\" onClick={() => setConfirm({ title: 'Delete empty draft season?', message: 'Only an empty draft can be removed. Competition history is protected by the server.', action: async () => { await api.deleteAdminSeason(selectedSeason.id); setSeasons((current) => current.filter((season) => season.id !== selectedSeason.id)); setSelectedSeasonId(''); setMessage('Draft season deleted.'); } })}>Delete empty draft</button>}
+      </div></details>"""
+          if season_forms not in source:
+              raise SystemExit('season setup forms not found')
+          source = source.replace(season_forms, season_disclosure, 1)
+
+          league_delete = "<button className=\"secondary-button\" type=\"button\" onClick={() => setConfirm({ title: `Delete ${leagueEdit.name}?`, message: 'Only an empty league can be removed. The server protects competition history.', action: async () => { await api.deleteCompetitionLeague(leagueEdit.id); setLeagues((current) => current.filter((league) => league.id !== leagueEdit.id)); setMessage('Empty league deleted.'); } })}>Delete empty league</button>"
+          if league_delete not in source:
+              raise SystemExit('league delete block not found')
+          source = source.replace(league_delete, '', 1)
+
+          add_league = "      <form className=\"admin-block stack-form\" onSubmit={createLeague}><h3>Add league</h3><label>New league name<input value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} required /></label><label>New hierarchy position<input type=\"number\" min=\"1\" value={newHierarchy} onChange={(e) => setNewHierarchy(e.target.value)} required /></label><label>New visibility<select value={newVisibility} onChange={(e) => setNewVisibility(e.target.value as 'PUBLIC' | 'PRIVATE')}><option value=\"PRIVATE\">Private</option><option value=\"PUBLIC\">Public</option></select></label><button className=\"primary-button\" type=\"submit\">Create league</button></form>"
+          league_disclosure = """      <details className=\"admin-disclosure\"><summary>Add or remove league</summary><div className=\"admin-disclosure-body\">
+        <form className=\"admin-block stack-form\" onSubmit={createLeague}><h3>Add league</h3><label>New league name<input value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} required /></label><label>New hierarchy position<input type=\"number\" min=\"1\" value={newHierarchy} onChange={(e) => setNewHierarchy(e.target.value)} required /></label><label>New visibility<select value={newVisibility} onChange={(e) => setNewVisibility(e.target.value as 'PUBLIC' | 'PRIVATE')}><option value=\"PRIVATE\">Private</option><option value=\"PUBLIC\">Public</option></select></label><button className=\"primary-button\" type=\"submit\">Create league</button></form>
+        {leagueEdit && <button className=\"secondary-button\" type=\"button\" onClick={() => setConfirm({ title: `Delete ${leagueEdit.name}?`, message: 'Only an empty league can be removed. The server protects competition history.', action: async () => { await api.deleteCompetitionLeague(leagueEdit.id); setLeagues((current) => current.filter((league) => league.id !== leagueEdit.id)); setMessage('Empty league deleted.'); } })}>Delete empty league</button>}
+      </div></details>"""
+          if add_league not in source:
+              raise SystemExit('add league form not found')
+          source = source.replace(add_league, league_disclosure, 1)
+          path.write_text(source)
+
+          css_path = Path('src/client/styles.css')
+          css = css_path.read_text()
+          block = """
+
+/* ─── Native progressive disclosure ─────────────────────────────────────── */
+.admin-disclosure {
+  margin-top: 1rem;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.admin-disclosure > summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: .7rem 1rem;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: 700;
+}
+.admin-disclosure[open] > summary {
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.admin-disclosure-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+.admin-disclosure-body > .admin-block { margin: 0; }
+"""
+          if '.admin-disclosure {' not in css:
+              css_path.write_text(css.rstrip() + block + '\n')
+          PY
+      - name: Commit mechanical patch and self-clean
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/ux-task4-apply.yml .ux-task4-apply-trigger
+          git add src/client/components/AdminCompetitionDeskV2.tsx src/client/styles.css
+          git commit -m "feat: quiet secondary admin setup actions"
+          git push origin HEAD:spec/ux-compression
