@@ -30,7 +30,7 @@ const league = {
 };
 
 function installApi() {
-  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const path = String(input);
     if (path === '/api/admin/seasons') return new Response(JSON.stringify({ seasons: [season] }), { status: 200 });
     if (path === '/api/admin/players') return new Response(JSON.stringify({ players: [] }), { status: 200 });
@@ -48,8 +48,8 @@ describe('admin results panel integration', () => {
     vi.restoreAllMocks();
   });
 
-  it('keeps the official results workflow inside the Results tabpanel lifecycle without a portal bridge', async () => {
-    installApi();
+  it('keeps one canonical Results lifecycle without a portal or duplicate result load', async () => {
+    const fetchMock = installApi();
     render(<AdminCompetitionDesk user={admin} />);
 
     fireEvent.click(await screen.findByRole('tab', { name: 'Results' }));
@@ -59,6 +59,7 @@ describe('admin results panel integration', () => {
     expect(resultsPanel).not.toBeNull();
     expect(resultsPanel?.hidden).toBe(false);
     expect(resultsPanel?.closest('.admin-competition-desk')).not.toBeNull();
+    expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/admin/leagues/l1/results')).toHaveLength(1);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Season' }));
     expect(resultsPanel?.hidden).toBe(true);
