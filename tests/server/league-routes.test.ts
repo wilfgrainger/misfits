@@ -10,6 +10,7 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  club_status: 'PENDING' | 'APPROVED' | 'REJECTED';
   is_master_admin: number;
   profile_image_url: string | null;
   darts_counter_url: string | null;
@@ -203,11 +204,11 @@ const now = new Date('2026-08-20T12:00:00.000Z');
 
 function setup() {
   const db = new MemoryD1();
-  db.users.set('admin-1', { id: 'admin-1', google_sub: 'g-admin', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
-  db.users.set('player-1', { id: 'player-1', google_sub: 'g-player', email: 'player@example.com', username: 'Player', role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
-  db.users.set('player-2', { id: 'player-2', google_sub: 'g-player-2', email: 'player2@example.com', username: 'Player Two', role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
-  db.leagues.set('league-1', { id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'admin-1', max_players: 2, matches_per_pair: 1, visibility: 'PUBLIC' });
-  db.leagues.set('league-private', { id: 'league-private', name: 'Private Tuesday', slug: 'private-tuesday', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'player-2', max_players: 8, matches_per_pair: 1, visibility: 'PRIVATE' });
+  db.users.set('admin-1', { id: 'admin-1', google_sub: 'g-admin', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 1, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+  db.users.set('player-1', { id: 'player-1', google_sub: 'g-player', email: 'player@example.com', username: 'Player', role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+  db.users.set('player-2', { id: 'player-2', google_sub: 'g-player-2', email: 'player2@example.com', username: 'Player Two', role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+  db.leagues.set('league-1', { id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'admin-1', max_players: 2, matches_per_pair: 1, visibility: 'PUBLIC' } as League);
+  db.leagues.set('league-private', { id: 'league-private', name: 'Private Tuesday', slug: 'private-tuesday', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'player-2', max_players: 8, matches_per_pair: 1, visibility: 'PRIVATE' } as League);
   db.memberships.add('league-1:admin-1');
   const env = { DB: db as never, ASSETS: {} as never, APP_ORIGIN: 'https://misfits.test' };
   return { db, env, publicRoutes: createLeagueRoutes({ now: () => now }), adminRoutes: createAdminLeagueRoutes({ now: () => now }) };
@@ -219,7 +220,7 @@ async function cookieFor(db: MemoryD1, userId: string) {
 }
 
 describe('league and invite routes', () => {
-  it('creates an omitted visibility as private and keeps the new season out of the public list', async () => {
+  it('creates omitted visibility as private but exposes the league to approved club members', async () => {
     const { db, env, adminRoutes, publicRoutes } = setup();
     const adminCookie = await cookieFor(db, 'admin-1');
     const response = await adminRoutes.fetch(new Request('https://misfits.test/api/admin/leagues', {
@@ -233,9 +234,10 @@ describe('league and invite routes', () => {
     expect(created.league.visibility).toBe('PRIVATE');
     expect(db.leagues.get(created.league.id)?.visibility).toBe('PRIVATE');
 
-    const publicList = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues'), env, {} as never);
-    const publicLeagues = (await publicList.json() as { leagues: Array<{ id: string }> }).leagues;
-    expect(publicLeagues.map((league) => league.id)).not.toContain(created.league.id);
+    const clubList = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues', { headers: { Cookie: adminCookie } }), env, {} as never);
+    expect(clubList.status).toBe(200);
+    const clubLeagues = (await clubList.json() as { leagues: Array<{ id: string }> }).leagues;
+    expect(clubLeagues.map((league) => league.id)).toContain(created.league.id);
   });
 
   it('reserves every league management operation for club administrators', async () => {
@@ -424,34 +426,44 @@ describe('league and invite routes', () => {
     expect(await afterRevoke.json()).toMatchObject({ invites: [{ id: inviteId, revokedAt: now.toISOString() }] });
   });
 
-  it('lists public leagues without email addresses', async () => {
-    const { env, publicRoutes } = setup();
-    const response = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues'), env, {} as never);
+  it('lists every club league for approved members without private account fields', async () => {
+    const { db, env, publicRoutes } = setup();
+    const response = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues', {
+      headers: { Cookie: await cookieFor(db, 'player-1') },
+    }), env, {} as never);
     expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
     const body = await response.json() as { leagues: Array<Record<string, unknown>> };
-    expect(body.leagues).toHaveLength(1);
-    expect(body.leagues[0]).toMatchObject({ slug: 'misfits-501', maxPlayers: 2, visibility: 'PUBLIC' });
-    expect(body.leagues[0]).not.toHaveProperty('email');
+    expect(body.leagues).toHaveLength(2);
+    expect(body.leagues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slug: 'misfits-501', visibility: 'PUBLIC' }),
+      expect.objectContaining({ slug: 'private-tuesday', visibility: 'PRIVATE' }),
+    ]));
+    expect(body.leagues.every((league) => !Object.hasOwn(league, 'email'))).toBe(true);
   });
 
-  it('lists active public league players without private fields', async () => {
-    const { env, publicRoutes } = setup();
-    const response = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/players'), env, {} as never);
+  it('lists active club league players for an approved member without private fields', async () => {
+    const { db, env, publicRoutes } = setup();
+    const response = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/players', {
+      headers: { Cookie: await cookieFor(db, 'player-1') },
+    }), env, {} as never);
     expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
     const body = await response.json() as { players: Array<Record<string, unknown>> };
     expect(body.players).toEqual([{ id: 'admin-1', username: 'Admin', profileImageUrl: null }]);
     expect(body.players[0]).not.toHaveProperty('email');
   });
 
-  it('keeps private league reads behind an owner or member session', async () => {
+  it('denies anonymous league reads but lets approved unassigned members browse private leagues', async () => {
     const { db, env, publicRoutes } = setup();
     const anonymous = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/private-tuesday'), env, {} as never);
-    expect(anonymous.status).toBe(404);
+    expect(anonymous.status).toBe(401);
     expect(anonymous.headers.get('cache-control')).toBe('no-store');
 
-    const ownerCookie = await cookieFor(db, 'admin-1');
-    const owner = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/private-tuesday', { headers: { Cookie: ownerCookie } }), env, {} as never);
-    expect(owner.status).toBe(200);
-    expect(await owner.json()).toMatchObject({ league: { visibility: 'PRIVATE', slug: 'private-tuesday' } });
+    const approvedCookie = await cookieFor(db, 'admin-1');
+    const approved = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/private-tuesday', { headers: { Cookie: approvedCookie } }), env, {} as never);
+    expect(approved.status).toBe(200);
+    expect(approved.headers.get('cache-control')).toBe('private, no-store');
+    expect(await approved.json()).toMatchObject({ league: { visibility: 'PRIVATE', slug: 'private-tuesday' } });
   });
 });
