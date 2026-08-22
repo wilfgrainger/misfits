@@ -5,7 +5,7 @@ import { AdminCompetitionDesk } from '../../src/client/components/AdminCompetiti
 import type { UserSummary } from '../../src/client/api';
 
 const admin: UserSummary = {
-  id: 'admin-1', username: 'Admin', role: 'ADMIN', status: 'ACTIVE',
+  id: 'admin-1', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', clubStatus: 'APPROVED',
   profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: true,
 };
 
@@ -24,13 +24,23 @@ const league = {
 };
 const nextLeague = { ...league, id: 'n1', season_id: 's2', season_name: '2027/28', status: 'CLOSED', slug: 'premier-next' };
 
+const clubPlayers = [
+  { id: 'admin-1', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-01T00:00:00.000Z', leagueActive: true, isMasterAdmin: true, profileImageUrl: null, dartsCounterUrl: null },
+  { id: 'pending-1', email: 'pending@example.com', username: null, role: 'PLAYER', status: 'ACTIVE', clubStatus: 'PENDING', createdAt: '2026-08-22T18:15:00.000Z', leagueActive: false, isMasterAdmin: false, profileImageUrl: null, dartsCounterUrl: null },
+  { id: 'member-1', email: 'member@example.com', username: 'Charlie', role: 'PLAYER', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-10T09:00:00.000Z', leagueActive: false, isMasterAdmin: false, profileImageUrl: null, dartsCounterUrl: null },
+];
+
 function installApi() {
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const path = String(input);
     const method = init?.method ?? 'GET';
 
     if (path === '/api/admin/seasons') return new Response(JSON.stringify({ seasons: [season, nextSeason] }), { status: 200 });
-    if (path === '/api/admin/players') return new Response(JSON.stringify({ players: [] }), { status: 200 });
+    if (path === '/api/admin/players' && method === 'GET') return new Response(JSON.stringify({ players: clubPlayers }), { status: 200 });
+    if (path === '/api/admin/players/pending-1' && method === 'PATCH') {
+      const body = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ player: { ...clubPlayers[1], clubStatus: body.clubStatus } }), { status: 200 });
+    }
     if (path === '/api/admin/seasons/s1/leagues') return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
     if (path === '/api/admin/seasons/s2/leagues') return new Response(JSON.stringify({ leagues: [nextLeague] }), { status: 200 });
     if (path === '/api/admin/seasons/s1/unassigned') return new Response(JSON.stringify({ users: [] }), { status: 200 });
@@ -40,18 +50,19 @@ function installApi() {
     ] }), { status: 200 });
     if (path === '/api/admin/leagues/l1/members/u1' && method === 'PATCH') return new Response(JSON.stringify({ member: { userId: 'u1', active: false } }), { status: 200 });
     if (path === '/api/admin/leagues/l1/members/u2' && method === 'PATCH') return new Response(JSON.stringify({ member: { userId: 'u2', active: true } }), { status: 200 });
-    if (path === '/api/admin/leagues/l1/invites' && method === 'GET') return new Response(JSON.stringify({ invites: [
-      { id: 'i-old', leagueId: 'l1', expiresAt: '2026-09-01T18:00:00.000Z', uses: 3, revokedAt: null, createdAt: '2026-08-20T00:00:00.000Z' },
-      { id: 'i-revoked', leagueId: 'l1', expiresAt: null, uses: 1, revokedAt: '2026-08-21T00:00:00.000Z', createdAt: '2026-08-19T00:00:00.000Z' },
+    if (path === '/api/admin/club-invites' && method === 'GET') return new Response(JSON.stringify({ invites: [
+      { id: 'i-old', expiresAt: '2026-09-01T18:00:00.000Z', uses: 3, revokedAt: null, createdAt: '2026-08-20T00:00:00.000Z' },
+      { id: 'i-revoked', expiresAt: null, uses: 1, revokedAt: '2026-08-21T00:00:00.000Z', createdAt: '2026-08-19T00:00:00.000Z' },
     ] }), { status: 200 });
-    if (path === '/api/admin/leagues/l1/invites' && method === 'POST') return new Response(JSON.stringify({ invite: { id: 'i-new', leagueId: 'l1', expiresAt: null, url: 'https://misfits.test/join/token-secret' } }), { status: 201 });
+    if (path === '/api/admin/club-invites' && method === 'POST') return new Response(JSON.stringify({ invite: { id: 'i-new', expiresAt: null, url: 'https://misfits.test/join/token-secret' } }), { status: 201 });
+    if (path === '/api/admin/club-invites/i-old/revoke' && method === 'POST') return new Response(JSON.stringify({ ok: true }), { status: 200 });
     if (path === '/api/admin/seasons/s1/members/copy' && method === 'POST') return new Response(JSON.stringify({ placements: [{ userId: 'u1', leagueId: 'n1' }] }), { status: 201 });
 
     throw new Error(`Unexpected fetch ${method} ${path}`);
   });
 }
 
-describe('ADM-032, ADM-037 to ADM-043 admin membership and invite controls', () => {
+describe('admin membership, placement and club-admission controls', () => {
   beforeEach(() => {
     cleanup();
     vi.restoreAllMocks();
@@ -59,12 +70,13 @@ describe('ADM-032, ADM-037 to ADM-043 admin membership and invite controls', () 
   });
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-  it('shows roster capacity and allows safe membership deactivate/reactivate from the unified admin desk', async () => {
+  it('keeps season placement separate and allows safe membership deactivate/reactivate', async () => {
     const fetchMock = installApi();
     render(<AdminCompetitionDesk user={admin} />);
-    fireEvent.click(await screen.findByRole('tab', { name: 'Members & invites' }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Season members' }));
 
     expect(await screen.findByText('Premier · 1/8')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Create invite/i })).toBeNull();
     expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Bravo').length).toBeGreaterThan(0);
 
@@ -78,7 +90,7 @@ describe('ADM-032, ADM-037 to ADM-043 admin membership and invite controls', () 
   it('copies reviewed baseline placements into a selected draft season without hiding the explicit action', async () => {
     const fetchMock = installApi();
     render(<AdminCompetitionDesk user={admin} />);
-    fireEvent.click(await screen.findByRole('tab', { name: 'Members & invites' }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Season members' }));
     await screen.findByText('Premier · 1/8');
 
     fireEvent.change(screen.getByLabelText('Draft season for baseline placements'), { target: { value: 's2' } });
@@ -92,15 +104,30 @@ describe('ADM-032, ADM-037 to ADM-043 admin membership and invite controls', () 
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({ toSeasonId: 's2' });
   });
 
-  it('shows invite usage/expiry/revocation and provides a working clipboard fallback for a newly created secret URL', async () => {
+  it('puts pending club requests first and approves membership without league placement', async () => {
+    const fetchMock = installApi();
+    render(<AdminCompetitionDesk user={admin} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Club access' }));
+
+    const pending = await screen.findByRole('region', { name: 'Pending membership requests' });
+    expect(within(pending).getByText('pending@example.com')).toBeTruthy();
+    expect(within(pending).getByText(/22 Aug 2026/i)).toBeTruthy();
+    fireEvent.click(within(pending).getByRole('button', { name: 'Approve pending@example.com' }));
+
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/players/pending-1' && init?.method === 'PATCH' && JSON.parse(String(init.body)).clubStatus === 'APPROVED')).toBe(true));
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/assign'))).toBe(false);
+  });
+
+  it('shows club-wide invite usage, expiry and revocation with a working copy action', async () => {
     installApi();
     render(<AdminCompetitionDesk user={admin} />);
-    fireEvent.click(await screen.findByRole('tab', { name: 'Members & invites' }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Club access' }));
 
     expect(await screen.findByText(/3 uses · Expires 1 Sep 2026/i)).toBeTruthy();
     expect(screen.getByText('Revoked invite')).toBeTruthy();
+    expect(screen.queryByText(/Premier invites/i)).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Create invite for Premier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create club invite' }));
     await screen.findByDisplayValue('https://misfits.test/join/token-secret');
     fireEvent.click(screen.getByRole('button', { name: 'Copy invite link' }));
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://misfits.test/join/token-secret'));
