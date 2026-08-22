@@ -1,9 +1,9 @@
 # Misfits 501 Progress
 
 **Updated:** 22 August 2026  
-**Current branch:** `chore/pragmatic-delivery-policy`  
-**Current focus:** Pragmatic delivery-policy cleanup; 33 incomplete stories remain parked  
-**Main baseline:** Releases 1 and 1.5 complete
+**Current branch:** `main`  
+**Current focus:** Pragmatic delivery policy complete; 33 incomplete stories remain parked  
+**Main:** PR #170 merged as `ce7ad96f9a3c83ef6e017dc812c5765e5332b1a2` plus this documentation-only checkpoint
 
 ## Authority
 
@@ -55,19 +55,23 @@ Simplification:
 
 Release 1.5 changed no production code.
 
-## Pragmatic delivery policy
+## Pragmatic delivery policy — COMPLETE
 
-This policy cleanup keeps the safety boundaries but removes unnecessary ceremony.
+PR #170 merged to `main` as `ce7ad96f9a3c83ef6e017dc812c5765e5332b1a2`.
 
-- Routine bounded changes do not require a written spec/plan or repeated approvals.
-- Superpowers is required for architectural, multi-step or high-risk work, or when explicitly requested.
-- An approved release/design plan authorizes its in-scope implementation tasks unless assumptions or scope materially change.
-- Impeccable is required for material UI/interaction changes, not every copy/CSS/test correction.
-- Cave Pony formal review is required for meaningful simplification/refactor/architecture work, not every routine PR.
-- `PROGRESS.md` is updated at meaningful release/handoff checkpoints, not after every test or tiny task.
-- Feature branches verify through `pull_request`; `push` CI is limited to `main`, avoiding duplicate branch verification.
-- One fresh full repository gate remains required before merge.
-- Auth, authorization, secrets, migrations, destructive data operations and production-data integrity remain strong guardrails.
+Final PR-head CI `32588127805` passed Wrangler types, both TypeScript projects, full Vitest and production build.
+
+Policy now keeps strong safety boundaries while scaling ceremony to risk:
+- routine bounded changes do not require written specs/plans or repeated approvals;
+- Superpowers is required for architectural, multi-step or high-risk work, or when explicitly requested;
+- an approved release/design plan authorizes its in-scope implementation tasks unless assumptions or scope materially change;
+- Impeccable is required for material UI/interaction changes, not every copy/CSS/test correction;
+- Cave Pony formal review is required for meaningful simplification/refactor/architecture work, not every routine PR;
+- `PROGRESS.md` is updated at meaningful release/handoff checkpoints, not after every test or tiny task;
+- feature branches verify through `pull_request`; `push` CI is limited to `main`, avoiding duplicate branch verification;
+- the PR template is reduced to risk, proof and applicable specialist review;
+- one fresh full repository gate remains required before merge;
+- auth, authorization, secrets, migrations, destructive data operations and production-data integrity remain strong guardrails.
 
 ## Test ownership policy
 
