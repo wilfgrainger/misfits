@@ -2,7 +2,8 @@ import { Hono } from 'hono';
 import type { Env } from '../env';
 import { AppError, jsonError } from '../errors';
 import { validateUsername } from '../domain/username';
-import { getUserById, publicUser, setUsername, upsertGoogleUser } from '../db/users';
+import { createPendingInvitedUser, getUserByGoogleSub, getUserById, publicUser, refreshGoogleUser, setUsername, upsertGoogleUser, type UserRecord } from '../db/users';
+import { consumeClubInvite, validateClubInvite } from '../db/club-invites';
 import { buildGoogleAuthorizationUrl, exchangeGoogleCode, verifyGoogleCredential, type GoogleIdentity } from '../auth/google';
 import {
   expiredCookie,
@@ -37,6 +38,40 @@ function authFailure(c: Parameters<typeof jsonError>[0], message = 'Authenticati
   return jsonError(c, new AppError('VALIDATION_ERROR', message, 400));
 }
 
+function normalizedEmail(value?: string): string | null {
+  const email = value?.trim().toLowerCase();
+  return email || null;
+}
+
+function isConfiguredAdminIdentity(identity: GoogleIdentity, env: Env): boolean {
+  const email = identity.email.trim().toLowerCase();
+  return email === normalizedEmail(env.MASTER_ADMIN_EMAIL) || email === normalizedEmail(env.BOOTSTRAP_ADMIN_EMAIL);
+}
+
+async function existingOrConfiguredUser(
+  env: Env,
+  identity: GoogleIdentity,
+  at: Date,
+): Promise<UserRecord | null> {
+  const existing = await getUserByGoogleSub(env.DB, identity.sub);
+  if (existing) {
+    return refreshGoogleUser(env.DB, existing, identity, at, env.BOOTSTRAP_ADMIN_EMAIL, env.MASTER_ADMIN_EMAIL);
+  }
+  if (!isConfiguredAdminIdentity(identity, env)) return null;
+  return upsertGoogleUser(env.DB, identity, at, env.BOOTSTRAP_ADMIN_EMAIL, env.MASTER_ADMIN_EMAIL);
+}
+
+function ensureActive(user: UserRecord): void {
+  if (user.status !== 'ACTIVE') throw new AppError('FORBIDDEN', 'This account is suspended', 403);
+}
+
+function authPayload(user: UserRecord) {
+  return {
+    user: publicUser(user),
+    requiresOnboarding: user.club_status === 'APPROVED' && user.username === null,
+  };
+}
+
 export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
   const routes = new Hono<AuthAppEnv>();
   const now = dependencies.now ?? (() => new Date());
@@ -46,9 +81,12 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     if (!c.env.GOOGLE_CLIENT_ID) {
       return jsonError(c, new AppError('CONFIGURATION_ERROR', 'Google sign-in is not configured', 503));
     }
-    const body = await c.req.json().catch(() => null) as { credential?: unknown } | null;
+    const body = await c.req.json().catch(() => null) as { credential?: unknown; inviteToken?: unknown } | null;
     if (!body || typeof body.credential !== 'string' || body.credential.length < 20) {
       return jsonError(c, new AppError('VALIDATION_ERROR', 'A Google credential is required', 400));
+    }
+    if (body.inviteToken !== undefined && (typeof body.inviteToken !== 'string' || body.inviteToken.length === 0)) {
+      return jsonError(c, new AppError('INVITE_INVALID', 'That invitation is not valid', 404));
     }
 
     let identity: GoogleIdentity;
@@ -59,14 +97,22 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     }
 
     try {
-      const user = await upsertGoogleUser(c.env.DB, identity, now(), c.env.BOOTSTRAP_ADMIN_EMAIL, c.env.MASTER_ADMIN_EMAIL);
-      const session = await issueSession(c.env.DB, user.id, now());
+      const at = now();
+      let user = await existingOrConfiguredUser(c.env, identity, at);
+      if (!user) {
+        if (typeof body.inviteToken !== 'string') {
+          throw new AppError('INVITE_REQUIRED', 'A Misfits invitation is required', 403);
+        }
+        const invite = await validateClubInvite(c.env.DB, body.inviteToken, at);
+        user = await createPendingInvitedUser(c.env.DB, identity, at);
+        await consumeClubInvite(c.env.DB, invite.id);
+      }
+      ensureActive(user);
+      const session = await issueSession(c.env.DB, user.id, at);
       c.header('Set-Cookie', sessionCookie(session.token));
-      return c.json({
-        user: publicUser(user),
-        requiresOnboarding: user.username === null,
-      }, 200, { 'Cache-Control': 'no-store' });
-    } catch {
+      return c.json(authPayload(user), 200, { 'Cache-Control': 'no-store' });
+    } catch (error) {
+      if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('VALIDATION_ERROR', 'Account setup could not be completed', 400));
     }
   });
@@ -111,13 +157,18 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     }
 
     try {
-      const user = await upsertGoogleUser(c.env.DB, identity, now(), c.env.BOOTSTRAP_ADMIN_EMAIL, c.env.MASTER_ADMIN_EMAIL);
-      const session = await issueSession(c.env.DB, user.id, now());
-      c.header('Set-Cookie', sessionCookie(session.token));
-      c.header('Set-Cookie', expiredCookie(OAUTH_STATE_COOKIE), { append: true });
+      const at = now();
+      const user = await existingOrConfiguredUser(c.env, identity, at);
+      c.header('Set-Cookie', expiredCookie(OAUTH_STATE_COOKIE));
       c.header('Set-Cookie', expiredCookie(LEGACY_OAUTH_STATE_COOKIE), { append: true });
-      return c.redirect(user.username ? '/' : '/onboarding', 302);
-    } catch {
+      if (!user) return c.redirect('/?auth=invite-required', 302);
+      ensureActive(user);
+      const session = await issueSession(c.env.DB, user.id, at);
+      c.header('Set-Cookie', sessionCookie(session.token), { append: true });
+      const destination = user.club_status === 'APPROVED' && !user.username ? '/onboarding' : '/';
+      return c.redirect(destination, 302);
+    } catch (error) {
+      if (error instanceof AppError) return jsonError(c, error);
       return authFailure(c, 'Account setup could not be completed');
     }
   });
@@ -125,10 +176,7 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
   routes.get('/api/me', requireUser, async (c) => {
     const user = await getUserById(c.env.DB, c.get('user').id);
     if (!user) return jsonError(c, new AppError('UNAUTHENTICATED', 'Sign-in is required', 401));
-    return c.json({
-      user: publicUser(user),
-      requiresOnboarding: user.username === null,
-    }, 200, { 'Cache-Control': 'private, no-store' });
+    return c.json(authPayload(user), 200, { 'Cache-Control': 'private, no-store' });
   });
 
   routes.post('/api/me/username', requireSameOrigin, requireUser, async (c) => {
