@@ -32,6 +32,7 @@ describe('configurable league scoring contract', () => {
         pointsPerWin: 3,
         pointsPerDraw: 1,
         pointsPerLoss: 0,
+        targetLegs: 4,
         status: 'OPEN',
         visibility: 'PUBLIC',
       },
@@ -55,6 +56,7 @@ describe('configurable league scoring contract', () => {
     expect(competition.ok).toBe(true);
     if (!competition.ok) return;
     expect(competition.value.maxLegs).toBe(6);
+    expect(competition.value.targetLegs).toBe(4);
     expect(competition.value.pointsPerWin).toBe(3);
     expect(competition.value.pointsPerDraw).toBe(1);
     expect(competition.value.pointsPerLoss).toBe(0);
