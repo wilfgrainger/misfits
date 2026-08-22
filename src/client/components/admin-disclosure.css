@@ -1,0 +1,33 @@
+.admin-disclosure {
+  margin-top: 1rem;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.admin-disclosure > summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: .7rem 1rem;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.admin-disclosure[open] > summary {
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-disclosure-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.admin-disclosure-body > .admin-block {
+  margin: 0;
+}
