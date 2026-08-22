@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
+import { AppIcon } from './components/AppIcons';
 import { LeagueTabs } from './components/LeagueTabs';
 import { PlayerLeague } from './components/PlayerLeague';
 import { ProfilePanel } from './components/ProfilePanel';
@@ -16,13 +17,41 @@ function messageFor(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-function PublicLeagueView({ league }: { league: LeagueSummary }) {
+function scrollToSurface(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function ClubNavigation() {
+  return (
+    <nav className="club-bottom-nav" aria-label="Club navigation">
+      <button className="club-nav-item club-nav-item-active" type="button" aria-current="page" onClick={() => scrollToSurface('league-overview')}>
+        <AppIcon name="league" />
+        <span>League</span>
+      </button>
+      <button className="club-nav-item" type="button" onClick={() => scrollToSurface('latest-results')}>
+        <AppIcon name="results" />
+        <span>Results</span>
+      </button>
+      <button className="club-nav-item" type="button" onClick={() => scrollToSurface('sign-in-action')}>
+        <AppIcon name="lock" />
+        <span>Sign in</span>
+      </button>
+      <button className="club-nav-item" type="button" onClick={() => scrollToSurface('club-header')}>
+        <AppIcon name="more" />
+        <span>More</span>
+      </button>
+    </nav>
+  );
+}
+
+function PublicLeagueView({ league, signInSlot }: { league: LeagueSummary; signInSlot: ReactNode }) {
   const [detail, setDetail] = useState<LeagueDetail | null>(null);
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [results, setResults] = useState<ResultSummary[]>([]);
   const [error, setError] = useState('');
   const [shareMessage, setShareMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -38,7 +67,7 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
       active = false;
       if (copyTimer.current) clearTimeout(copyTimer.current);
     };
-  }, [league.id]);
+  }, [league.id, reloadKey]);
 
   const share = async () => {
     setShareMessage('');
@@ -55,16 +84,81 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
     }
   };
 
+  const playerCount = detail?.players.length;
+
   return (
-    <section className="public-league" aria-labelledby="public-league-title">
-      <div className="season-record-heading"><div><p className="season-context">{league.seasonName} season</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>{copied ? 'Copied! ✓' : 'Share league'}</button></div></div>
-      {shareMessage && <p className="success-message" role="status">{shareMessage}</p>}
-      {error && <p className="error-message" role="alert">{error}</p>}
-      <p className="season-rules">{leagueScoringSummary(league)}</p>
-      <p className="form-help">{TABLE_TIE_BREAK_DESCRIPTION}</p>
-      <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} />
-      {standings.length === 0 && <p className="empty-message">No confirmed results yet.</p>}
-      {results.length > 0 && <div className="public-results"><h3>Latest results</h3><ul className="result-list">{results.slice(0, 5).map((result) => <li className="result-row" key={result.id}><div className="result-main"><strong>{result.playerAUsername} <span>{result.playerALegs}</span></strong><span className="result-divider">-</span><strong>{result.playerBUsername} <span>{result.playerBLegs}</span></strong></div><div className="result-meta"><span>{result.playerAAverage.toFixed(2)} / {result.playerBAverage.toFixed(2)} avg</span></div><span className="result-winner">{resultOutcomeLabel(result.playerALegs, result.playerBLegs, result.playerAUsername, result.playerBUsername)}</span></li>)}</ul></div>}
+    <section className="league-experience public-league" aria-labelledby="public-league-title">
+      <section className="league-hero-card" id="league-overview">
+        <div className="league-hero-copy">
+          <div className="league-title-line">
+            <h1 id="public-league-title">{league.name}</h1>
+            <span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span>
+          </div>
+          <p className="league-season">{league.seasonName} Season</p>
+        </div>
+        <button className="icon-action league-share" type="button" aria-label="Share league" onClick={() => void share()}>
+          <AppIcon name="share" />
+        </button>
+        <div className="league-target-mark" aria-hidden="true"><AppIcon name="target" /></div>
+        <div className="league-hero-meta">
+          {playerCount !== undefined && <span><AppIcon name="users" />{playerCount} {playerCount === 1 ? 'Player' : 'Players'}</span>}
+          <span><AppIcon name="calendar" />{league.status === 'OPEN' ? 'Season in progress' : 'Season closed'}</span>
+          <span><AppIcon name="target" />501 format</span>
+        </div>
+      </section>
+
+      {shareMessage && <p className="success-message compact-message" role="status">{copied ? 'League link copied.' : shareMessage}</p>}
+
+      <section className="rules-card" aria-label="League rules">
+        <span className="surface-icon"><AppIcon name="rules" /></span>
+        <div>
+          <p className="season-rules">{leagueScoringSummary(league)}</p>
+          <p className="rules-tiebreak">{TABLE_TIE_BREAK_DESCRIPTION}</p>
+        </div>
+      </section>
+
+      <section className="standings-card" aria-labelledby="standings-title">
+        <div className="experience-section-heading">
+          <div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="results" /></span><h2 id="standings-title">Standings</h2></div>
+        </div>
+        <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} />
+        {standings.length === 0 && !error && <div className="experience-empty"><AppIcon name="target" /><strong>No table movement yet</strong><span>Confirmed results will settle the table here.</span></div>}
+      </section>
+
+      <section className="signin-action-card" id="sign-in-action" role="group" aria-label="Sign in with Google">
+        <span className="surface-icon"><AppIcon name="lock" /></span>
+        <div className="signin-action-copy">
+          <strong>Sign in to record or confirm results</strong>
+          <span>Keep the league accurate and up to date.</span>
+        </div>
+        {signInSlot}
+      </section>
+
+      <section className="results-card" id="latest-results" aria-labelledby="latest-results-title">
+        <div className="experience-section-heading">
+          <div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="target" /></span><h2 id="latest-results-title">Latest results</h2></div>
+        </div>
+        {error ? (
+          <div className="experience-empty experience-error" role="alert">
+            <strong>{error}</strong>
+            <button className="secondary-button" type="button" onClick={() => setReloadKey((value) => value + 1)}>Retry</button>
+          </div>
+        ) : results.length > 0 ? (
+          <ul className="result-list experience-result-list">
+            {results.slice(0, 5).map((result) => (
+              <li className="result-row" key={result.id}>
+                <div className="result-main"><strong>{result.playerAUsername} <span>{result.playerALegs}</span></strong><span className="result-divider">-</span><strong>{result.playerBUsername} <span>{result.playerBLegs}</span></strong></div>
+                <div className="result-meta"><span>{result.playerAAverage.toFixed(2)} / {result.playerBAverage.toFixed(2)} avg</span></div>
+                <span className="result-winner">{resultOutcomeLabel(result.playerALegs, result.playerBLegs, result.playerAUsername, result.playerBUsername)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="experience-empty"><AppIcon name="target" /><strong>No results yet</strong><span>Be the first to throw.</span></div>
+        )}
+      </section>
+
+      <ClubNavigation />
     </section>
   );
 }
@@ -179,7 +273,7 @@ export default function App() {
       else cleanup();
     }).catch((error: unknown) => { if (active) { setSigningIn(false); setMessage(messageFor(error, 'Google sign-in could not be loaded.')); } });
     return () => { active = false; dispose?.(); };
-  }, [view]);
+  }, [view, publicLoaded, publicLeagueId]);
 
   useEffect(() => {
     const match = typeof window !== 'undefined' ? window.location.pathname.match(/^\/join\/([^/]+)/) : null;
@@ -227,26 +321,26 @@ export default function App() {
   };
   const selectedLeague = myLeagues.find((league) => league.id === selectedLeagueId) ?? null;
   const selectedPublicLeague = publicLeagues.find((league) => league.id === publicLeagueId) ?? null;
+  const googleSlot = <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />;
 
   return (
-    <main className="shell" data-state={view}>
-      <section className={`shell-panel ${view === 'signed-in' ? 'shell-panel-wide' : ''}`}>
-        <header className="brand-header">
+    <main className="shell experience-shell" data-state={view}>
+      <section className={`shell-panel experience-panel ${view === 'signed-in' ? 'shell-panel-wide' : ''}`}>
+        <header className="brand-header experience-header" id="club-header">
           <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501 club seal" />
-          <div className="brand-meta"><p className="brand-name">The Misfits 501 Club</p><span className="online-label">Darts club</span></div>
+          <div className="brand-meta"><p className="brand-name">Misfits Darts Club</p><span className="online-label">Throw together. Stand together.</span></div>
           {user && <div className="header-user"><div className="avatar">{user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase()}</div><button className="header-signout" type="button" onClick={() => void logout()}>Sign out</button></div>}
         </header>
+
         {view === 'signed-out' && <>
-          <section className="public-intro" aria-labelledby="public-leagues-title"><div><h1 id="public-leagues-title">The club table</h1><p>Club darts, properly settled. Standings and confirmed results for the current season.</p></div><div className="public-entry" role="group" aria-label="Sign in with Google"><p>Sign in to record a result or confirm one.</p><div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} /></div></section>
-          {publicLoadError && <div className="public-load-state"><p className="error-message" role="alert">{publicLoadError}</p><button className="action-button" type="button" onClick={() => void loadPublicLeagues()}>Retry</button></div>}
-          {!publicLoadError && publicLoaded && publicLeagues.length === 0 && <p className="empty-message">No public leagues are published yet.</p>}
-          {!publicLoadError && publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><LeagueTabs ariaLabel="Club seasons" leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
+          {publicLoadError && <section className="public-fallback"><div className="public-load-state"><p className="error-message" role="alert">{publicLoadError}</p><button className="secondary-button" type="button" onClick={() => void loadPublicLeagues()}>Retry</button></div><section className="signin-action-card" role="group" aria-label="Sign in with Google"><span className="surface-icon"><AppIcon name="lock" /></span><div className="signin-action-copy"><strong>Sign in to your club</strong><span>Record and confirm results when the table returns.</span></div>{googleSlot}</section></section>}
+          {!publicLoadError && publicLoaded && publicLeagues.length === 0 && <section className="public-fallback"><div className="experience-empty"><AppIcon name="target" /><strong>No public leagues are published yet</strong><span>Sign in if you are a club member.</span></div><section className="signin-action-card" role="group" aria-label="Sign in with Google"><span className="surface-icon"><AppIcon name="lock" /></span><div className="signin-action-copy"><strong>Sign in to Misfits 501</strong><span>Use your Google account to enter the club.</span></div>{googleSlot}</section></section>}
+          {!publicLoadError && publicLeagues.length > 0 && <section className="public-home">{publicLeagues.length > 1 && <LeagueTabs ariaLabel="Club seasons" leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />}{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} signInSlot={googleSlot} />}</section>}
         </>}
 
         {view === 'onboarding' && (
           <form className="onboarding-form" onSubmit={submitUsername}>
             <div className="form-heading">
-              <p className="section-kicker">WELCOME TO MISFITS 501</p>
               <h2>Set your player nickname</h2>
               <p className="form-help">This is how your name will appear on the club table and match results.</p>
             </div>
@@ -257,62 +351,27 @@ export default function App() {
         )}
 
         {view === 'signed-in' && user && (
-          <div className="account-panel">
+          <div className="account-panel signed-in-experience">
             {user.role === 'ADMIN' && (
               <nav className="segmented-tabs" aria-label="Admin views">
-                <button
-                  className={adminMode === 'admin' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'}
-                  type="button"
-                  onClick={() => setAdminMode('admin')}
-                >
-                  Season admin
-                </button>
-                <button
-                  className={adminMode === 'player' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'}
-                  type="button"
-                  onClick={() => setAdminMode('player')}
-                >
-                  Club table
-                </button>
+                <button className={adminMode === 'admin' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" onClick={() => setAdminMode('admin')}>Season admin</button>
+                <button className={adminMode === 'player' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" onClick={() => setAdminMode('player')}>Club table</button>
               </nav>
             )}
-            {selectedLeague && (user.role !== 'ADMIN' || adminMode === 'player') && (
-              <p className="account-context">
-                Current season: {selectedLeague.name} · {selectedLeague.seasonName} · {selectedLeague.status === 'OPEN' ? 'Open' : 'Closed'} · {selectedLeague.visibility === 'PUBLIC' ? 'Public' : 'Private'}
-              </p>
-            )}
-            {message && <p className="success-message" role="status">{message}</p>}
+            {message && <p className="success-message compact-message" role="status">{message}</p>}
             {user.role === 'ADMIN' && adminMode === 'admin' && (
-              <div className="admin-workbench">
-                <AdminCompetitionDesk
-                  user={user}
-                  selectedLeagueId={adminSelectedLeagueId}
-                  onLeagueCreated={handleLeagueCreated}
-                  onLeagueChanged={handleLeagueChanged}
-                  onLeagueSelected={(league) => { setAdminSelectedLeagueId(league?.id ?? null); }}
-                />
-              </div>
+              <div className="admin-workbench"><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => { setAdminSelectedLeagueId(league?.id ?? null); }} /></div>
             )}
             {(user.role !== 'ADMIN' || adminMode === 'player') && (
               <div className="member-workbench member-area">
                 {myLeagues.length > 0 ? (
                   <>
-                    <LeagueTabs
-                      leagues={myLeagues}
-                      selectedId={selectedLeagueId}
-                      onSelect={setSelectedLeagueId}
-                      ariaLabel="Member seasons"
-                    />
-                    {selectedLeague && (
-                      <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />
-                    )}
+                    {myLeagues.length > 1 && <LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Member seasons" />}
+                    {selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}
                   </>
                 ) : (
                   <>
-                    <div className="empty-member">
-                      <h2>Open your Misfits invite.</h2>
-                      <p>Use the shared club link, sign in with Google, then join a season when registrations open.</p>
-                    </div>
+                    <div className="empty-member"><h2>Open your Misfits invite.</h2><p>Use the shared club link, sign in with Google, then join a season when registrations open.</p></div>
                     <ProfilePanel user={user} onSaved={saveProfile} />
                   </>
                 )}
@@ -321,7 +380,7 @@ export default function App() {
           </div>
         )}
 
-        {view !== 'signed-in' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
+        {view !== 'signed-in' && view !== 'signed-out' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
       </section>
     </main>
   );

@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, type FixtureSummary, type LeagueDetail, type LeagueSummary, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
+import { effectiveMaxLegs, leagueScoringSummary, legsToWin, matchFormatDescription, resultOutcomeLabel, TABLE_TIE_BREAK_DESCRIPTION } from '../scoring';
+import { AppIcon } from './AppIcons';
 import { ProfilePanel } from './ProfilePanel';
 import { StandingsTable } from './StandingsTable';
-import { effectiveMaxLegs, leagueScoringSummary, legsToWin, matchFormatDescription, resultOutcomeLabel, TABLE_TIE_BREAK_DESCRIPTION } from '../scoring';
 
 const api = new ApiClient();
 type PlayerView = 'table' | 'fixtures' | 'results' | 'players' | 'record' | 'profile';
@@ -94,9 +95,11 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
 
   useEffect(() => { void load(); }, [league.id]);
 
-  const opponents = useMemo(() => detail?.players.filter((player) => player.id !== user.id) ?? [], [detail?.players, user.id]);
+  const opponents = useMemo(() => detail?.players?.filter((player) => player.id !== user.id) ?? [], [detail?.players, user.id]);
   const pending = myResults.filter((result) => result.status === 'PENDING' && result.submittedBy !== user.id);
   const canRecord = league.status === 'OPEN';
+  const fixtureNavigationAvailable = fixtures.length > 0;
+  const moreActive = view === 'players' || view === 'profile';
 
   useEffect(() => {
     setView('table');
@@ -193,52 +196,57 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
   const saveUser = (profile: Pick<UserSummary, 'username' | 'profileImageUrl' | 'dartsCounterUrl'>) => onUserSaved({ ...user, ...profile });
 
   return (
-    <section className="player-workspace" aria-labelledby="league-title">
-      <div className="league-heading">
-        <div>
-          <p className="section-kicker">{league.seasonName} / {league.status}</p>
-          <h2 id="league-title">{league.name}</h2>
+    <section className="player-workspace league-experience" aria-labelledby="league-title">
+      <section className="league-heading player-league-hero">
+        <div className="league-hero-copy">
+          <div className="league-title-line">
+            <h2 id="league-title">{league.name}</h2>
+            <span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span>
+          </div>
+          <p className="league-season">{league.seasonName} Season</p>
         </div>
-        <button className="refresh-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Loading' : 'Refresh'}</button>
-      </div>
-      <div className="season-rules-stack"><p className="season-rules">{leagueScoringSummary(league)}</p><p className="form-help">{TABLE_TIE_BREAK_DESCRIPTION}</p></div>
-      <nav className="content-tabs" aria-label="Member workspace">
-        {([['table', 'Table'], ['fixtures', 'Fixtures'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'content-tab content-tab-active' : 'content-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
-      </nav>
-      {notice && <p className="success-message" role="status">{notice}</p>}
+        <button className="refresh-button icon-action" type="button" aria-label="Refresh league" onClick={() => void load()} disabled={loading}>
+          <AppIcon name="refresh" />
+        </button>
+        <div className="league-target-mark" aria-hidden="true"><AppIcon name="target" /></div>
+        <div className="league-hero-meta">
+          <span><AppIcon name="users" />{detail?.players?.length ?? '—'} Players</span>
+          <span><AppIcon name="calendar" />{league.status === 'OPEN' ? 'Season in progress' : 'Season closed'}</span>
+          <span><AppIcon name="target" />501 format</span>
+        </div>
+      </section>
+
+      <section className="season-rules-stack rules-card" aria-label="League rules">
+        <span className="surface-icon"><AppIcon name="rules" /></span>
+        <div><p className="season-rules">{leagueScoringSummary(league)}</p><p className="form-help rules-tiebreak">{TABLE_TIE_BREAK_DESCRIPTION}</p></div>
+      </section>
+
+      {notice && <p className="success-message compact-message" role="status">{notice}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
       {loading && <p className="loading-message">Loading league data...</p>}
 
       {!loading && view === 'table' && (
-        <>
+        <section className="standings-card" aria-labelledby="player-standings-title">
+          <div className="experience-section-heading"><div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="results" /></span><h3 id="player-standings-title">Standings</h3></div></div>
           <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} highlightPlayerId={user.id} />
-          {standings.length === 0 && <p className="empty-message">No active players yet.</p>}
-        </>
+          {standings.length === 0 && <div className="experience-empty"><AppIcon name="target" /><strong>No table movement yet</strong><span>Confirmed results will settle the table here.</span></div>}
+        </section>
       )}
 
-      {!loading && view === 'fixtures' && (
+      {!loading && view === 'fixtures' && fixtureNavigationAvailable && (
         <div className="admin-block">
           <div className="section-heading"><h3>League fixtures</h3><span className="count-label">{fixtures.length}</span></div>
           <ul className="admin-list">
             {fixtures.map((fixture) => {
-              const opponentName = fixture.playerAId === user.id ? (fixture.playerBUsername ?? 'Opponent') : (fixture.playerAUsername ?? 'Opponent');
               const isMine = fixture.playerAId === user.id || fixture.playerBId === user.id;
               return (
                 <li key={fixture.id}>
-                  <div>
-                    <strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong>
-                    <small>Round {fixture.round} · Meeting {fixture.meetingNumber} · {fixture.status}</small>
-                  </div>
-                  {isMine && fixture.status === 'OUTSTANDING' && league.status === 'OPEN' && (
-                    <button className="action-button" type="button" onClick={() => { setSelectedFixtureId(fixture.id); setView('record'); }}>
-                      Record result
-                    </button>
-                  )}
+                  <div><strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong><small>Round {fixture.round} · Meeting {fixture.meetingNumber} · {fixture.status}</small></div>
+                  {isMine && fixture.status === 'OUTSTANDING' && league.status === 'OPEN' && <button className="action-button" type="button" onClick={() => { setSelectedFixtureId(fixture.id); setView('record'); }}>Record result</button>}
                 </li>
               );
             })}
           </ul>
-          {fixtures.length === 0 && <p className="empty-message">No fixtures generated for this season yet.</p>}
         </div>
       )}
 
@@ -246,47 +254,35 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         <div className="result-feed"><h3>Confirmed games</h3><ul className="result-list">{results.map((result) => <li key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /></li>)}</ul><h3 className="subsection-title">Your pending games</h3><ul className="result-list">{pending.map((result) => <li className="review-row" key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /><div className="review-actions"><button className="primary-button" type="button" disabled={busyResult === result.id} aria-busy={busyResult === result.id} onClick={() => void confirm(result)}>{busyResult === result.id ? 'Saving' : 'Confirm'}</button><button className="secondary-button" type="button" onClick={(event) => { disputeTriggerRef.current = event.currentTarget; setDisputeId(result.id); }}>Dispute</button></div></li>)}{pending.length === 0 && <li className="empty-message">No pending games.</li>}</ul></div>
       )}
 
-      {!loading && view === 'players' && <ul className="club-player-list">{detail?.players.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul>}
+      {!loading && view === 'players' && <div className="player-more-panel"><nav className="player-more-actions" aria-label="More player options"><button type="button" className="player-more-action player-more-action-active" aria-current="page" onClick={() => setView('players')}><AppIcon name="players" />Players</button><button type="button" className="player-more-action" onClick={() => setView('profile')}><AppIcon name="profile" />Profile</button></nav><ul className="club-player-list">{detail?.players?.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul></div>}
 
       {view === 'record' && (
         <form className="result-form" onSubmit={submitResult}>
-          <div className="form-heading">
-            <p className="section-kicker">NEW GAME</p>
-            <h3>Record your result</h3>
-            <p className="form-help">{matchFormatDescription(maxLegs)}</p>
-          </div>
+          <div className="form-heading"><h3>Record your result</h3><p className="form-help">{matchFormatDescription(maxLegs)}</p></div>
           {!canRecord && <p className="empty-message">Result entry is unavailable while this league is closed.</p>}
           {selectedFixtureId && (() => {
-            const selectedFixture = fixtures.find((f) => f.id === selectedFixtureId);
-            const opponentName = selectedFixture ? (selectedFixture.playerAId === user.id ? selectedFixture.playerBUsername : selectedFixture.playerAUsername) : 'Opponent';
-            return (
-              <p className="account-context">
-                Selected fixture: {selectedFixture?.playerAUsername} vs {selectedFixture?.playerBUsername} (Round {selectedFixture?.round})
-              </p>
-            );
+            const selectedFixture = fixtures.find((fixture) => fixture.id === selectedFixtureId);
+            return <p className="account-context">Selected fixture: {selectedFixture?.playerAUsername} vs {selectedFixture?.playerBUsername} (Round {selectedFixture?.round})</p>;
           })()}
-          {!selectedFixtureId && (
-            <>
-              <label htmlFor="opponent">Opponent</label>
-              <select id="opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)} required disabled={!canRecord}>
-                <option value="">Choose player</option>
-                {opponents.map((player) => <option key={player.id} value={player.id}>{player.username}</option>)}
-              </select>
-            </>
-          )}
+          {!selectedFixtureId && <><label htmlFor="opponent">Opponent</label><select id="opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)} required disabled={!canRecord}><option value="">Choose player</option>{opponents.map((player) => <option key={player.id} value={player.id}>{player.username}</option>)}</select></>}
           <div className="form-grid">
             <label htmlFor="your-legs">Your legs<input id="your-legs" type="number" min="0" max={targetLegs} value={playerALegs} onChange={(event) => setPlayerALegs(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="their-legs">Their legs<input id="their-legs" type="number" min="0" max={targetLegs} value={playerBLegs} onChange={(event) => setPlayerBLegs(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="your-average">Your average<input id="your-average" type="number" min="0" max="200" step="0.01" value={playerAAverage} onChange={(event) => setPlayerAAverage(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="their-average">Their average<input id="their-average" type="number" min="0" max="200" step="0.01" value={playerBAverage} onChange={(event) => setPlayerBAverage(event.target.value)} required disabled={!canRecord} /></label>
           </div>
-          <button className="primary-button" type="submit" disabled={!canRecord || busyResult === 'new' || opponents.length === 0} aria-busy={busyResult === 'new'}>
-            {!canRecord ? 'League closed' : busyResult === 'new' ? 'Sending' : 'Send for confirmation'}
-          </button>
+          <button className="primary-button" type="submit" disabled={!canRecord || busyResult === 'new' || opponents.length === 0} aria-busy={busyResult === 'new'}>{!canRecord ? 'League closed' : busyResult === 'new' ? 'Sending' : 'Send for confirmation'}</button>
         </form>
       )}
 
-      {view === 'profile' && <ProfilePanel user={user} onSaved={saveUser} />}
+      {view === 'profile' && <div className="player-more-panel"><nav className="player-more-actions" aria-label="More player options"><button type="button" className="player-more-action" onClick={() => setView('players')}><AppIcon name="players" />Players</button><button type="button" className="player-more-action player-more-action-active" aria-current="page" onClick={() => setView('profile')}><AppIcon name="profile" />Profile</button></nav><ProfilePanel user={user} onSaved={saveUser} /></div>}
+
+      <nav className="member-app-nav" aria-label="Member workspace">
+        <button type="button" className={view === 'table' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'table' ? 'page' : undefined} onClick={() => setView('table')}><AppIcon name="league" /><span>League</span></button>
+        {fixtureNavigationAvailable ? <button type="button" className={view === 'fixtures' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'fixtures' ? 'page' : undefined} onClick={() => setView('fixtures')}><AppIcon name="calendar" /><span>Fixtures</span></button> : <button type="button" className={view === 'record' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'record' ? 'page' : undefined} onClick={() => setView('record')}><AppIcon name="record" /><span>Record</span></button>}
+        <button type="button" className={view === 'results' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'results' ? 'page' : undefined} onClick={() => setView('results')}><AppIcon name="results" /><span>Results</span></button>
+        <button type="button" className={moreActive ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={moreActive ? 'page' : undefined} onClick={() => setView('players')}><AppIcon name="more" /><span>More</span></button>
+      </nav>
 
       {disputeId && <div className="modal-backdrop"><form ref={disputeDialogRef} className="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="dispute-title" onSubmit={submitDispute}><h3 id="dispute-title">Dispute result</h3><label htmlFor="dispute-note">What needs checking?</label><textarea ref={disputeNoteRef} id="dispute-note" maxLength={240} value={disputeNote} onChange={(event) => setDisputeNote(event.target.value)} required /><div className="modal-actions"><button className="secondary-button" type="button" onClick={() => { setDisputeId(null); setDisputeNote(''); }}>Cancel</button><button className="primary-button" type="submit" disabled={busyResult === disputeId} aria-busy={busyResult === disputeId}>Send dispute</button></div></form></div>}
     </section>

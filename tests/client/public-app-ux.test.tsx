@@ -19,7 +19,7 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
       if (shared.failLeagueList) return Promise.reject(new Error('network down'));
       return Promise.resolve({ leagues: shared.emptyLeagueList ? [] : [league] });
     }
-    publicLeague() { return Promise.resolve({ league, players: [] }); }
+    publicLeague() { return Promise.resolve({ league: { ...league, players: [] }, players: [] }); }
     standings() { return Promise.resolve({ standings: [] }); }
     results() { return Promise.resolve({ results: [] }); }
   }
@@ -48,7 +48,7 @@ describe('public UX compression', () => {
 
     expect((await screen.findByRole('alert')).textContent).toBe('The club table could not be loaded.');
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
-    expect(screen.queryByText('No public leagues are published yet.')).toBeNull();
+    expect(screen.queryByText('No public leagues are published yet')).toBeNull();
 
     state.failLeagueList = false;
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
@@ -62,7 +62,7 @@ describe('public UX compression', () => {
     state.emptyLeagueList = true;
     render(<App />);
 
-    await waitFor(() => expect(screen.getByText('No public leagues are published yet.')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('No public leagues are published yet')).toBeTruthy());
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });

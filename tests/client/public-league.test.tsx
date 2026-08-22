@@ -41,29 +41,31 @@ describe('public league sharing', () => {
 
   afterEach(() => cleanup());
 
-  it('presents the signed-out view as a clear club record with the actual competition rules', async () => {
+  it('presents the signed-out view as a mobile league-first club app', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
+    const leagueHeading = await screen.findByRole('heading', { name: 'Tuesday Club' });
+    const standingsTable = screen.getByRole('table', { name: 'Tuesday Club 2026 standings' });
+    const signIn = screen.getByRole('group', { name: 'Sign in with Google' });
 
-    expect(screen.getByRole('heading', { name: 'The club table' })).toBeTruthy();
-    expect(screen.getByText('Club darts, properly settled. Standings and confirmed results for the current season.')).toBeTruthy();
-    expect(screen.getByText('Sign in to record a result or confirm one.')).toBeTruthy();
-    expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy();
-    for (const heading of ['Pos', 'Player', 'P', 'W-D-L', 'Legs', 'Avg', 'Pts']) {
-      expect(screen.getByRole('columnheader', { name: heading })).toBeTruthy();
-    }
-    expect(await screen.findByRole('rowheader', { name: 'Wilf' })).toBeTruthy();
-    expect(document.querySelectorAll('img[src="/brand/misfits-501.jpg"]')).toHaveLength(1);
-    expect(screen.queryByText('Club darts, properly settled.')).toBeNull();
-    expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'The club table' })).toBeNull();
+    expect(screen.getByText('2026 Season')).toBeTruthy();
     expect(screen.getByText('Best of 6 · Win 3 · Draw 1 · Loss 0')).toBeTruthy();
     expect(screen.getByText('Table: Points → Legs won → Head-to-head')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Share league' })).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Club navigation' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'League' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('button', { name: 'Results' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'More' })).toBeTruthy();
+
+    expect(leagueHeading.compareDocumentPosition(standingsTable) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(standingsTable.compareDocumentPosition(signIn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    expect(await screen.findByRole('rowheader', { name: 'Wilf' })).toBeTruthy();
+    expect(document.querySelectorAll('img[src="/brand/misfits-501.jpg"]')).toHaveLength(1);
     expect(screen.getByRole('heading', { name: 'Latest results' })).toBeTruthy();
     expect(screen.getAllByText('Wilf')).toHaveLength(2);
     expect(screen.getByText('Sam')).toBeTruthy();
     expect(screen.getByText('Draw')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Misfits 501 leagues' })).toBeNull();
   });
 
   it('opens a shared public league deep link and copies its link from the public view', async () => {

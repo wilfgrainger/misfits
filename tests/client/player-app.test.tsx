@@ -10,7 +10,7 @@ const user: UserSummary = { id: 'player-a', username: 'Alpha', role: 'PLAYER', s
 describe('mobile league workspaces', () => {
   beforeEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-  it('renders a signed-in player table, result navigation and profile entry', async () => {
+  it('renders a signed-in player table with app navigation and profile access through More', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({ standings: [{ rank: 1, playerId: 'player-a', username: 'Alpha', played: 1, won: 1, lost: 0, legsFor: 3, legsAgainst: 1, legDifference: 2, points: 2, average: 51.24 }] }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ league, players: [{ id: 'player-a', username: 'Alpha', profileImageUrl: null }, { id: 'player-b', username: 'Bravo', profileImageUrl: null }] }), { status: 200 }))
@@ -19,8 +19,12 @@ describe('mobile league workspaces', () => {
     render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
     await waitFor(() => expect(screen.getByText('Alpha')).toBeTruthy());
     expect(screen.getByRole('navigation', { name: 'Member workspace' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'League' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Results' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Add result' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Record' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'More' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Fixtures' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
     expect(screen.getByRole('button', { name: 'Profile' })).toBeTruthy();
   });
 
@@ -31,7 +35,6 @@ describe('mobile league workspaces', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }));
 
     render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
-
     const table = await screen.findByRole('table', { name: 'Misfits 501 2026 standings' });
     expect(table.querySelector('tr.standing-row-you')?.textContent).toContain('Alpha');
   });
@@ -50,7 +53,7 @@ describe('mobile league workspaces', () => {
 
     render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
     await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-b'));
     fireEvent.change(screen.getByLabelText('Your legs'), { target: { value: '3' } });
     fireEvent.change(screen.getByLabelText('Their legs'), { target: { value: '1' } });
@@ -93,7 +96,7 @@ describe('mobile league workspaces', () => {
     expect(document.activeElement).toBe(dispute);
   });
 
-  it('saves the signed-in player profile through the profile panel', async () => {
+  it('saves the signed-in player profile through the More panel', async () => {
     const onUserSaved = vi.fn();
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input);
@@ -107,6 +110,7 @@ describe('mobile league workspaces', () => {
 
     render(<PlayerLeague user={user} league={league} onUserSaved={onUserSaved} />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
     fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'Alpha Prime' } });
     fireEvent.change(screen.getByLabelText('Darts Counter profile'), { target: { value: 'https://dartcounter.net/alpha' } });
@@ -133,17 +137,17 @@ describe('mobile league workspaces', () => {
 
     const { rerender } = render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
     await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-b'));
 
     rerender(<PlayerLeague user={user} league={secondLeague} onUserSaved={vi.fn()} />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Thursday Club' })).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
     await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-c'));
     expect((screen.getByLabelText('Your legs') as HTMLInputElement).value).toBe('');
   });
 
-  it('displays player fixtures and submits fixture-based results', async () => {
+  it('advertises fixtures only when fixture capability actually loaded and submits fixture results', async () => {
     const fixturePayload = { fixtures: [{ id: 'f1', seasonId: 's1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', pairKey: 'player-a:player-b', round: 1, meetingNumber: 1, status: 'OUTSTANDING', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: 'Bravo', resultId: null }] };
     const resultPayload = { result: { id: 'r1', fixtureId: 'f1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 3, playerBLegs: 1, playerAAverage: 60.5, playerBAverage: 52.0, submittedBy: 'player-a', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null } };
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -158,15 +162,13 @@ describe('mobile league workspaces', () => {
     });
 
     render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
-
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Fixtures' })).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Fixtures' }));
     await waitFor(() => expect(screen.getByText(/Alpha vs Bravo/)).toBeTruthy());
     expect(screen.getByText(/Round 1/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Record result' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Record your result' })).toBeTruthy());
-
     fireEvent.change(screen.getByLabelText('Your legs'), { target: { value: '3' } });
     fireEvent.change(screen.getByLabelText('Their legs'), { target: { value: '1' } });
     fireEvent.change(screen.getByLabelText('Your average'), { target: { value: '60.5' } });
@@ -192,7 +194,7 @@ describe('mobile league workspaces', () => {
 
     render(<PlayerLeague user={user} league={closedLeague} onUserSaved={vi.fn()} />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Add result' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
     expect(screen.getByText('Result entry is unavailable while this league is closed.')).toBeTruthy();
     expect((screen.getByRole('button', { name: 'League closed' }) as HTMLButtonElement).disabled).toBe(true);
   });

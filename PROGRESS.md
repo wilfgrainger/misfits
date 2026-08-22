@@ -1,77 +1,56 @@
 # Misfits 501 Progress
 
 **Updated:** 22 August 2026  
-**Current branch:** `main`  
-**Current focus:** Pragmatic delivery policy complete; 33 incomplete stories remain parked  
-**Main:** PR #170 merged as `ce7ad96f9a3c83ef6e017dc812c5765e5332b1a2` plus this documentation-only checkpoint
+**Current branch:** `feat/mobile-experience-reset`  
+**Current focus:** Mobile Experience Reset — design authority complete; implementation planning next  
+**Main baseline:** pragmatic delivery policy merged in PR #170
 
 ## Authority
 
 - Product: `PRODUCT.md`
 - Vision/platform guardrail: `VISION.md`
-- UI: `DESIGN.md` + repo-local Impeccable skill
-- Story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`
-- Latest story evidence: `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`
-- GitHub issues own operational story open/closed state.
+- Standing UI authority: `DESIGN.md`
+- Mobile Experience Reset design: `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md`
+- Mobile experience acceptance stories: `docs/superpowers/specs/2026-08-22-mobile-experience-stories.md`
+- Functional story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`
+- Latest functional story evidence: `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`
+- GitHub issues own operational functional story open/closed state.
 - `AGENTS.md` owns the durable delivery/test/verification policy.
 
-## Parked stories
+## Functional backlog remains parked
 
-**117/150 stories are verified/closed. 33 remain deliberately parked and open: 12 PARTIAL + 21 MISSING.**
+**117/150 functional stories are verified/closed. 33 remain deliberately parked and open: 12 PARTIAL + 21 MISSING.**
 
 Open distribution: Admin 6, Player 26, Public 1.
 
-## Release 1 — UX Compression — COMPLETE
+The `MX-001`–`MX-012` Mobile Experience stories are an experience acceptance layer. They do **not** change the 150-story functional denominator or close any parked story by themselves.
 
-PR #168 merged to `main` as `aed8df57e4342c341af3405ba031d94c95379f2d`.
+## Mobile Experience Reset — STEP 1 COMPLETE
 
-Final PR-head CI `32586862564` passed `npm ci`, Wrangler types, both TypeScript projects, full Vitest and production build. Impeccable deterministic scan returned 0 findings.
+The user approved a premium mobile-app direction based on the generated Misfits 501 mockup and supplied quality references.
 
-Delivered:
-- mobile member navigation with 44px scrollable targets;
-- blank consequential result-score defaults;
-- compressed signed-in identity/context chrome;
-- explicit public failure/empty/Retry states and `Share league` wording;
-- one canonical admin Results composition with no portal/DOM-query bridge;
-- actual fixture player names in official result fields;
-- progressive disclosure for secondary Season/League setup and destructive actions;
-- dead `AdminLeagueDesk` and unused direct client dependencies removed;
-- duplicate parent Results API load removed;
-- VISION/DESIGN/story-authority wording aligned.
+Step 1 has converted that visual into durable repo authority:
 
-No D1/schema/API architecture change was introduced.
+- `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md` treats the approved mockup as the visual target for hierarchy, composition, card rhythm, navigation, colour balance and quality;
+- `DESIGN.md` now makes the standing system green-led, app-like, league-first and card-led rather than red-led / stacked-web-page-led;
+- `docs/superpowers/specs/2026-08-22-mobile-experience-stories.md` defines `MX-001`–`MX-012` with explicit acceptance and mappings to the functional backlog;
+- the old broken mobile composition is explicitly rejected: no horizontal overflow, oversized sign-in hero, repeated league/season headings, dead vertical gaps or squeezed seven-column phone table.
 
-## Release 1.5 — Cave Pony test-suite simplification — COMPLETE
+### Approved mobile hierarchy
 
-PR #169 merged to `main` as `2ddcd678aac8cb256056a7abc6e369f6b7fbba73`.
+`Club header → League hero → Rules strip → Standings → contextual member/sign-in action → Latest results → bottom navigation`
 
-Final PR-head CI `32587464954` passed `npm ci`, Wrangler types, both TypeScript projects, **231/231 tests across 57 files**, and production build. Vitest runtime was 20.43s.
+### Hard responsive acceptance
 
-Simplification:
-- removed duplicate/history-coupled client and release tests;
-- kept all focused domain/server authentication, authorization, persistence, schema, scoring, standings and promotion coverage;
-- deployment tests now assert safety rather than an exact CI shape;
-- focused proof is used during implementation, with one fresh full repository gate before merge.
+320 / 375 / 390 / 412 / 768 / 960+ widths, zero page-level horizontal overflow, 16–20px mobile gutters, 44px targets, readable contrast and no bottom-navigation overlap.
 
-Release 1.5 changed no production code.
+### Scope boundary
 
-## Pragmatic delivery policy — COMPLETE
+This reset uses current APIs/data. It does not weaken the admin fixture guard, add schema, change scoring, or silently implement the parked Fixture-First Player Experience backend.
 
-PR #170 merged to `main` as `ce7ad96f9a3c83ef6e017dc812c5765e5332b1a2`.
+## Next step
 
-Final PR-head CI `32588127805` passed Wrangler types, both TypeScript projects, full Vitest and production build.
-
-Policy now keeps strong safety boundaries while scaling ceremony to risk:
-- routine bounded changes do not require written specs/plans or repeated approvals;
-- Superpowers is required for architectural, multi-step or high-risk work, or when explicitly requested;
-- an approved release/design plan authorizes its in-scope implementation tasks unless assumptions or scope materially change;
-- Impeccable is required for material UI/interaction changes, not every copy/CSS/test correction;
-- Cave Pony formal review is required for meaningful simplification/refactor/architecture work, not every routine PR;
-- `PROGRESS.md` is updated at meaningful release/handoff checkpoints, not after every test or tiny task;
-- feature branches verify through `pull_request`; `push` CI is limited to `main`, avoiding duplicate branch verification;
-- the PR template is reduced to risk, proof and applicable specialist review;
-- one fresh full repository gate remains required before merge;
-- auth, authorization, secrets, migrations, destructive data operations and production-data integrity remain strong guardrails.
+Write the Superpowers implementation plan for the UI rebuild, then implement the material responsive reset with Impeccable as UI authority. Use focused tests during implementation and one full repository gate before merge.
 
 ## Test ownership policy
 
@@ -80,24 +59,18 @@ Policy now keeps strong safety boundaries while scaling ceremony to risk:
 - `tests/client/`: user journeys and presentation behaviour.
 - `tests/release/`: deployment/schema/operational guardrails not already owned elsewhere.
 
-During implementation, run the smallest focused proof. Batch coherent low-risk changes. Run one fresh full repository gate before review/merge. Expand proof for security, permissions, migrations, destructive operations or data-loss risk.
+During implementation, use focused proof and batch coherent changes. Run one fresh full repository gate before review/merge. Expand proof only for material risk.
 
-Do not add a story-number test when another suite already proves the same contract. Do not test repository history such as deleted filenames or an exact count of CI jobs.
-
-## Next planned product releases
+## Product releases after Mobile Experience Reset
 
 1. **Fixture-First Player Experience**: permission-safe fixture reads, My/League Fixtures, progress/status, fixture-first entry, fixed-A/B score mapping, own pending result.
 2. **Standings, Movement & Season Context**: zones/ambiguity/provisional-v-final movement, explicit current season, public league browsing, full rule context.
 3. **Admin Competition Readiness & Safety**: whole-season readiness, `seasonHealth()`, operational counts, accessible destructive actions.
-4. **History, Responsive Acceptance & Final Story Closure**: historic fixture context, viewport/touch acceptance, revalidate all 150 issues and close only fully evidenced stories.
-
-## Parked fixture root cause
-
-Normal players still cannot read fixtures because `PlayerLeague -> ApiClient.fixtures()` calls `/api/admin/competition/leagues/:id/fixtures`, which requires ADMIN, and the client swallows the 403 into an empty fixture list. Do not weaken the admin guard. The future fixture-first release adds a permission-safe read contract and must also map `Your/Their` scores correctly onto fixed fixture Player A/B ordering.
+4. **History, Responsive Acceptance & Final Story Closure**: historic fixture context, revalidate all 150 functional issues and close only fully evidenced stories.
 
 ## Guardrails
 
-- Keep all 33 incomplete story issues open until separately revalidated.
+- Keep all 33 incomplete functional story issues open until separately revalidated.
 - Preserve Worker authorization, same-origin security, competition invariants, auditability and accessibility.
 - No new router, state framework, component library, backend service or Cloudflare product without a real requirement.
 - Use the risk-proportionate policy in `AGENTS.md`; do not recreate micro-CI loops.

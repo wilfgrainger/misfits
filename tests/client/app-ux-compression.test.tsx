@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 
 const { MockApiClient, MockApiClientError } = vi.hoisted(() => {
@@ -35,11 +35,13 @@ import App from '../../src/client/App';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-it('keeps meaningful league context without repeating signed-in identity chrome', async () => {
+it('keeps meaningful league context in one player hero without repeating account chrome', async () => {
   render(<App />);
 
   await screen.findByRole('heading', { name: 'Premier' });
-  await waitFor(() => expect(screen.getByText(/Current season: Premier · 2026 · Open · Public/)).toBeTruthy());
+  expect(screen.getByText('2026 Season')).toBeTruthy();
+  expect(screen.getByText('OPEN')).toBeTruthy();
+  expect(screen.queryByText(/Current season:/)).toBeNull();
   expect(screen.queryByText('1 season')).toBeNull();
   expect(document.querySelector('.account-status')).toBeNull();
   expect(document.querySelector('.account-heading')).toBeNull();
