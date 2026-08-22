@@ -81,6 +81,7 @@ export interface StandingRow {
   username: string;
   played: number;
   won: number;
+  drawn: number;
   lost: number;
   legsFor: number;
   legsAgainst: number;
