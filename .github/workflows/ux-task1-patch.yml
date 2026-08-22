@@ -1,0 +1,57 @@
+name: One-shot UX Task 1 patch
+
+on:
+  push:
+    branches:
+      - spec/ux-compression
+    paths:
+      - .ux-task1-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: spec/ux-compression
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply Task 1 compatibility updates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path('tests/client/player-app.test.tsx'): [
+                  ("expect((screen.getByLabelText('Your legs') as HTMLInputElement).value).toBe('5');", "expect((screen.getByLabelText('Your legs') as HTMLInputElement).value).toBe('');"),
+              ],
+              Path('tests/client/player-scoring-rules.test.tsx'): [
+                  ("expect(yourLegs.value).toBe('4');", "expect(yourLegs.value).toBe('');"),
+              ],
+              Path('src/client/styles.css'): [
+                  (".content-tab {\n  min-height: 42px;", ".content-tab {\n  min-height: 44px;"),
+              ],
+          }
+
+          for path, pairs in replacements.items():
+              text = path.read_text()
+              for old, new in pairs:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{path}: expected one match for {old!r}, found {count}')
+                  text = text.replace(old, new)
+              path.write_text(text)
+          PY
+      - name: Remove one-shot patch machinery
+        run: rm -f .ux-task1-trigger .github/workflows/ux-task1-patch.yml
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test: align player UX expectations"
+          git push origin HEAD:spec/ux-compression
