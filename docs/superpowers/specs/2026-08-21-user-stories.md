@@ -115,8 +115,8 @@ The following decisions are now explicit:
 | **ADM-021** | As an administrator, I want to order leagues explicitly so that the system knows the divisional hierarchy. | Hierarchy/order is persisted; top and bottom leagues are deterministic; order does not depend on alphabetical names. | **DELIVERED · P0** |
 | **ADM-022** | As an administrator, I want to set league capacity so that divisions cannot silently overfill. | Capacity is persisted and validated on assignments/invites; admin can see current active count versus capacity. | **DELIVERED · P0** |
 | **ADM-023** | As an administrator, I want to configure matches per player pair so that single, double or triple round-robin formats are possible. | Positive supported repeat count is persisted; fixture generation uses it exactly; duplicate meetings remain separately identifiable. | **DELIVERED · P0** |
-| **ADM-024** | As an administrator, I want to configure the legs-to-win format for a league so that result validation follows the competition rules. | Supported target is persisted; normal result entry validates decisive scores; rule is visible to players. | **DELIVERED · P0** |
-| **ADM-025** | As an administrator, I want to configure points per win so that standings use the intended scoring system. | Value is persisted; only confirmed results award points; changing it after competition starts is protected. | **DELIVERED · P0** |
+| **ADM-024** | As an administrator, I want to configure the maximum legs / Best-of format for a league so that both traditional decisive matches and even draw-capable formats are supported. | Maximum legs is persisted; the winning target is derived as `floor(maxLegs / 2) + 1`; even formats permit only the valid exhausted draw; server-side result validation enforces the format; players can see the rule. | **DELIVERED · P0** |
+| **ADM-025** | As an administrator, I want to configure points for a win, draw and loss so that each league can use its intended standings scoring system. | Win/draw/loss values are persisted per league; only confirmed results award points; draws award the configured draw value to both players; consequential scoring changes are protected after competition begins. | **DELIVERED · P0** |
 | **ADM-026** | As an administrator, I want to control league public/private visibility so that the club deliberately chooses what visitors can see. | PUBLIC data is readable without login; PRIVATE league data requires permitted access; private identity fields never leak. | **DELIVERED · P0** |
 | **ADM-027** | As an administrator, I want to share a stable public league link so that members and friends can open exactly that competition. | Link resolves the intended season/league; native share or clipboard fallback works; private leagues do not expose public share behaviour. | **DELIVERED · P1** |
 | **ADM-028** | As an administrator, I want to see all leagues in a season at once so that the complete divisional structure is obvious. | List shows ordered league names, status/configuration summary and membership counts; selection is explicit. | **DELIVERED · P1** |
@@ -176,7 +176,7 @@ The following decisions are now explicit:
 | **ADM-067** | As an administrator, I want result mutations audited so that important changes to the official table are accountable. | Actor, action, timestamp and material before/after values are reconstructable; players cannot alter audit records. | **DELIVERED · P0** |
 | **ADM-068** | As an administrator, I want standings recalculated from confirmed results rather than manually edited totals so that the table is a deterministic view of official matches. | Pending/disputed/void data contributes nothing; correction/deletion changes derived totals correctly. | **DELIVERED · P0** |
 | **ADM-069** | As an administrator, I want standings scoped to one season and league so that divisions never contaminate each other's tables. | Only confirmed results from fixtures in the selected season+league are aggregated. | **DELIVERED · P0** |
-| **ADM-070** | As an administrator, I want the standings tie-break order explicitly configured or fixed by an approved rule so that equal-points positions are deterministic. | Ordering rule is documented and tested; same dataset always yields same rank; rule is visible enough to explain the table. | **GATED · P0** |
+| **ADM-070** | As an administrator, I want equal standings positions resolved by the approved rule so that competition ordering is explainable and deterministic. | Competitive order is points, then total legs won, then head-to-head points; two-player head-to-head aggregates their confirmed meetings; 3+ ties use a mini-table; players still equal share rank; deterministic presentation never becomes a competitive tie-break; promotion/relegation surfaces a boundary ambiguity rather than guessing. | **DELIVERED · P0** |
 | **ADM-071** | As an administrator, I want rule-changing actions protected after confirmed results exist so that points/format changes cannot silently rewrite a live table. | Backend blocks or requires explicit migration/corrective workflow; impact is shown before action. | **DELIVERED · P0** |
 
 ## 4.7 Promotion, relegation and next-season placement
@@ -234,7 +234,7 @@ The following decisions are now explicit:
 | **PLY-013** | As a player, I want to switch between seasons I am allowed to view so that I can inspect previous competition. | Selection reloads the corresponding leagues/fixtures/results; race/stale responses do not overwrite the latest selection. | **DELIVERED · P1** |
 | **PLY-014** | As a player, I want to inspect other public leagues in the current season so that I can follow the rest of the club. | Public leagues are viewable without granting member mutation rights; my own league is clearly identified. | **DELIVERED · P2** |
 | **PLY-015** | As a player, I want private league data limited to leagues I am permitted to see so that signing in does not expose every private division automatically. | Server checks membership/admin permission; guessing ID/slug cannot bypass private visibility. | **DELIVERED · P0** |
-| **PLY-016** | As a player, I want the league's key rules visible so that I understand match format and points. | Shows legs-to-win, points per win and relevant meetings-per-pair information without exposing admin-only controls. | **DELIVERED · P1** |
+| **PLY-016** | As a player, I want the league's key rules visible so that I understand match format and points. | Shows Best-of / maximum legs, derived winning target, points for win/draw/loss and relevant meetings-per-pair information without exposing admin-only controls. | **PARTIAL · P1** |
 | **PLY-017** | As a player, I want closed seasons clearly marked so that I know I am viewing history rather than an active competition. | Status is visible; normal result entry is unavailable; historical data remains readable. | **DELIVERED · P1** |
 
 ## 5.3 League table and players
@@ -243,9 +243,9 @@ The following decisions are now explicit:
 |---|---|---|---|
 | **PLY-018** | As a player, I want to see the standings for my specific season and league so that I know my competitive position. | Aggregation includes only confirmed results from that season+league; no other division contributes. | **DELIVERED · P0** |
 | **PLY-019** | As a player, I want my own row highlighted so that I can find myself quickly on a phone. | Highlight is visual but accessible; table semantics remain intact. | **DELIVERED · P1** |
-| **PLY-020** | As a player, I want standings to show useful league totals so that the table is understandable. | At minimum position, player, played, won/lost, points and agreed tie-break/stat columns are present and labelled. | **DELIVERED · P1** |
+| **PLY-020** | As a player, I want standings to show useful league totals so that the table is understandable. | At minimum position, player, played, won/drawn/lost, points and total legs won are present and labelled; agreed tie-break context is explainable. | **PARTIAL · P1** |
 | **PLY-021** | As a player, I want only confirmed results to affect the table so that unverified or disputed games cannot move positions. | Pending/disputed results contribute zero; confirmation updates once; deletion/correction adjusts derived totals. | **DELIVERED · P0** |
-| **PLY-022** | As a player, I want equal-points ordering to follow a published deterministic rule so that league position is explainable. | Rule matches backend calculation and is discoverable; ambiguous promotion positions are not silently guessed. | **GATED · P0** |
+| **PLY-022** | As a player, I want equal standings positions to follow the published approved rule so that league position is explainable. | UI and backend use Points → total legs won → head-to-head; genuine unresolved ties share rank; ambiguous promotion positions are surfaced rather than silently guessed. | **MISSING · P0** |
 | **PLY-023** | As a player, I want promotion positions visible where configured so that I know what I am competing for. | Promotion zone corresponds to league rules; labelled provisional until season finalised. | **DELIVERED · P1** |
 | **PLY-024** | As a player, I want relegation positions visible where configured so that the consequences of the table are clear. | Relegation zone corresponds to league rules; labelled provisional until finalised. | **DELIVERED · P1** |
 | **PLY-025** | As a player, I want to see the players in my league so that I know my opponents. | Roster is season+league scoped; current user is identifiable; inactive members are handled consistently. | **DELIVERED · P1** |
@@ -270,7 +270,7 @@ The following decisions are now explicit:
 | ID | User story | Acceptance criteria | State |
 |---|---|---|---|
 | **PLY-036** | As a player, I want to record a result by opening one of my outstanding fixtures so that I do not choose an arbitrary opponent. | Fixture determines league and both players; only eligible participant can start submission; non-outstanding fixture is blocked. | **DELIVERED · P0** |
-| **PLY-037** | As a player, I want to enter both players' leg scores so that the official match result is captured. | Scores are numeric, in range and decisive according to league target; impossible/tied invalid outcomes are rejected. | **DELIVERED · P0** |
+| **PLY-037** | As a player, I want to enter both players' leg scores so that the official match result is captured. | Scores are numeric and in range; a decisive score must reach the derived winning target without exceeding maximum legs; an even Best-of format may end only in its valid exhausted draw, such as 3-3 in Best of 6; impossible or incomplete outcomes are rejected. | **PARTIAL · P0** |
 | **PLY-038** | As a player, I want to enter both DartCounter three-dart averages so that the league retains agreed performance information. | Finite allowed range and precision are validated server-side; values are stored against the fixture result. | **DELIVERED · P1** |
 | **PLY-039** | As a player, I want to submit my entered fixture result to my opponent for confirmation so that I cannot unilaterally alter the official table. | Result becomes PENDING; submitter is recorded; fixture reflects pending confirmation; standings remain unchanged. | **DELIVERED · P0** |
 | **PLY-040** | As the submitting player, I want to see my own pending result so that I know it is waiting rather than lost. | My pending submissions are visible with fixture/opponent/result and pending state; I am not offered self-confirmation. | **DELIVERED · P1** |
@@ -351,6 +351,7 @@ These are not optional UI details. They are domain rules that should have focuse
 32. Admin role/access, membership, fixture and result integrity are enforced by the Worker, not merely hidden controls.
 33. Public APIs never return session tokens, invite tokens/hashes, Google subjects or private member email addresses.
 34. All state-changing requests preserve the existing same-origin/security boundary.
+35. Competitive standings rank uses league points, total legs won and head-to-head points only; a stable presentation fallback must never decide a competitive outcome.
 
 ---
 
@@ -397,154 +398,3 @@ Season Admin
 ```
 
 ---
-
-# 9. Delivery epics
-
-The backlog should be implemented in dependency order rather than by picking isolated stories.
-
-## Epic 1 — Competition model
-
-- separate Season and League concepts;
-- league hierarchy;
-- season+league membership;
-- migrate/preserve current competition history safely.
-
-Primary stories: ADM-010–045, PLY-010–025.
-
-## Epic 2 — Fixture engine
-
-- round-robin generation;
-- preview;
-- backend persistence;
-- duplicate protection;
-- fixture lists/states.
-
-Primary stories: ADM-046–059, PLY-026–035.
-
-## Epic 3 — Fixture-based result settlement
-
-- result references fixture;
-- player submission from fixture;
-- opponent confirmation/dispute;
-- admin resolution/correction;
-- standings remain confirmed-only.
-
-Primary stories: ADM-060–071, PLY-036–049.
-
-## Epic 4 — Promotion/relegation and season rollover
-
-- league promotion/relegation options;
-- provisional zones;
-- final candidate calculation;
-- admin review/override;
-- new-season membership creation.
-
-Primary stories: ADM-072–082, PLY-050–055.
-
-## Epic 5 — Full functional regression audit
-
-Every story in this file is tested against production/current main and classified with evidence:
-
-```text
-PASS
-PARTIAL
-FAIL
-NOT IMPLEMENTED
-BLOCKED / DECISION REQUIRED
-```
-
-P0/P1 failures become the prioritised implementation backlog.
-
----
-
-# 10. Explicitly not part of the current approved baseline
-
-Unless separately approved, do not silently expand this backlog into:
-
-- live dart-by-dart scoring;
-- replacement of DartCounter;
-- multi-club tenancy or white-label clubs;
-- payments/subscriptions;
-- tournaments/knockouts;
-- doubles/teams;
-- messaging/chat;
-- WhatsApp automation;
-- push/email notifications;
-- venue booking;
-- paid Cloudflare services;
-- queues, R2/object storage, Durable Objects or scheduled background work;
-- arbitrary profile image uploads;
-- complex fixture calendar/date scheduling;
-- postponement workflows;
-- playoff engines;
-- advanced statistics, streaks, head-to-head or player leaderboards until separately prioritised;
-- public player biographies/social profiles until privacy/visibility is approved.
-
-Persisted fixture **pairings** and promotion/relegation **league movement** are now approved and are not gated by the older specs.
-
----
-
-# 11. Definition of done for every story
-
-A story is not complete because a button exists.
-
-- [ ] Authoritative behaviour exists in the backend wherever persisted competition state is involved.
-- [ ] Authentication/authorization is enforced server-side.
-- [ ] Domain validation exists for invalid and adversarial inputs.
-- [ ] The happy path has focused automated coverage where practical.
-- [ ] Important rejection paths have automated coverage.
-- [ ] Existing regression tests continue to pass.
-- [ ] Loading, empty, success and failure states are understandable.
-- [ ] Mobile interaction is usable at board-side widths.
-- [ ] Desktop interaction remains first-class for administration and tables.
-- [ ] Keyboard/focus/semantic accessibility is preserved.
-- [ ] Mutations cannot silently duplicate, orphan or corrupt competition state.
-- [ ] Destructive changes are explicit and recoverable where the domain allows.
-- [ ] Refreshing/reopening the application reproduces backend truth.
-- [ ] Public/private data boundaries remain intact.
-
----
-
-# 12. Target end-to-end lifecycle
-
-```text
-ADMIN CREATES SEASON
-        ↓
-ADMIN CREATES & ORDERS LEAGUES
-        ↓
-ADMIN CONFIGURES LEAGUE RULES + PROMOTION OPTIONS
-        ↓
-ADMIN MAPS PLAYERS TO SEASON + LEAGUE
-        ↓
-ADMIN REVIEWS UNASSIGNED / INVALID MEMBERSHIP
-        ↓
-ADMIN PREVIEWS FIXTURE GENERATION
-        ↓
-ADMIN COMMITS FIXTURES TO BACKEND
-        ↓
-PLAYER OPENS OUTSTANDING FIXTURE
-        ↓
-PLAYER RECORDS AGREED DARTCOUNTER RESULT
-        ↓
-OPPONENT CONFIRMS OR DISPUTES
-        ↓
-CONFIRMED RESULT SETTLES FIXTURE
-        ↓
-LEAGUE TABLE RECALCULATES
-        ↓
-SEASON PROGRESSES UNTIL FIXTURES COMPLETE
-        ↓
-FINAL TABLE
-        ↓
-PROMOTION / RELEGATION PROPOSAL
-        ↓
-ADMIN REVIEWS / OVERRIDES MOVEMENTS
-        ↓
-NEXT SEASON CREATED
-        ↓
-NEW SEASON + LEAGUE MEMBERSHIPS WRITTEN
-        ↓
-NEW FIXTURES GENERATED
-```
-
-That lifecycle is the functional backbone of Misfits 501.

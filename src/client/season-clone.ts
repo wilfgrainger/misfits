@@ -14,6 +14,11 @@ function number(row: Record<string, unknown>, camel: string, snake = camel): num
   return typeof value === 'number' ? value : 0;
 }
 
+function optionalNumber(row: Record<string, unknown>, camel: string, snake = camel): number | undefined {
+  const value = row[camel] ?? row[snake];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 function normalizeSeason(value: unknown): SeasonSummary {
   const row = record(value);
   return {
@@ -29,14 +34,19 @@ function normalizeSeason(value: unknown): SeasonSummary {
 
 function normalizeLeague(value: unknown): LeagueSummary {
   const row = record(value);
+  const legacyTargetLegs = optionalNumber(row, 'targetLegs', 'target_legs');
+  const maxLegs = optionalNumber(row, 'maxLegs', 'max_legs') ?? ((legacyTargetLegs ?? 3) * 2) - 1;
   return {
     id: text(row, 'id'),
     name: text(row, 'name'),
     slug: text(row, 'slug'),
     seasonName: text(row, 'seasonName', 'season_name'),
     status: text(row, 'status') as LeagueSummary['status'],
-    pointsPerWin: number(row, 'pointsPerWin', 'points_per_win'),
-    targetLegs: number(row, 'targetLegs', 'target_legs'),
+    maxLegs,
+    pointsPerWin: optionalNumber(row, 'pointsPerWin', 'points_per_win') ?? 2,
+    pointsPerDraw: optionalNumber(row, 'pointsPerDraw', 'points_per_draw') ?? 0,
+    pointsPerLoss: optionalNumber(row, 'pointsPerLoss', 'points_per_loss') ?? 0,
+    targetLegs: legacyTargetLegs ?? Math.floor(maxLegs / 2) + 1,
     maxPlayers: number(row, 'maxPlayers', 'max_players'),
     matchesPerPair: number(row, 'matchesPerPair', 'matches_per_pair'),
     visibility: text(row, 'visibility') as LeagueSummary['visibility'],

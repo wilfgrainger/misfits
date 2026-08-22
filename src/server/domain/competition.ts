@@ -1,4 +1,5 @@
 import { normalizeSlug } from './league';
+import { legsToWin, maxLegsFromLegacyTarget } from './scoring';
 
 export type SeasonStatus = 'DRAFT' | 'OPEN' | 'CLOSED';
 export type FixtureStatus = 'OUTSTANDING' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'DISPUTED' | 'VOID';
@@ -19,7 +20,11 @@ export interface CompetitionLeagueInput {
   slug: string;
   maxPlayers: number;
   matchesPerPair: number;
+  maxLegs: number;
   pointsPerWin: number;
+  pointsPerDraw: number;
+  pointsPerLoss: number;
+  /** Compatibility mirror only. New writes are authoritative through maxLegs. */
   targetLegs: number;
   visibility: CompetitionVisibility;
   hierarchyPosition: number;
@@ -29,7 +34,7 @@ export interface CompetitionLeagueInput {
 
 export type CompetitionLeagueValidation =
   | { ok: true; value: CompetitionLeagueInput }
-  | { ok: false; reason: 'INPUT' | 'NAME' | 'SLUG' | 'MAX_PLAYERS' | 'MATCHES_PER_PAIR' | 'POINTS_PER_WIN' | 'TARGET_LEGS' | 'VISIBILITY' | 'HIERARCHY' | 'PROMOTION' | 'RELEGATION' | 'MOVEMENT_OVERLAP' };
+  | { ok: false; reason: 'INPUT' | 'NAME' | 'SLUG' | 'MAX_PLAYERS' | 'MATCHES_PER_PAIR' | 'MAX_LEGS' | 'POINTS_PER_WIN' | 'POINTS_PER_DRAW' | 'POINTS_PER_LOSS' | 'TARGET_LEGS' | 'VISIBILITY' | 'HIERARCHY' | 'PROMOTION' | 'RELEGATION' | 'MOVEMENT_OVERLAP' };
 
 export interface GeneratedFixture {
   playerAId: string;
@@ -84,6 +89,18 @@ function integerInRange(value: unknown, min: number, max: number): value is numb
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 }
 
+function scoringLegs(value: Record<string, unknown>): { maxLegs: number; targetLegs: number } | { reason: 'MAX_LEGS' | 'TARGET_LEGS' } {
+  if (value.maxLegs !== undefined) {
+    if (!integerInRange(value.maxLegs, 1, 40)) return { reason: 'MAX_LEGS' };
+    const maxLegs = Number(value.maxLegs);
+    return { maxLegs, targetLegs: legsToWin(maxLegs) };
+  }
+
+  if (!integerInRange(value.targetLegs ?? 3, 1, 20)) return { reason: 'TARGET_LEGS' };
+  const targetLegs = Number(value.targetLegs ?? 3);
+  return { maxLegs: maxLegsFromLegacyTarget(targetLegs), targetLegs };
+}
+
 export function validateSeasonInput(input: unknown): SeasonValidation {
   if (!input || typeof input !== 'object') return { ok: false, reason: 'INPUT' };
   const value = input as Record<string, unknown>;
@@ -114,8 +131,11 @@ export function validateCompetitionLeagueInput(input: unknown): CompetitionLeagu
   if (!slug) return { ok: false, reason: 'SLUG' };
   if (!integerInRange(value.maxPlayers ?? 32, 2, 1000)) return { ok: false, reason: 'MAX_PLAYERS' };
   if (!integerInRange(value.matchesPerPair ?? 1, 1, 20)) return { ok: false, reason: 'MATCHES_PER_PAIR' };
-  if (!integerInRange(value.pointsPerWin ?? 2, 1, 100)) return { ok: false, reason: 'POINTS_PER_WIN' };
-  if (!integerInRange(value.targetLegs ?? 3, 1, 20)) return { ok: false, reason: 'TARGET_LEGS' };
+  if (!integerInRange(value.pointsPerWin ?? 2, 0, 100)) return { ok: false, reason: 'POINTS_PER_WIN' };
+  if (!integerInRange(value.pointsPerDraw ?? 0, 0, 100)) return { ok: false, reason: 'POINTS_PER_DRAW' };
+  if (!integerInRange(value.pointsPerLoss ?? 0, 0, 100)) return { ok: false, reason: 'POINTS_PER_LOSS' };
+  const legs = scoringLegs(value);
+  if ('reason' in legs) return { ok: false, reason: legs.reason };
   const visibility = value.visibility ?? 'PRIVATE';
   if (visibility !== 'PUBLIC' && visibility !== 'PRIVATE') return { ok: false, reason: 'VISIBILITY' };
   if (!integerInRange(value.hierarchyPosition ?? 1, 1, 100)) return { ok: false, reason: 'HIERARCHY' };
@@ -132,8 +152,11 @@ export function validateCompetitionLeagueInput(input: unknown): CompetitionLeagu
       slug,
       maxPlayers,
       matchesPerPair: Number(value.matchesPerPair ?? 1),
+      maxLegs: legs.maxLegs,
       pointsPerWin: Number(value.pointsPerWin ?? 2),
-      targetLegs: Number(value.targetLegs ?? 3),
+      pointsPerDraw: Number(value.pointsPerDraw ?? 0),
+      pointsPerLoss: Number(value.pointsPerLoss ?? 0),
+      targetLegs: legs.targetLegs,
       visibility,
       hierarchyPosition: Number(value.hierarchyPosition ?? 1),
       promotionPlaces,
@@ -226,10 +249,7 @@ export function calculatePromotionMovements(
 }
 
 function sameCompetitiveRank(left: StandingPosition, right: StandingPosition): boolean {
-  return left.points === right.points
-    && left.legDifference === right.legDifference
-    && left.legsFor === right.legsFor
-    && left.average === right.average;
+  return left.position === right.position;
 }
 
 function tiedUserIds(standings: StandingPosition[], boundaryIndex: number): string[] {
@@ -239,10 +259,10 @@ function tiedUserIds(standings: StandingPosition[], boundaryIndex: number): stri
 }
 
 /**
- * Projection deliberately ignores the username fallback used for display
- * ordering. If two players are equal on every approved competitive metric at
- * a movement boundary, an administrator must resolve the tie before a final
- * proposal can be written.
+ * Standings rank is the sole competitive authority here. The standings engine
+ * has already applied points, total legs won and head-to-head. Presentation
+ * statistics such as leg difference, average, username and player ID must not
+ * reopen a resolved rank or split a genuine shared rank at a movement boundary.
  */
 export function calculatePromotionProjection(
   standingsByLeague: Map<string, StandingPosition[]>,

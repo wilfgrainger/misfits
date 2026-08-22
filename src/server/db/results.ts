@@ -2,6 +2,7 @@ import { AppError } from '../errors';
 import { canonicalPair, validatePlayerResult, type ResultInput } from '../domain/result';
 import { calculateStandings, type StandingRow } from '../domain/standings';
 import { getLeagueById, getMembership, listLeagueMembers } from './leagues';
+import { scoringRulesForLeague } from './scoring-rules';
 
 export type MatchStatus = 'PENDING' | 'CONFIRMED' | 'DISPUTED';
 
@@ -116,8 +117,8 @@ function normalizedResult(input: ResultInput): ResultInput {
   };
 }
 
-async function validateAndNormalize(input: unknown, targetLegs: number): Promise<ResultInput> {
-  const validation = validatePlayerResult(input, targetLegs);
+async function validateAndNormalize(input: unknown, rules: ReturnType<typeof scoringRulesForLeague>): Promise<ResultInput> {
+  const validation = validatePlayerResult(input, rules);
   if (!validation.ok) throw new AppError('INVALID_RESULT', `Result details are invalid: ${validation.reason}`, 400);
   return normalizedResult(validation.value);
 }
@@ -126,7 +127,7 @@ export async function submitPlayerResult(db: D1Database, sessionUserId: string, 
   const league = await getLeagueById(db, leagueId);
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
   if (league.status !== 'OPEN') throw new AppError('LEAGUE_CLOSED', 'This league is closed', 409);
-  const result = await validateAndNormalize(input, league.target_legs);
+  const result = await validateAndNormalize(input, scoringRulesForLeague(league));
   if (sessionUserId !== result.playerAId && sessionUserId !== result.playerBId) throw new AppError('FORBIDDEN', 'You can only record a result involving you', 403);
   await requireActiveMember(db, leagueId, result.playerAId);
   await requireActiveMember(db, leagueId, result.playerBId);
@@ -196,7 +197,7 @@ export async function disputeResult(db: D1Database, userId: string, resultId: st
 export async function createAdminResult(db: D1Database, adminUserId: string, leagueId: string, input: unknown, now = new Date()): Promise<ResultRecord> {
   const league = await getLeagueById(db, leagueId);
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
-  const result = await validateAndNormalize(input, league.target_legs);
+  const result = await validateAndNormalize(input, scoringRulesForLeague(league));
   await requireActiveMember(db, leagueId, result.playerAId);
   await requireActiveMember(db, leagueId, result.playerBId);
   const id = crypto.randomUUID();
@@ -225,7 +226,7 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
   if (!existing || existing.deleted_at) throw new AppError('VALIDATION_ERROR', 'Result was not found', 404);
   const league = await getLeagueById(db, existing.league_id);
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
-  const result = await validateAndNormalize(input, league.target_legs);
+  const result = await validateAndNormalize(input, scoringRulesForLeague(league));
   await requireActiveMember(db, league.id, result.playerAId);
   await requireActiveMember(db, league.id, result.playerBId);
   const [existingA, existingB] = canonicalPair(existing.player_a_id, existing.player_b_id);
@@ -358,7 +359,7 @@ export async function getLeagueStandings(db: D1Database, leagueId: string): Prom
       playerAAverage: result.player_a_average,
       playerBAverage: result.player_b_average,
     })),
-    league.points_per_win,
+    scoringRulesForLeague(league),
   );
 }
 

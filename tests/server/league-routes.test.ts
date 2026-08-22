@@ -22,7 +22,10 @@ type League = {
   slug: string;
   season_name: string;
   status: 'OPEN' | 'CLOSED';
+  max_legs: number;
   points_per_win: number;
+  points_per_draw: number;
+  points_per_loss: number;
   target_legs: number;
   created_at: string;
   updated_at: string;
@@ -71,16 +74,16 @@ class MemoryD1 {
       const [tokenHash, userId, createdAt, expiresAt] = values as string[];
       this.sessions.set(tokenHash, { token_hash: tokenHash, user_id: userId, created_at: createdAt, expires_at: expiresAt });
     } else if (sql.includes('INSERT INTO leagues')) {
-      const [id, name, slug, seasonName, status, pointsPerWin, targetLegs, createdAt, updatedAt, createdBy, maxPlayers, matchesPerPair, visibility] = values as [string, string, string, string, 'OPEN' | 'CLOSED', number, number, string, string, string, number, number, 'PUBLIC' | 'PRIVATE'];
-      this.leagues.set(id, { id, name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC' });
+      const [id, name, slug, seasonName, status, win, draw, loss, maxLegs, targetLegs, createdAt, updatedAt, createdBy, maxPlayers, matchesPerPair, visibility] = values as [string, string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, number, string, string, string, number, number, 'PUBLIC' | 'PRIVATE'];
+      this.leagues.set(id, { id, name, slug, season_name: seasonName, status, max_legs: maxLegs, points_per_win: win, points_per_draw: draw, points_per_loss: loss, target_legs: targetLegs, created_at: createdAt, updated_at: updatedAt, created_by: createdBy, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC' });
     } else if (sql.includes('UPDATE leagues')) {
-      const [name, slug, seasonName, status, pointsPerWin, targetLegs, maxPlayers, matchesPerPair, visibility, updatedAt, id] = values as [string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, 'PUBLIC' | 'PRIVATE', string, string];
+      const [name, slug, seasonName, status, win, draw, loss, maxLegs, targetLegs, maxPlayers, matchesPerPair, visibility, updatedAt, id, countLeagueId, capacity] = values as [string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, number, number, number, 'PUBLIC' | 'PRIVATE', string, string, string, number];
       if (sql.includes('SELECT COUNT(*) FROM league_players')) {
-        const activeCount = [...this.memberships].filter((key) => key.startsWith(`${String(values[11])}:`)).length;
-        if (activeCount > Number(values[6])) return { success: true, meta: { changes: 0 } };
+        const activeCount = [...this.memberships].filter((key) => key.startsWith(`${countLeagueId}:`)).length;
+        if (activeCount > capacity) return { success: true, meta: { changes: 0 } };
       }
       const league = this.leagues.get(id)!;
-      Object.assign(league, { name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC', updated_at: updatedAt });
+      Object.assign(league, { name, slug, season_name: seasonName, status, max_legs: maxLegs, points_per_win: win, points_per_draw: draw, points_per_loss: loss, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC', updated_at: updatedAt });
     } else if (sql.includes('INSERT INTO league_invites')) {
       const [id, leagueId, tokenHash, createdBy, expiresAt, createdAt] = values as [string, string, string, string, string | null, string];
       this.invites.set(id, { id, league_id: leagueId, token_hash: tokenHash, created_by: createdBy, expires_at: expiresAt, uses: 0, revoked_at: null, created_at: createdAt });

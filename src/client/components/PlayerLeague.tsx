@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, type FixtureSummary, type LeagueDetail, type LeagueSummary, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
 import { ProfilePanel } from './ProfilePanel';
 import { StandingsTable } from './StandingsTable';
+import { effectiveMaxLegs, leagueScoringSummary, legsToWin, matchFormatDescription, resultOutcomeLabel, TABLE_TIE_BREAK_DESCRIPTION } from '../scoring';
 
 const api = new ApiClient();
 type PlayerView = 'table' | 'fixtures' | 'results' | 'players' | 'record' | 'profile';
@@ -18,7 +19,7 @@ function displayDate(value: string): string {
 
 function ResultRow({ result, user, onResolve }: { result: ResultSummary; user: UserSummary; onResolve: (result: ResultSummary) => void }) {
   const isPlayerA = result.playerAId === user.id;
-  const winner = result.playerALegs > result.playerBLegs ? result.playerAUsername : result.playerBUsername;
+  const outcome = resultOutcomeLabel(result.playerALegs, result.playerBLegs, result.playerAUsername, result.playerBUsername);
   return (
     <div className="result-row">
       <div className="result-main">
@@ -33,12 +34,14 @@ function ResultRow({ result, user, onResolve }: { result: ResultSummary; user: U
       {result.status !== 'CONFIRMED' && <span className={`status-label status-${result.status.toLowerCase()}`}>{result.status}</span>}
       {result.status === 'PENDING' && !isPlayerA && result.submittedBy !== user.id && <button className="action-button" type="button" onClick={() => onResolve(result)}>Review result</button>}
       {result.status === 'DISPUTED' && result.disputeNote && <p className="dispute-note">{result.disputeNote}</p>}
-      {result.status === 'CONFIRMED' && winner && <span className="result-winner">Winner: {winner}</span>}
+      {result.status === 'CONFIRMED' && <span className="result-winner">{outcome}</span>}
     </div>
   );
 }
 
 export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
+  const maxLegs = effectiveMaxLegs(league);
+  const targetLegs = legsToWin(maxLegs);
   const [view, setView] = useState<PlayerView>('table');
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [results, setResults] = useState<ResultSummary[]>([]);
@@ -50,7 +53,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
   const [notice, setNotice] = useState('');
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [opponentId, setOpponentId] = useState('');
-  const [playerALegs, setPlayerALegs] = useState(String(league.targetLegs));
+  const [playerALegs, setPlayerALegs] = useState(String(targetLegs));
   const [playerBLegs, setPlayerBLegs] = useState('0');
   const [playerAAverage, setPlayerAAverage] = useState('');
   const [playerBAverage, setPlayerBAverage] = useState('');
@@ -99,11 +102,11 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
     setView('table');
     setSelectedFixtureId(null);
     setOpponentId('');
-    setPlayerALegs(String(league.targetLegs));
+    setPlayerALegs(String(targetLegs));
     setPlayerBLegs('0');
     setPlayerAAverage('');
     setPlayerBAverage('');
-  }, [league.id, league.targetLegs]);
+  }, [league.id, targetLegs]);
 
   useEffect(() => {
     if (disputeId) {
@@ -159,7 +162,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
       setNotice('Result sent to your opponent.');
       setView('results');
       setSelectedFixtureId(null);
-      setPlayerALegs(String(league.targetLegs));
+      setPlayerALegs(String(targetLegs));
       setPlayerBLegs('0');
       setPlayerAAverage('');
       setPlayerBAverage('');
@@ -198,6 +201,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         </div>
         <button className="refresh-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Loading' : 'Refresh'}</button>
       </div>
+      <div className="season-rules-stack"><p className="season-rules">{leagueScoringSummary(league)}</p><p className="form-help">{TABLE_TIE_BREAK_DESCRIPTION}</p></div>
       <nav className="segmented-tabs" aria-label="Member workspace">
         {([['table', 'Table'], ['fixtures', 'Fixtures'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
       </nav>
@@ -249,7 +253,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
           <div className="form-heading">
             <p className="section-kicker">NEW GAME</p>
             <h3>Record your result</h3>
-            <p className="form-help">First to {league.targetLegs} leg{league.targetLegs > 1 ? 's' : ''} wins.</p>
+            <p className="form-help">{matchFormatDescription(maxLegs)}</p>
           </div>
           {!canRecord && <p className="empty-message">Result entry is unavailable while this league is closed.</p>}
           {selectedFixtureId && (() => {
@@ -271,8 +275,8 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
             </>
           )}
           <div className="form-grid">
-            <label htmlFor="your-legs">Your legs<input id="your-legs" type="number" min="0" max={league.targetLegs} value={playerALegs} onChange={(event) => setPlayerALegs(event.target.value)} required disabled={!canRecord} /></label>
-            <label htmlFor="their-legs">Their legs<input id="their-legs" type="number" min="0" max={league.targetLegs} value={playerBLegs} onChange={(event) => setPlayerBLegs(event.target.value)} required disabled={!canRecord} /></label>
+            <label htmlFor="your-legs">Your legs<input id="your-legs" type="number" min="0" max={targetLegs} value={playerALegs} onChange={(event) => setPlayerALegs(event.target.value)} required disabled={!canRecord} /></label>
+            <label htmlFor="their-legs">Their legs<input id="their-legs" type="number" min="0" max={targetLegs} value={playerBLegs} onChange={(event) => setPlayerBLegs(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="your-average">Your average<input id="your-average" type="number" min="0" max="200" step="0.01" value={playerAAverage} onChange={(event) => setPlayerAAverage(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="their-average">Their average<input id="their-average" type="number" min="0" max="200" step="0.01" value={playerBAverage} onChange={(event) => setPlayerBAverage(event.target.value)} required disabled={!canRecord} /></label>
           </div>

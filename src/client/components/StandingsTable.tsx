@@ -15,7 +15,8 @@ export function StandingsTable({ standings, label, highlightPlayerId }: Standing
             <th scope="col">Pos</th>
             <th scope="col">Player</th>
             <th scope="col">P</th>
-            <th scope="col">W-L</th>
+            <th scope="col">W-D-L</th>
+            <th scope="col">Legs</th>
             <th scope="col">Avg</th>
             <th scope="col">Pts</th>
           </tr>
@@ -26,7 +27,8 @@ export function StandingsTable({ standings, label, highlightPlayerId }: Standing
               <td>{row.rank}</td>
               <th scope="row">{row.username}</th>
               <td>{row.played}</td>
-              <td>{row.won}-{row.lost}</td>
+              <td>{row.won}-{row.drawn}-{row.lost}</td>
+              <td>{row.legsFor}</td>
               <td>{row.average.toFixed(2)}</td>
               <td>{row.points}</td>
             </tr>

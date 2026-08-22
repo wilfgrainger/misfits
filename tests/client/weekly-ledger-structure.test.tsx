@@ -11,7 +11,10 @@ const { mockState, MockApiClient, MockApiClientError } = vi.hoisted(() => {
     slug: 'misfits-501',
     seasonName: '2026',
     status: 'OPEN' as const,
+    maxLegs: 5,
     pointsPerWin: 2,
+    pointsPerDraw: 0,
+    pointsPerLoss: 0,
     targetLegs: 3,
     maxPlayers: 16,
     matchesPerPair: 1,
@@ -74,18 +77,20 @@ describe('weekly ledger structural contracts', () => {
       <StandingsTable
         label="Misfits 501 2026 standings"
         standings={[
-          { playerId: 'p1', username: 'Player One', rank: 1, played: 3, won: 3, lost: 0, average: 55.4, points: 6 },
-          { playerId: 'p2', username: 'Player Two', rank: 2, played: 3, won: 1, lost: 2, average: 48.2, points: 2 },
+          { playerId: 'p1', username: 'Player One', rank: 1, played: 3, won: 2, drawn: 1, lost: 0, legsFor: 9, legsAgainst: 4, legDifference: 5, average: 55.4, points: 5 },
+          { playerId: 'p2', username: 'Player Two', rank: 2, played: 3, won: 1, drawn: 0, lost: 2, legsFor: 5, legsAgainst: 8, legDifference: -3, average: 48.2, points: 2 },
         ]}
       />
     );
 
     const table = screen.getByRole('table', { name: 'Misfits 501 2026 standings' });
     expect(table).toBeTruthy();
-    for (const heading of ['Pos', 'Player', 'P', 'W-L', 'Avg', 'Pts']) {
+    for (const heading of ['Pos', 'Player', 'P', 'W-D-L', 'Legs', 'Avg', 'Pts']) {
       expect(within(table).getByRole('columnheader', { name: heading })).toBeTruthy();
     }
     expect(within(table).getByRole('rowheader', { name: 'Player One' })).toBeTruthy();
+    expect(within(table).getByRole('cell', { name: '2-1-0' })).toBeTruthy();
+    expect(within(table).getByRole('cell', { name: '9' })).toBeTruthy();
     expect(within(table).getByRole('cell', { name: '55.40' })).toBeTruthy();
   });
 
