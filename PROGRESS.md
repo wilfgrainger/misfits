@@ -3,7 +3,7 @@
 **Updated:** 22 August 2026
 **Current branch:** `spec/configurable-match-scoring-v2`
 **Current base:** `main` at `39490132c2f8aecef880bdfb138b2006c9e12734`
-**Current scope:** written-spec review for configurable Best-of match scoring and the now-approved ADM-070 tie-break rule
+**Current scope:** approved configurable match-scoring design and implementation plan; close documentation PR #16, then execute on a fresh implementation branch
 
 ## Authority
 
@@ -12,8 +12,9 @@
 - UI authority: `DESIGN.md` and the repo-local Impeccable skill.
 - Canonical backlog: `docs/superpowers/specs/2026-08-21-user-stories.md`.
 - Approved scoring design: `docs/superpowers/specs/2026-08-22-configurable-match-scoring-design.md`.
+- Approved implementation plan: `docs/superpowers/plans/2026-08-22-configurable-match-scoring.md`.
 - Story-level evidence: `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
-- Delivery authority: Superpowers with brainstorming/design approval, TDD, systematic debugging and verification-before-completion.
+- Delivery authority: Superpowers with approved brainstorming/design, writing-plans, TDD, systematic debugging and verification-before-completion.
 
 ## Completed audited chunks
 
@@ -42,7 +43,7 @@ TDD evidence retained from that fix:
 
 ## ADM-070 product decision — resolved, not implemented
 
-The club has now approved the competitive standings tie-break order:
+The club-approved competitive standings order is:
 
 1. **League points**.
 2. **Total legs won**.
@@ -52,11 +53,19 @@ For two tied players, head-to-head uses points earned in confirmed matches again
 
 A stable username/player-id order may be used only for deterministic display and must never decide promotion/relegation.
 
-ADM-070 is therefore no longer product-gated. It remains **not delivered** until RED/GREEN implementation and verification evidence exist.
+ADM-070 is no longer product-gated. It remains **not delivered** until RED/GREEN implementation and verification evidence exist.
 
 ## Approved league match/scoring evolution
 
-The approved design also expands league configuration so a league can use even Best-of formats and configurable draw/loss points.
+The league rules model now approved is:
+
+```text
+Best of / maximum legs
+Points for win
+Points for draw
+Points for loss
+Matches per pair
+```
 
 Example:
 
@@ -72,18 +81,43 @@ Rules:
 - `legsToWin = floor(maxLegs / 2) + 1`.
 - Best of 6 ends at `4-0`, `4-1` or `4-2`; `3-3` is a draw.
 - Best of 5 remains decisive first-to-3.
-- Win, draw and loss points are configurable per league.
 - Existing legacy `target_legs = T` migrates to `max_legs = (T * 2) - 1` so existing competition meaning is preserved.
+- `target_legs` may remain only as compatibility data derived from the authoritative `max_legs` value.
 
-The full approved design is `docs/superpowers/specs/2026-08-22-configurable-match-scoring-design.md`.
+## Approved implementation plan
 
-## Current Superpowers gate
+The user explicitly approved the written design and said `go`. Superpowers `writing-plans` has produced:
 
-The design has been approved conversationally and committed, but Superpowers requires review of the written spec before implementation planning begins.
+`docs/superpowers/plans/2026-08-22-configurable-match-scoring.md`
 
-Do not write production code for these rules until the written spec is approved.
+Execution order is:
 
-After written-spec approval, the next step is to invoke the Superpowers writing-plans workflow. The implementation plan must update the canonical master stories first, specifically ADM-024, ADM-025 and ADM-070, before changing production code.
+1. Amend canonical ADM-024, ADM-025 and ADM-070 story/audit truth.
+2. Add D1 scoring migration and shared scoring contract.
+3. TDD odd/even result validation.
+4. Persist/expose all scoring rules and lock consequential edits.
+5. TDD configurable points plus approved standings/head-to-head rank.
+6. Make promotion/relegation consume authoritative shared rank.
+7. Update admin Match & table rules UI.
+8. Update player/public result and standings presentation.
+9. Complete story re-audit and full PR verification/review.
+10. Satisfy production D1 migration gate, then merge and verify main deploy.
+
+## Production migration guardrail
+
+The current release test intentionally requires the normal `main` Worker deployment **not** to apply remote D1 migrations automatically. Preserve that safety boundary.
+
+`migrations/0005_configurable_match_scoring.sql` will be additive and safe for the old Worker, but production D1 must receive it through an authorised explicit remote-migration process **before** code that selects the new columns is merged/deployed.
+
+Do not silently weaken `tests/release/deploy-workflow.test.ts` merely to make deployment convenient.
+
+## Current Superpowers state
+
+- Brainstorming/design gate: **APPROVED**.
+- Written design review: **APPROVED**.
+- Implementation plan: **COMMITTED**.
+- Production implementation: **NOT STARTED** on this documentation branch.
+- Next execution skill: `superpowers:executing-plans` (inline execution, inferred from the user's `go`).
 
 ## Superseded delivery line
 
@@ -94,11 +128,12 @@ After written-spec approval, the next step is to invoke the Superpowers writing-
 
 ## Resume instructions
 
-1. Review `docs/superpowers/specs/2026-08-22-configurable-match-scoring-design.md` with the user.
-2. Once the written spec is explicitly approved, invoke `writing-plans` and create the implementation plan.
-3. First implementation task: amend the canonical master user stories and story audit for ADM-024, ADM-025 and ADM-070.
-4. Continue strict story-order delivery with focused evidence, RED for real gaps, minimal GREEN and fresh complete verification.
-5. Keep this file, the master stories and the audit current at every durable checkpoint.
+1. Finish documentation PR #16 only after its PR-head verification is green.
+2. Merge PR #16, verify the resulting `main` commit, then create a fresh implementation branch from that exact main SHA.
+3. Invoke `superpowers:executing-plans` and execute `docs/superpowers/plans/2026-08-22-configurable-match-scoring.md` task-by-task.
+4. For every production behavior change, add focused RED evidence first and observe the expected failure before GREEN code.
+5. Keep this file, the master stories and story audit current at durable checkpoints.
+6. Do not merge/deploy the final schema-dependent implementation until production migration 0005 is explicitly confirmed applied.
 
 ## Known operational constraint
 
