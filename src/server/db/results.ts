@@ -2,7 +2,6 @@ import { AppError } from '../errors';
 import { canonicalPair, validatePlayerResult, type ResultInput } from '../domain/result';
 import { calculateStandings, type StandingRow } from '../domain/standings';
 import { getLeagueById, getMembership, listLeagueMembers } from './leagues';
-import { getUserById } from './users';
 
 export type MatchStatus = 'PENDING' | 'CONFIRMED' | 'DISPUTED';
 
@@ -232,8 +231,9 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
   const [existingA, existingB] = canonicalPair(existing.player_a_id, existing.player_b_id);
   const [nextA, nextB] = canonicalPair(result.playerAId, result.playerBId);
   const pairChanged = existingA !== nextA || existingB !== nextB;
-  const status = (input as { status?: unknown })?.status;
-  const nextStatus: MatchStatus = status === 'PENDING' || status === 'DISPUTED' || status === 'CONFIRMED' ? status : existing.status;
+  const inputState = input as { status?: unknown; disputeNote?: string | null };
+  const nextStatus: MatchStatus = inputState.status === 'PENDING' || inputState.status === 'DISPUTED' || inputState.status === 'CONFIRMED' ? inputState.status : existing.status;
+  const nextDisputeNote = inputState.disputeNote ?? null;
   const timestamp = now.toISOString();
   const updated = await db.prepare(
     `UPDATE matches SET player_a_id = ?, player_b_id = ?, player_a_legs = ?, player_b_legs = ?,
@@ -253,7 +253,7 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
     result.playerAAverage,
     result.playerBAverage,
     nextStatus,
-    (input as { disputeNote?: string }).disputeNote ?? null,
+    nextDisputeNote,
     timestamp,
     nextStatus,
     adminUserId,
@@ -262,11 +262,21 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
     resultId,
     ...(pairChanged ? [league.id, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair] : []),
   ).run();
-  if (pairChanged && updated.meta.changes !== 1) throw pairLimitReached();
+  if (updated.meta.changes !== 1) {
+    if (pairChanged) throw pairLimitReached();
+    throw new AppError('VALIDATION_ERROR', 'Result could not be updated', 409);
+  }
+  const auditAfter = {
+    ...result,
+    status: nextStatus,
+    disputeNote: nextDisputeNote,
+    confirmedBy: nextStatus === 'CONFIRMED' ? adminUserId : null,
+    confirmedAt: nextStatus === 'CONFIRMED' ? timestamp : null,
+  };
   await db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
      VALUES (?, 'RESULT_UPDATED_BY_ADMIN', 'MATCH', ?, ?, ?, ?)`,
-  ).bind(adminUserId, resultId, JSON.stringify(existing), JSON.stringify(result), timestamp).run();
+  ).bind(adminUserId, resultId, JSON.stringify(existing), JSON.stringify(auditAfter), timestamp).run();
   const saved = await getResultById(db, resultId);
   if (!saved) throw new Error('Result could not be loaded after admin update');
   return saved;
@@ -308,12 +318,48 @@ export async function getAdminResults(db: D1Database, leagueId: string): Promise
   return listResults(db, leagueId);
 }
 
+async function getStandingResults(db: D1Database, leagueId: string): Promise<ResultRecord[]> {
+  const fixtureCount = await db.prepare('SELECT COUNT(*) AS count FROM fixtures WHERE league_id = ?').bind(leagueId).first<{ count: number }>();
+  if (Number(fixtureCount?.count ?? 0) === 0) return getPublicResults(db, leagueId);
+
+  const result = await db.prepare(
+    `SELECT matches.id, matches.league_id, matches.player_a_id, matches.player_b_id,
+            matches.player_a_legs, matches.player_b_legs, matches.player_a_average, matches.player_b_average,
+            matches.submitted_by, matches.status, matches.confirmed_by, matches.dispute_note,
+            matches.created_at, matches.updated_at, matches.confirmed_at, matches.deleted_at,
+            a.username AS player_a_username, b.username AS player_b_username
+       FROM matches
+       JOIN fixtures ON fixtures.id = matches.fixture_id
+       JOIN leagues ON leagues.id = matches.league_id
+       JOIN users a ON a.id = matches.player_a_id
+       JOIN users b ON b.id = matches.player_b_id
+      WHERE matches.league_id = ?
+        AND matches.status = 'CONFIRMED'
+        AND matches.deleted_at IS NULL
+        AND fixtures.league_id = leagues.id
+        AND fixtures.season_id = leagues.season_id
+      ORDER BY matches.created_at DESC`,
+  ).bind(leagueId).all<ResultRecord>();
+  return result.results.map(normalizeResult);
+}
+
 export async function getLeagueStandings(db: D1Database, leagueId: string): Promise<StandingRow[]> {
   const league = await getLeagueById(db, leagueId);
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
   const members = (await listLeagueMembers(db, leagueId)).filter((member) => member.active === 1 && member.username);
-  const results = await getPublicResults(db, leagueId);
-  return calculateStandings(members.map((member) => ({ id: member.user_id, username: member.username! })), results.map((result) => ({ playerAId: result.player_a_id, playerBId: result.player_b_id, playerALegs: result.player_a_legs, playerBLegs: result.player_b_legs, playerAAverage: result.player_a_average, playerBAverage: result.player_b_average })), league.points_per_win);
+  const results = await getStandingResults(db, leagueId);
+  return calculateStandings(
+    members.map((member) => ({ id: member.user_id, username: member.username! })),
+    results.map((result) => ({
+      playerAId: result.player_a_id,
+      playerBId: result.player_b_id,
+      playerALegs: result.player_a_legs,
+      playerBLegs: result.player_b_legs,
+      playerAAverage: result.player_a_average,
+      playerBAverage: result.player_b_average,
+    })),
+    league.points_per_win,
+  );
 }
 
 export { publicResult };
