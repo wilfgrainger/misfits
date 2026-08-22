@@ -53,7 +53,7 @@ describe('public league sharing', () => {
     expect(screen.getByText('Table: Points → Legs won → Head-to-head')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Share league' })).toBeTruthy();
     expect(screen.getByRole('navigation', { name: 'Club navigation' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'League' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'League' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('button', { name: 'Results' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'More' })).toBeTruthy();
 
