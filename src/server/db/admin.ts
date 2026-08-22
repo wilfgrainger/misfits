@@ -46,10 +46,6 @@ export async function updateAdminPlayer(
   const nextClubStatus = changes.clubStatus ?? before.club_status;
   if (nextRole === before.role && nextStatus === before.status && nextClubStatus === before.club_status) return before;
 
-  if (before.is_master_admin === 1 && (nextRole !== 'ADMIN' || nextStatus !== 'ACTIVE' || nextClubStatus !== 'APPROVED')) {
-    throw new AppError('MASTER_ADMIN_PROTECTED', 'The master administrator cannot be removed, suspended or removed from the club', 409);
-  }
-
   if (nextRole === 'ADMIN' && nextClubStatus !== 'APPROVED') {
     throw new AppError('VALIDATION_ERROR', 'Administrator role requires approved club membership', 409);
   }
@@ -62,6 +58,10 @@ export async function updateAdminPlayer(
     (await countActiveAdmins(db)) <= 1
   ) {
     throw new AppError('LAST_ADMIN_PROTECTED', 'The last active approved administrator cannot be removed, suspended or removed from the club', 409);
+  }
+
+  if (before.is_master_admin === 1 && (nextRole !== 'ADMIN' || nextStatus !== 'ACTIVE' || nextClubStatus !== 'APPROVED')) {
+    throw new AppError('MASTER_ADMIN_PROTECTED', 'The master administrator cannot be removed, suspended or removed from the club', 409);
   }
 
   const updatedAt = now.toISOString();
