@@ -1,9 +1,9 @@
 # Misfits 501 Progress
 
 **Updated:** 22 August 2026  
-**Current branch:** `main`  
-**Current focus:** Releases 1 and 1.5 complete; 33 incomplete stories remain parked  
-**Main:** `2ddcd678aac8cb256056a7abc6e369f6b7fbba73` plus this documentation-only checkpoint
+**Current branch:** `chore/pragmatic-delivery-policy`  
+**Current focus:** Pragmatic delivery-policy cleanup; 33 incomplete stories remain parked  
+**Main baseline:** Releases 1 and 1.5 complete
 
 ## Authority
 
@@ -13,7 +13,7 @@
 - Story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`
 - Latest story evidence: `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`
 - GitHub issues own operational story open/closed state.
-- `AGENTS.md` owns the durable test/verification policy.
+- `AGENTS.md` owns the durable delivery/test/verification policy.
 
 ## Parked stories
 
@@ -45,31 +45,29 @@ No D1/schema/API architecture change was introduced.
 
 PR #169 merged to `main` as `2ddcd678aac8cb256056a7abc6e369f6b7fbba73`.
 
-Final PR-head CI `32587464954` passed:
-- `npm ci`;
-- Wrangler types;
-- both TypeScript projects;
-- **231/231 tests across 57 files**;
-- production build.
-
-Vitest runtime was 20.43s.
+Final PR-head CI `32587464954` passed `npm ci`, Wrangler types, both TypeScript projects, **231/231 tests across 57 files**, and production build. Vitest runtime was 20.43s.
 
 Simplification:
-- removed duplicated `weekly-ledger-structure` coverage;
-- removed repository-history/CSS/deleted-filename contract tests;
-- removed duplicate player UX-compression test file while retaining the behaviours in canonical player suites;
-- removed duplicate ADM-070 release coverage because the stronger rank-authority tests live in `tests/domain/competition.test.ts`;
-- kept the deployment test but changed it to assert safety rather than an exact CI job count;
+- removed duplicate/history-coupled client and release tests;
 - kept all focused domain/server authentication, authorization, persistence, schema, scoring, standings and promotion coverage;
-- `AGENTS.md` now requires focused tests during implementation and one fresh full repository gate before merge, rather than full CI after every small edit/checkpoint.
+- deployment tests now assert safety rather than an exact CI shape;
+- focused proof is used during implementation, with one fresh full repository gate before merge.
 
 Release 1.5 changed no production code.
 
-### Operational verification note
+## Pragmatic delivery policy
 
-The connected GitHub tool available in this session exposes PR-triggered workflow runs but not the push-triggered `main` run, so the final `main` Deploy Worker job could not be independently queried here without adding more observer infrastructure. We deliberately did not add that machinery. Release 1.5 is test/docs-only; its verified production build contains the same application code merged in Release 1.
+This policy cleanup keeps the safety boundaries but removes unnecessary ceremony.
 
-Do not claim a specific `main` deploy run ID unless a future session can actually read it.
+- Routine bounded changes do not require a written spec/plan or repeated approvals.
+- Superpowers is required for architectural, multi-step or high-risk work, or when explicitly requested.
+- An approved release/design plan authorizes its in-scope implementation tasks unless assumptions or scope materially change.
+- Impeccable is required for material UI/interaction changes, not every copy/CSS/test correction.
+- Cave Pony formal review is required for meaningful simplification/refactor/architecture work, not every routine PR.
+- `PROGRESS.md` is updated at meaningful release/handoff checkpoints, not after every test or tiny task.
+- Feature branches verify through `pull_request`; `push` CI is limited to `main`, avoiding duplicate branch verification.
+- One fresh full repository gate remains required before merge.
+- Auth, authorization, secrets, migrations, destructive data operations and production-data integrity remain strong guardrails.
 
 ## Test ownership policy
 
@@ -98,4 +96,4 @@ Normal players still cannot read fixtures because `PlayerLeague -> ApiClient.fix
 - Keep all 33 incomplete story issues open until separately revalidated.
 - Preserve Worker authorization, same-origin security, competition invariants, auditability and accessibility.
 - No new router, state framework, component library, backend service or Cloudflare product without a real requirement.
-- Use the simplified verification policy above; do not recreate micro-CI loops.
+- Use the risk-proportionate policy in `AGENTS.md`; do not recreate micro-CI loops.
