@@ -53,8 +53,8 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
   const [notice, setNotice] = useState('');
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [opponentId, setOpponentId] = useState('');
-  const [playerALegs, setPlayerALegs] = useState(String(targetLegs));
-  const [playerBLegs, setPlayerBLegs] = useState('0');
+  const [playerALegs, setPlayerALegs] = useState('');
+  const [playerBLegs, setPlayerBLegs] = useState('');
   const [playerAAverage, setPlayerAAverage] = useState('');
   const [playerBAverage, setPlayerBAverage] = useState('');
   const [busyResult, setBusyResult] = useState<string | null>(null);
@@ -102,8 +102,8 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
     setView('table');
     setSelectedFixtureId(null);
     setOpponentId('');
-    setPlayerALegs(String(targetLegs));
-    setPlayerBLegs('0');
+    setPlayerALegs('');
+    setPlayerBLegs('');
     setPlayerAAverage('');
     setPlayerBAverage('');
   }, [league.id, targetLegs]);
@@ -162,8 +162,8 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
       setNotice('Result sent to your opponent.');
       setView('results');
       setSelectedFixtureId(null);
-      setPlayerALegs(String(targetLegs));
-      setPlayerBLegs('0');
+      setPlayerALegs('');
+      setPlayerBLegs('');
       setPlayerAAverage('');
       setPlayerBAverage('');
       await load();
@@ -202,8 +202,8 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         <button className="refresh-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Loading' : 'Refresh'}</button>
       </div>
       <div className="season-rules-stack"><p className="season-rules">{leagueScoringSummary(league)}</p><p className="form-help">{TABLE_TIE_BREAK_DESCRIPTION}</p></div>
-      <nav className="segmented-tabs" aria-label="Member workspace">
-        {([['table', 'Table'], ['fixtures', 'Fixtures'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
+      <nav className="content-tabs" aria-label="Member workspace">
+        {([['table', 'Table'], ['fixtures', 'Fixtures'], ['results', 'Results'], ['players', 'Players'], ['record', 'Add result'], ['profile', 'Profile']] as const).map(([key, label]) => <button key={key} className={view === key ? 'content-tab content-tab-active' : 'content-tab'} type="button" aria-current={view === key ? 'page' : undefined} onClick={() => setView(key)}>{label}</button>)}
       </nav>
       {notice && <p className="success-message" role="status">{notice}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}

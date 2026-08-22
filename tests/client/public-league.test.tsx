@@ -58,7 +58,7 @@ describe('public league sharing', () => {
     expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
     expect(screen.getByText('Best of 6 · Win 3 · Draw 1 · Loss 0')).toBeTruthy();
     expect(screen.getByText('Table: Points → Legs won → Head-to-head')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Share season' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Share league' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Latest results' })).toBeTruthy();
     expect(screen.getAllByText('Wilf')).toHaveLength(2);
     expect(screen.getByText('Sam')).toBeTruthy();
@@ -71,7 +71,7 @@ describe('public league sharing', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
     expect(screen.queryByRole('heading', { name: 'Misfits 501' })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Share season' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Share league' }));
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('League link copied.'));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost:3000/league/tuesday-club');
   });

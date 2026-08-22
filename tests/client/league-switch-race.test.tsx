@@ -42,7 +42,6 @@ const { state, MockApiClient } = vi.hoisted(() => {
 
 vi.mock('../../src/client/api', () => ({ ApiClient: MockApiClient }));
 
-import { AdminLeagueDesk } from '../../src/client/components/AdminLeagueDesk';
 import { PlayerLeague } from '../../src/client/components/PlayerLeague';
 
 describe('league switch request ordering', () => {
@@ -70,21 +69,4 @@ describe('league switch request ordering', () => {
     expect(screen.getByText('Fresh player')).toBeTruthy();
   });
 
-  it('does not let a previous league response replace the selected admin data', async () => {
-    const { firstLeague, secondLeague, user } = state;
-    const admin = { ...user, role: 'ADMIN' as const, isMasterAdmin: true };
-    render(<AdminLeagueDesk user={admin} />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Second Club/ })).toBeTruthy());
-    await waitFor(() => expect(state.calls).toContain(firstLeague.id));
-
-    fireEvent.click(screen.getByRole('button', { name: /Second Club/ }));
-    state.gates[secondLeague.id].resolve();
-    await waitFor(() => expect(screen.getByText(/Fresh admin/)).toBeTruthy());
-
-    state.gates[firstLeague.id].resolve();
-    await state.gates[firstLeague.id].promise;
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(screen.queryByText(/Stale admin/)).toBeNull();
-    expect(screen.getByText(/Fresh admin/)).toBeTruthy();
-  });
 });

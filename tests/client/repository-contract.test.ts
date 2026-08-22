@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 describe('repository operating contract', () => {
@@ -30,5 +30,12 @@ describe('repository operating contract', () => {
     expect(css).toContain('.admin-workbench');
     expect(css).toContain('@media (min-width: 960px)');
     expect(css).not.toContain('font-family: Inter');
+  });
+
+  it('does not carry superseded admin UI or unused client dependencies', () => {
+    expect(existsSync('src/client/components/AdminLeagueDesk.tsx')).toBe(false);
+    const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as { dependencies?: Record<string, string> };
+    expect(packageJson.dependencies).not.toHaveProperty('react-router-dom');
+    expect(packageJson.dependencies).not.toHaveProperty('zod');
   });
 });

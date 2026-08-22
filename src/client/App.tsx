@@ -57,7 +57,7 @@ function PublicLeagueView({ league }: { league: LeagueSummary }) {
 
   return (
     <section className="public-league" aria-labelledby="public-league-title">
-      <div className="season-record-heading"><div><p className="season-context">{league.seasonName} season</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>{copied ? 'Copied! ✓' : 'Share season'}</button></div></div>
+      <div className="season-record-heading"><div><p className="season-context">{league.seasonName} season</p><h2 id="public-league-title">{league.name}</h2></div><div className="public-league-actions"><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span><button className="action-button" type="button" onClick={() => void share()}>{copied ? 'Copied! ✓' : 'Share league'}</button></div></div>
       {shareMessage && <p className="success-message" role="status">{shareMessage}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
       <p className="season-rules">{leagueScoringSummary(league)}</p>
@@ -77,6 +77,8 @@ export default function App() {
   const [signingIn, setSigningIn] = useState(false);
   const [publicLeagues, setPublicLeagues] = useState<LeagueSummary[]>([]);
   const [publicLeagueId, setPublicLeagueId] = useState<string | null>(null);
+  const [publicLoaded, setPublicLoaded] = useState(false);
+  const [publicLoadError, setPublicLoadError] = useState('');
   const [myLeagues, setMyLeagues] = useState<LeagueSummary[]>([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [adminSelectedLeagueId, setAdminSelectedLeagueId] = useState<string | null>(null);
@@ -84,14 +86,19 @@ export default function App() {
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const loadPublicLeagues = async () => {
+    setPublicLoadError('');
     try {
       const result = await api.leagues();
       setPublicLeagues(result.leagues);
       const requestedKey = typeof window !== 'undefined' ? publicLeagueKey(window.location.pathname) : null;
       const requested = requestedKey ? result.leagues.find((league) => league.id === requestedKey || league.slug === requestedKey) : null;
-      setPublicLeagueId((current) => requested?.id || current || result.leagues[0]?.id || null);
+      setPublicLeagueId((current) => requested?.id || (current && result.leagues.some((league) => league.id === current) ? current : result.leagues[0]?.id || null));
     } catch {
       setPublicLeagues([]);
+      setPublicLeagueId(null);
+      setPublicLoadError('The club table could not be loaded.');
+    } finally {
+      setPublicLoaded(true);
     }
   };
 
@@ -231,7 +238,9 @@ export default function App() {
         </header>
         {view === 'signed-out' && <>
           <section className="public-intro" aria-labelledby="public-leagues-title"><div><h1 id="public-leagues-title">The club table</h1><p>Club darts, properly settled. Standings and confirmed results for the current season.</p></div><div className="public-entry" role="group" aria-label="Sign in with Google"><p>Sign in to record a result or confirm one.</p><div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} /></div></section>
-          {publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><LeagueTabs ariaLabel="Club seasons" leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
+          {publicLoadError && <div className="public-load-state"><p className="error-message" role="alert">{publicLoadError}</p><button className="action-button" type="button" onClick={() => void loadPublicLeagues()}>Retry</button></div>}
+          {!publicLoadError && publicLoaded && publicLeagues.length === 0 && <p className="empty-message">No public leagues are published yet.</p>}
+          {!publicLoadError && publicLeagues.length > 0 && <section className="public-home" aria-labelledby="public-leagues-title"><LeagueTabs ariaLabel="Club seasons" leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} />}</section>}
         </>}
 
         {view === 'onboarding' && (
@@ -249,13 +258,6 @@ export default function App() {
 
         {view === 'signed-in' && user && (
           <div className="account-panel">
-            <div className="account-heading">
-              <div>
-                <p className="account-name">{user.username ?? 'Player'}</p>
-                <p className="account-role">{user.role === 'ADMIN' ? 'Club administrator' : 'Misfits 501 player'}</p>
-              </div>
-              <span className="account-status">{myLeagues.length} {myLeagues.length === 1 ? 'season' : 'seasons'}</span>
-            </div>
             {user.role === 'ADMIN' && (
               <nav className="segmented-tabs" aria-label="Admin views">
                 <button

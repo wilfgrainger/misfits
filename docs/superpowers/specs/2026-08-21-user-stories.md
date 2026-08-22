@@ -9,6 +9,8 @@
 
 This file is the **master user-story list for Misfits 501**. It owns the functional backlog for administrator, player and deliberately public club behaviour.
 
+Story wording and acceptance criteria live here. **Operational completion state is owned by the latest validation evidence plus the corresponding GitHub issue**, not by an older row label in isolation. A stale catalogue status must not silently reopen or close work; align the row when that story is next touched.
+
 Older dated design specs remain useful decision history, but their functional scope statements do not override later decisions recorded here. In particular:
 
 - the v2 decision to exclude persisted fixtures and promotion/relegation is superseded;

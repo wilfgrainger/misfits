@@ -77,6 +77,9 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
   const pending = useMemo(() => results.filter((result) => result.status === 'PENDING'), [results]);
   const disputed = useMemo(() => results.filter((result) => result.status === 'DISPUTED'), [results]);
   const confirmed = useMemo(() => results.filter((result) => result.status === 'CONFIRMED'), [results]);
+  const selectedFixture = useMemo(() => outstanding.find((fixture) => fixture.id === draft.fixtureId) ?? null, [outstanding, draft.fixtureId]);
+  const playerALabel = selectedFixture?.playerAUsername ?? selectedFixture?.playerAId ?? 'Player A';
+  const playerBLabel = selectedFixture?.playerBUsername ?? selectedFixture?.playerBId ?? 'Player B';
 
   const load = async () => {
     setReady(false);
@@ -183,10 +186,10 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
       <div className="section-heading"><h3>Enter official fixture result</h3><span className="count-label">{outstanding.length} outstanding</span></div>
       <label>Outstanding fixture<select aria-label="Outstanding fixture" value={draft.fixtureId} onChange={(event) => setDraft((current) => ({ ...current, fixtureId: event.target.value }))} required><option value="">Choose fixture</option>{outstanding.map((fixture) => <option key={fixture.id} value={fixture.id}>{fixture.playerAUsername ?? fixture.playerAId} vs {fixture.playerBUsername ?? fixture.playerBId}</option>)}</select></label>
       <div className="form-grid">
-        <label>Player A legs<input aria-label="Player A legs" type="number" min="0" value={draft.playerALegs} onChange={(event) => setDraft((current) => ({ ...current, playerALegs: event.target.value }))} required /></label>
-        <label>Player B legs<input aria-label="Player B legs" type="number" min="0" value={draft.playerBLegs} onChange={(event) => setDraft((current) => ({ ...current, playerBLegs: event.target.value }))} required /></label>
-        <label>Player A average<input aria-label="Player A average" type="number" min="0" step="0.01" value={draft.playerAAverage} onChange={(event) => setDraft((current) => ({ ...current, playerAAverage: event.target.value }))} required /></label>
-        <label>Player B average<input aria-label="Player B average" type="number" min="0" step="0.01" value={draft.playerBAverage} onChange={(event) => setDraft((current) => ({ ...current, playerBAverage: event.target.value }))} required /></label>
+        <label>{playerALabel} legs<input aria-label={`${playerALabel} legs`} type="number" min="0" value={draft.playerALegs} onChange={(event) => setDraft((current) => ({ ...current, playerALegs: event.target.value }))} required /></label>
+        <label>{playerBLabel} legs<input aria-label={`${playerBLabel} legs`} type="number" min="0" value={draft.playerBLegs} onChange={(event) => setDraft((current) => ({ ...current, playerBLegs: event.target.value }))} required /></label>
+        <label>{playerALabel} average<input aria-label={`${playerALabel} average`} type="number" min="0" step="0.01" value={draft.playerAAverage} onChange={(event) => setDraft((current) => ({ ...current, playerAAverage: event.target.value }))} required /></label>
+        <label>{playerBLabel} average<input aria-label={`${playerBLabel} average`} type="number" min="0" step="0.01" value={draft.playerBAverage} onChange={(event) => setDraft((current) => ({ ...current, playerBAverage: event.target.value }))} required /></label>
       </div>
       <button className="primary-button" type="submit" disabled={!draft.fixtureId}>Record official result</button>
     </form>
