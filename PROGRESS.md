@@ -53,7 +53,7 @@ Rules:
 
 ## Canonical ledger checkpoint
 
-Task 1 is complete. The master catalogue and story audit now reflect the approved Best-of/draw/tie rules rather than the superseded decisive-only model. ADM-024 and ADM-025 are reopened until the new behavior is fully evidenced, and ADM-070 is no longer product-gated but remains undelivered until its standings implementation is GREEN.
+Task 1 is complete. The master catalogue and story audit now reflect the approved Best-of/draw/tie rules rather than the superseded decisive-only model. ADM-024 and ADM-025 remain reopened until the complete UI/evidence slice is delivered. ADM-070 is no longer product-gated and its competitive standings implementation is now in Task 5 verification.
 
 ## TDD delivery checkpoint
 
@@ -72,7 +72,7 @@ Task 1 is complete. The master catalogue and story audit now reflect the approve
 - Best of 6 accepts `4-0`, `4-1`, `4-2`, `3-3`; rejects incomplete/impossible states such as `3-2`, `4-3`, `4-4`, `5-1`.
 - GREEN CI: `32555506609` passed Wrangler types, TypeScript, complete tests and production build.
 
-### Task 4 — persistence/API/rule-lock integration — final normal gate running
+### Task 4 — persistence/API/rule-lock integration — GREEN
 
 Focused RED CI `32555672236` preserved **218 passing tests** and isolated exactly **7 intended failures** covering persistence/clone, Best-of fixture settlement and consequential rule locks.
 
@@ -86,25 +86,42 @@ It now:
 - locks every result-interpreting scoring rule once fixtures/results exist;
 - exposes Best-of plus win/draw/loss values through public/admin league contracts while retaining `targetLegs` compatibility.
 
-Normal verification run `32559093115` proved the production layer type-safe and showed the new Task 4 tests GREEN. Its eight failures were isolated to four old in-memory D1 fakes decoding the pre-0005 SQL bind positions. No production behavior change was required.
+Normal verification run `32559093115` proved the production layer type-safe and isolated eight failures to old in-memory D1 fakes decoding the pre-0005 SQL bind positions. Those four test adapters were aligned without changing production behavior.
 
-Test-adapter alignment commit: `057df17b91f178641f76fa2f986c6d3b283c704a`.
+Final Task 4 gate `32559244717` passed Wrangler types, TypeScript, **225/225 tests across 54 files**, and production build.
 
-The affected fakes now model migration-0005 create/update bind order in:
+### Task 5 — configurable standings + approved tie-breaks — GREEN candidate, final gate running
 
-- `tests/server/league-routes.test.ts`;
-- `tests/server/authenticated-league-flow.test.ts`;
-- `tests/server/competition-routes.test.ts`;
-- `tests/release/story-admin-league-structure.test.ts`.
+Initial RED run `32559343594` showed that four of six new standings assertions failed, but two head-to-head cases accidentally agreed with the legacy sorter. The tests were strengthened so old leg-difference/average ordering could not satisfy the approved rule by coincidence.
 
-Transient Actions patch helpers are absent from the PR diff. This checkpoint triggers the clean standard CI re-gate on production + migration-aware test adapters. Task 4 is not claimed GREEN until that run passes Wrangler types, TypeScript, all tests and production build.
+Definitive RED CI `32559458511` preserved **224 passing tests** and produced exactly **6 intended standings failures**:
+
+1. configurable win/draw/loss points and W-D-L totals;
+2. total legs won before head-to-head;
+3. two-player head-to-head after equal points and legs won;
+4. three-player tied-group mini-table;
+5. shared competitive rank when sporting criteria remain equal;
+6. average and leg difference retained only as presentation statistics.
+
+GREEN implementation now:
+
+- accepts the complete `LeagueScoringRules` contract instead of numeric win points only;
+- records `won`, `drawn`, `lost` and configured W/D/L points;
+- ranks globally by points, then total legs won;
+- resolves equal points/legs groups using confirmed head-to-head points, including a tied-group mini-table for 3+ players;
+- assigns genuine shared competitive ranks when all approved sporting criteria remain equal;
+- uses username/player ID only to stabilise display order, never competitive rank;
+- retains leg difference and average for presentation only;
+- passes the persisted scoring contract from `getLeagueStandings()` into the domain engine.
+
+The DB caller integration head `ed34cc4abc836339741b359de7ea42de9b2409f8` was bot-authored by a one-shot Actions helper and therefore received `action_required` rather than a normal PR verification job. The helper self-removed. This documentation commit intentionally triggers a normal CI gate over the exact production candidate before Task 5 is called GREEN.
 
 ## Next execution steps
 
-1. Require the clean standard Task 4 CI re-gate to be fully GREEN.
-2. Start Task 5 with focused RED tests for configurable W/D/L standings points and approved two-way / mini-table head-to-head ranking.
-3. Keep username/player ID out of competitive rank decisions.
-4. Then make promotion/relegation consume the shared authoritative rank before UI work.
+1. Require the clean standard Task 5 CI gate to pass Wrangler types, TypeScript, all **230 tests**, and production build.
+2. Start Task 6 with focused RED tests proving promotion/relegation consumes authoritative shared ranks and blocks movement boundaries that split unresolved ties.
+3. Remove any duplicate raw-stat tie logic from movement projection so standings remain the single competitive authority.
+4. Then complete the admin/player UI and visible rule explanation work from the approved scoring plan.
 5. Keep this file, the master catalogue and audit current at durable checkpoints.
 
 ## Production migration guardrail
