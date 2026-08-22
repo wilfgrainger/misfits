@@ -23,7 +23,7 @@ Three concepts must remain separate:
 
 Club approval does not automatically assign a user to any season or league.
 
-Approved but currently unassigned club members may browse the private club app, standings and results, but cannot record or confirm competition activity that requires league participation.
+Approved but currently unassigned club members may browse the private club app, leagues, standings and results, but cannot record or confirm competition activity that requires league participation.
 
 ## User/account state
 
@@ -48,18 +48,18 @@ Add `users.club_status` with exactly:
 
 This field owns permanent Misfits membership state.
 
-Admin and master-admin accounts must always be treated as approved club members.
+Admin and master-admin accounts must always be approved club members.
 
 ### Migration of existing users
 
 The additive migration must preserve current legitimate access without accidentally approving historical Google-only accounts.
 
-Set `club_status = 'APPROVED'` for users who are either:
+Add `club_status` as non-null with default `PENDING`, then deterministically set `club_status = 'APPROVED'` for users who are either:
 
 - an admin/master admin; or
 - already have at least one active `league_players` membership.
 
-All other existing users become `PENDING` unless there is stronger existing evidence that they are already club members.
+Every other existing user remains `PENDING`. There is no heuristic or manual exception in the migration.
 
 No existing league placement is changed by this migration.
 
@@ -67,13 +67,9 @@ No existing league placement is changed by this migration.
 
 Create a dedicated club-level invite mechanism. Do not reuse league placement as club admission.
 
-A club invite proves only that a person was invited to request membership.
+A club invite proves only that a person was invited to request Misfits membership.
 
-Recommended additive table:
-
-`club_invites`
-
-Fields:
+Add table `club_invites` with:
 
 - `id`
 - `token_hash`
@@ -83,17 +79,27 @@ Fields:
 - `revoked_at`
 - `created_at`
 
-Tokens are stored hashed, following the existing league-invite pattern.
+Tokens are stored hashed, following the existing invite-token security pattern.
 
 The admin may create, revoke and optionally expire club invite links.
 
 A valid club invite does **not**:
 
 - approve the user;
-- create league membership;
+- create season or league membership;
 - reveal club data.
 
 It only authorizes an unknown Google identity to create a `PENDING` membership request.
+
+### Legacy league invites
+
+The existing league-invite flow must no longer be a player-controlled assignment mechanism.
+
+`/join/<token>` becomes the club-admission URL, backed by `club_invites`.
+
+The client must stop converting a join token into an immediate `league_players` membership. The existing player-facing `POST /api/invites/:token/join` path must be retired or made unavailable to ordinary members so an approved member cannot self-assign to a competition with an old league invite.
+
+Existing league-placement administration remains admin-owned. Historical `league_invites` data may remain in D1 for compatibility/audit; this release does not need a destructive migration to remove it.
 
 ## Authentication and admission flow
 
@@ -117,20 +123,21 @@ A known `PENDING` or `REJECTED` user may authenticate only into their restricted
 
 ### Invite link
 
-A valid `/join/<token>` link may be used by an unknown Google identity.
+A valid `/join/<token>` club invite may be used by an unknown Google identity.
 
 Flow:
 
-1. Browser retains the invite token while Google authentication completes.
-2. Worker validates the invite token.
+1. Browser retains the club invite token while Google authentication completes.
+2. Worker validates the club invite token.
 3. If the Google identity does not already exist, create the user with `club_status = 'PENDING'`.
-4. Do not create any league membership.
-5. Issue a normal secure session so the user can see their restricted pending state.
-6. The pending session must fail all club-data authorization guards.
+4. Do not create any `league_players` membership.
+5. Record invite use and the membership-request audit event.
+6. Issue a normal secure session so the user can see their restricted pending state.
+7. The pending session must fail all club-data authorization guards.
 
 If the token is invalid, expired or revoked, do not create a user/request.
 
-If an existing approved member follows an invite, authentication should simply return them to the club app; no duplicate request is created.
+If an existing approved member follows a club invite, authentication simply returns them to the club app; no duplicate request or league placement is created.
 
 ### Pending member screen
 
@@ -179,17 +186,34 @@ Club-data routes must require an approved club member, including all current end
 - profiles of other members;
 - admin data.
 
-The existing `/api/public/*` route names may remain temporarily to avoid unrelated route churn, but their behavior must no longer be public. They must require authenticated approved club membership and return private/no-store caching.
+Admin routes must require both approved club membership and the existing admin authority. A corrupted or manually altered admin role must not bypass club admission.
 
-No league or result endpoint may continue to leak data solely because `leagues.visibility = 'PUBLIC'`.
+### Club-wide read access
 
-As defense in depth, the migration should set existing Misfits league visibility to `PRIVATE`. New club-managed leagues should default to private in product behavior.
+Within this one-club product, `APPROVED` club membership owns read visibility across club competition data.
+
+An approved member may read all club-managed leagues, standings and results even when they have no current `league_players` row for that league.
+
+Therefore implementation must not continue to use league membership or legacy `visibility` semantics to deny read access to an approved-but-unassigned member.
+
+The current `/api/public/*` route names may remain temporarily to avoid unrelated route churn, but their behavior must no longer be public. They must:
+
+- require `requireUser` + `requireClubMember`;
+- list club leagues rather than only rows marked `PUBLIC`;
+- allow approved club members to read league detail/standings/results regardless of their season placement;
+- use `private, no-store` caching.
+
+No league or result endpoint may leak data solely because `leagues.visibility = 'PUBLIC'`.
+
+As defense in depth, the migration sets all existing league visibility to `PRIVATE`. New league creation/update in this one-club product must keep visibility private; the normal admin UI must not offer `PUBLIC` as a meaningful club option.
+
+The legacy `visibility` column can remain for schema compatibility. It is not an authorization boundary for approved Misfits members.
 
 ### Participation authorization
 
 `requireClubMember` grants **club visibility**, not permission to compete.
 
-Recording, confirming, disputing or other league-specific competition actions must continue to require the existing appropriate league/player authorization.
+Recording, confirming, disputing or other league-specific competition actions must continue to require appropriate league/player participation authorization.
 
 An approved but unassigned member can browse but cannot act as a competitor.
 
@@ -202,11 +226,11 @@ Therefore session resolution must distinguish:
 - authenticated account;
 - approved club member.
 
-Do not make `resolveSession()` itself discard pending users solely because they are not approved. `requireClubMember` owns club admission.
+Do not make `resolveSession()` discard pending/rejected users solely because they are not approved. `requireClubMember` owns club admission.
 
 Suspended accounts remain blocked at session resolution as today.
 
-The authenticated user payload must expose `clubStatus` so the client can render the correct shell without guessing.
+Add `clubStatus` to the authenticated session/user payload so the client renders the correct state without guessing.
 
 ## Admin approval workflow
 
@@ -214,7 +238,7 @@ The existing `Club access` admin area becomes the club-admission authority.
 
 ### Pending requests
 
-Show pending membership requests with enough information for an administrator to make the decision, primarily:
+Show pending membership requests with:
 
 - email;
 - request/created date;
@@ -229,7 +253,7 @@ Approval changes `club_status` to `APPROVED`.
 
 Rejection changes `club_status` to `REJECTED`.
 
-Both actions must write audit-log entries.
+Both actions write explicit audit-log entries including actor, target user and before/after membership state.
 
 ### Approved members
 
@@ -244,6 +268,12 @@ It may show:
 
 Do not imply that approval and league assignment are the same operation.
 
+### Club invite management
+
+The same Club access area owns club invite creation/revocation and provides the private `/join/<token>` link for sharing.
+
+Club invite administration must be visually separate from season/league placement actions.
+
 ### Existing safety rules
 
 Preserve:
@@ -256,9 +286,9 @@ Preserve:
 
 ## Onboarding/nickname
 
-A newly invited pending user does not need to choose a player nickname before admin approval.
+A newly invited pending user does not choose a player nickname before admin approval.
 
-After approval, if `username` is still null, the next app entry takes the user through the existing nickname onboarding before normal member participation.
+After approval, if `username` is still null, the next app entry takes the user through the existing nickname onboarding before competition participation.
 
 Nickname selection does not itself grant club membership.
 
@@ -275,7 +305,7 @@ When a remembered session resolves to an approved member:
 
 Respect `prefers-reduced-motion`: use an immediate or near-immediate transition rather than animated fading.
 
-The splash must not delay actual authorization checks or reveal club data before membership has been confirmed.
+The splash must not reveal club data before membership has been confirmed.
 
 ### Signed out
 
@@ -283,11 +313,11 @@ The splash remains as the sign-in screen rather than revealing the app underneat
 
 ### Invite context
 
-When a valid invite URL is being used, the signed-out splash may add one small line:
+When a club invite URL is being used, the signed-out splash may add one small line:
 
 `You've been invited to join Misfits`
 
-This line must not reveal league/season/member data.
+This line must not reveal league/season/member data. The Worker still validates the token during admission; the client must not treat the URL shape itself as proof of a valid invite.
 
 ## Signed-in information architecture
 
@@ -299,7 +329,7 @@ Use one primary mobile navigation model:
 
 ### League
 
-The main club/competition view. Approved members can browse even when unassigned.
+The main private club/competition view. Approved members can browse club leagues even when unassigned.
 
 ### Record
 
@@ -322,7 +352,7 @@ Contains:
 - Admin, only for users with admin capability
 - Sign out
 
-Admin opens the admin workbench from this single app shell. The admin workbench may keep its own local task tabs where useful, but it is no longer a separate top-level app mode.
+Admin opens the admin workbench from this single app shell. The admin workbench may keep local task tabs where useful, but it is no longer a separate top-level app mode.
 
 ## Brand correction
 
@@ -356,17 +386,19 @@ The migration owns:
 - `club_invites`;
 - required indexes;
 - deterministic backfill of existing club approval;
-- defense-in-depth update of existing league visibility to `PRIVATE`.
+- defense-in-depth update of all existing league visibility to `PRIVATE`.
 
 Do not edit any previously applied migration.
 
 CI must continue not to apply remote D1 migrations automatically.
 
-Because application code will depend on the new column/table, production rollout requires the normal guarded sequence:
+Because application code depends on the new column/table, production rollout requires the normal guarded sequence:
 
 1. verify migration locally/tests;
 2. explicitly apply and verify the remote additive migration;
 3. only then deploy code that depends on it.
+
+Remote D1 migration remains an explicit production action under `AGENTS.md` and must not be silently automated.
 
 ## Error states
 
@@ -378,25 +410,28 @@ Use explicit errors rather than silent fallbacks:
 - `MEMBERSHIP_REJECTED` where appropriate;
 - existing `UNAUTHENTICATED`, `FORBIDDEN` and suspension behavior remain available.
 
-Do not leak whether private leagues, players or results exist through anonymous error detail.
+Do not leak whether private leagues, players or results exist through anonymous/pending error detail.
 
 ## Security acceptance
 
 The release is not complete unless server tests demonstrate all of the following:
 
 - anonymous league-list access is denied;
-- anonymous standings/results access is denied;
-- unknown Google identity on the normal homepage cannot create a user/request;
+- anonymous league detail, member list, standings and results access is denied;
+- unknown Google identity on normal sign-in cannot create a user/request;
 - unknown Google identity with a valid club invite becomes PENDING only;
+- invalid/revoked/expired club invite creates no user/request;
 - pending member cannot read any club data;
 - rejected member cannot read any club data;
-- approved unassigned member can read private club data;
-- approved unassigned member cannot submit a league result without valid league participation;
+- approved unassigned member can list and read all private club leagues, standings and results;
+- approved unassigned member cannot submit/confirm/dispute as a competitor without valid participation authority;
 - approved assigned player retains normal player behavior;
 - admin approval enables club access without assigning a league;
-- league assignment remains independently managed;
+- league assignment remains independently admin-managed;
+- legacy league invite cannot be used by an ordinary member to self-assign;
 - suspension still blocks access;
-- admin/master-admin protections remain intact.
+- admin/master-admin protections remain intact;
+- admin routes require approved club membership as well as admin role.
 
 ## Client acceptance
 
@@ -404,12 +439,14 @@ Material UI acceptance includes:
 
 - signed-out splash contains only logo, club name and Google sign-in;
 - invite splash adds only the invite-context line;
+- unknown normal sign-in shows Invite required without entering the app;
 - pending screen contains only the approved pending-state content and Sign out;
+- rejected screen remains outside the app;
 - approved remembered session shows the brief splash then enters the app;
 - no private club data flashes before authorization resolves;
 - primary navigation is `League · Record · Results · More`;
 - Admin appears only under More for admins;
-- approved unassigned members get a clear non-participation state rather than a dead end;
+- approved unassigned members can browse but get a clear non-participation state for Record;
 - Misfits red replaces green as the normal interaction accent;
 - green remains semantic success/status;
 - 320 / 375 / 390 / 412 / 768 / 960+ responsive acceptance remains intact;
@@ -448,7 +485,7 @@ This avoids both failure modes:
 - overloading league membership to mean club membership; and
 - creating a redundant `club_members` domain for a one-club product.
 
-The desired authority is therefore:
+The desired authority is:
 
 `Google identity → users.club_status → league_players`
 
