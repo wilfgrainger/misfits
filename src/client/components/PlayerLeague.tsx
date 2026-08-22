@@ -95,7 +95,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
 
   useEffect(() => { void load(); }, [league.id]);
 
-  const opponents = useMemo(() => detail?.players.filter((player) => player.id !== user.id) ?? [], [detail?.players, user.id]);
+  const opponents = useMemo(() => detail?.players?.filter((player) => player.id !== user.id) ?? [], [detail?.players, user.id]);
   const pending = myResults.filter((result) => result.status === 'PENDING' && result.submittedBy !== user.id);
   const canRecord = league.status === 'OPEN';
   const fixtureNavigationAvailable = fixtures.length > 0;
@@ -210,7 +210,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         </button>
         <div className="league-target-mark" aria-hidden="true"><AppIcon name="target" /></div>
         <div className="league-hero-meta">
-          <span><AppIcon name="users" />{detail?.players.length ?? '—'} Players</span>
+          <span><AppIcon name="users" />{detail?.players?.length ?? '—'} Players</span>
           <span><AppIcon name="calendar" />{league.status === 'OPEN' ? 'Season in progress' : 'Season closed'}</span>
           <span><AppIcon name="target" />501 format</span>
         </div>
@@ -254,7 +254,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         <div className="result-feed"><h3>Confirmed games</h3><ul className="result-list">{results.map((result) => <li key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /></li>)}</ul><h3 className="subsection-title">Your pending games</h3><ul className="result-list">{pending.map((result) => <li className="review-row" key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /><div className="review-actions"><button className="primary-button" type="button" disabled={busyResult === result.id} aria-busy={busyResult === result.id} onClick={() => void confirm(result)}>{busyResult === result.id ? 'Saving' : 'Confirm'}</button><button className="secondary-button" type="button" onClick={(event) => { disputeTriggerRef.current = event.currentTarget; setDisputeId(result.id); }}>Dispute</button></div></li>)}{pending.length === 0 && <li className="empty-message">No pending games.</li>}</ul></div>
       )}
 
-      {!loading && view === 'players' && <div className="player-more-panel"><nav className="player-more-actions" aria-label="More player options"><button type="button" className="player-more-action player-more-action-active" aria-current="page" onClick={() => setView('players')}><AppIcon name="players" />Players</button><button type="button" className="player-more-action" onClick={() => setView('profile')}><AppIcon name="profile" />Profile</button></nav><ul className="club-player-list">{detail?.players.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul></div>}
+      {!loading && view === 'players' && <div className="player-more-panel"><nav className="player-more-actions" aria-label="More player options"><button type="button" className="player-more-action player-more-action-active" aria-current="page" onClick={() => setView('players')}><AppIcon name="players" />Players</button><button type="button" className="player-more-action" onClick={() => setView('profile')}><AppIcon name="profile" />Profile</button></nav><ul className="club-player-list">{detail?.players?.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul></div>}
 
       {view === 'record' && (
         <form className="result-form" onSubmit={submitResult}>
