@@ -74,7 +74,7 @@ GREEN candidate at `f828bd6c7ab6626e2699e61db0807e172029d0b7`:
 - all portal, DOM query, click-capture and manual child-hiding machinery is removed;
 - no API/server behavior changed.
 
-**Current gate:** this `PROGRESS.md` commit intentionally triggers ordinary PR CI over the bot-authored GREEN candidate. Do not call Task 3 GREEN until that run passes.
+**Current gate:** bot-authored head CI `32583911689` was `action_required` with no jobs. This ordinary repository commit intentionally retriggers standard PR CI. Do not call Task 3 GREEN until that run passes.
 
 ### Tasks 4–7
 
