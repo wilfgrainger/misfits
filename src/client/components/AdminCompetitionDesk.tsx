@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import type { LeagueSummary, UserSummary } from '../api';
 import { AdminCompetitionDesk as CompetitionDeskV2 } from './AdminCompetitionDeskV2';
 import { AdminResultsWorkflow } from './AdminResultsWorkflow';
@@ -23,6 +24,7 @@ export function AdminCompetitionDesk(props: Props) {
   const resultsActiveRef = useRef(false);
   const [resultsActive, setResultsActive] = useState(false);
   const [activeResultsLeagueId, setActiveResultsLeagueId] = useState(props.selectedLeagueId ?? null);
+  const [resultsPanel, setResultsPanel] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     selectedLeagueRef.current = props.selectedLeagueId ?? selectedLeagueRef.current;
@@ -30,11 +32,21 @@ export function AdminCompetitionDesk(props: Props) {
   }, [props.selectedLeagueId]);
 
   useEffect(() => {
-    if (!resultsActive) return;
-    const panel = shellRef.current?.querySelector<HTMLElement>('.admin-competition-desk > [role="tabpanel"]:not([hidden])');
+    if (!resultsActive) {
+      setResultsPanel(null);
+      return;
+    }
+
+    const panel = shellRef.current?.querySelector<HTMLElement>('.admin-competition-desk > [role="tabpanel"]:not([hidden])') ?? null;
     if (!panel) return;
-    panel.hidden = true;
-    return () => { panel.hidden = false; };
+
+    const legacyContent = panel.firstElementChild instanceof HTMLElement ? panel.firstElementChild : null;
+    if (legacyContent) legacyContent.hidden = true;
+    setResultsPanel(panel);
+
+    return () => {
+      if (legacyContent) legacyContent.hidden = false;
+    };
   }, [resultsActive, activeResultsLeagueId]);
 
   const handleLeagueSelected = (league: LeagueSummary | null) => {
@@ -65,6 +77,9 @@ export function AdminCompetitionDesk(props: Props) {
       {...props}
       onLeagueSelected={handleLeagueSelected}
     />
-    {resultsActive && activeResultsLeagueId && <AdminResultsWorkflow leagueId={activeResultsLeagueId} />}
+    {resultsActive && activeResultsLeagueId && resultsPanel && createPortal(
+      <AdminResultsWorkflow leagueId={activeResultsLeagueId} />,
+      resultsPanel,
+    )}
   </div>;
 }
