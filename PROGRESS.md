@@ -95,11 +95,29 @@ Task 1 is complete. The master catalogue and story audit now reflect the approve
 - Existing proposal/finalisation blocking behavior remains unchanged and now consumes standings rank rather than reimplementing tie rules.
 - GREEN CI `32560541080`: Wrangler types, TypeScript, **234/234 tests across 55 files**, production build.
 
+### Task 7 — admin match & table rules — GREEN candidate, final gate running
+
+- RED CI `32560656189` preserved **234 passing tests** and failed exactly the **2 new client assertions**.
+- RED proved the existing admin surface lacked both the compact rules editor and derived Best-of explanation.
+- Client league normalization now exposes `maxLegs`, `pointsPerWin`, `pointsPerDraw` and `pointsPerLoss`, while retaining `targetLegs` only as a derived read-compatibility mirror until Task 8 finishes legacy player presentation.
+- The league editor now presents one **Match & table rules** section with:
+  - Best of;
+  - matches per pair;
+  - points for win;
+  - points for draw;
+  - points for loss.
+- The editable **Legs to win** field has been removed.
+- Admin PATCH writes the authoritative scoring fields and does not send `targetLegs`.
+- Derived guidance explains even and odd formats, including `Best of 6: first to 4 wins; 3-3 is a draw.` and `Best of 5: first to 3 wins; no draw.`
+- New leagues default compatibly to Best of 5, win 2, draw 0, loss 0.
+- Production candidate head before this checkpoint: `aa606bda285c66432f96a97b9449b8c4de2b979c`.
+- The Actions-assisted patch helper self-removed; this documentation commit intentionally triggers the normal full verification gate over the real candidate.
+
 ## Next execution steps
 
-1. Start Task 7 with RED client/API tests for Best of 6, Win 3, Draw 1, Loss 0 and exact request payloads.
-2. Replace editable target-legs UI with one compact **Match & table rules** section and derived explanatory text.
-3. Complete Task 8 player/public rule/result/standings presentation with explicit draws, W-D-L and visible tie-break explanation.
+1. Require Task 7 normal CI to pass Wrangler types, TypeScript, all **236 tests**, and production build.
+2. Start Task 8 with RED player/public tests for visible rules, Best-of 6 result entry, explicit draws and W-D-L standings.
+3. Complete player/public rule explanation: `Best of 6 · Win 3 · Draw 1 · Loss 0` and `Table: Points → Legs won → Head-to-head`.
 4. Re-audit ADM-024, ADM-025 and ADM-070 under Task 9, then run the complete PR/Codex/release gate.
 5. Keep this file, the master catalogue and audit current at durable checkpoints.
 
