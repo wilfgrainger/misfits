@@ -31,14 +31,6 @@ jobs:
                   raise SystemExit(f'{path}: expected {count} matches, found {actual} for {old[:80]!r}')
               p.write_text(text.replace(old, new))
 
-          def replace_any(path, old, new):
-              p = Path(path)
-              text = p.read_text()
-              actual = text.count(old)
-              if actual < 1:
-                  raise SystemExit(f'{path}: expected at least one match for {old[:80]!r}')
-              p.write_text(text.replace(old, new))
-
           # Canonical competition records expose the new persisted scoring fields.
           replace('src/server/db/competition.ts',
               "  points_per_win: number;\n  target_legs: number;",
@@ -48,7 +40,6 @@ jobs:
               "`SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,\n",
               2)
 
-          # Season-scoped league writes persist the complete scoring contract.
           replace('src/server/db/competition-leagues.ts',
               "id, name, slug, season_name, season_id, status, points_per_win, target_legs,\n          created_at, updated_at, created_by, max_players, matches_per_pair, visibility,",
               "id, name, slug, season_name, season_id, status, points_per_win, points_per_draw, points_per_loss, max_legs, target_legs,\n          created_at, updated_at, created_by, max_players, matches_per_pair, visibility,")
@@ -70,12 +61,10 @@ jobs:
               "        input.name,\n        input.slug,\n        input.pointsPerWin,\n        input.pointsPerDraw,\n        input.pointsPerLoss,\n        input.maxLegs,\n        input.targetLegs,\n        input.maxPlayers,",
               1)
 
-          # Structural season cloning copies the authoritative rules, not a reconstructed approximation.
           replace('src/server/db/season-lifecycle.ts',
               "      matchesPerPair: sourceLeague.matches_per_pair,\n      pointsPerWin: sourceLeague.points_per_win,\n      targetLegs: sourceLeague.target_legs,",
               "      matchesPerPair: sourceLeague.matches_per_pair,\n      maxLegs: sourceLeague.max_legs,\n      pointsPerWin: sourceLeague.points_per_win,\n      pointsPerDraw: sourceLeague.points_per_draw,\n      pointsPerLoss: sourceLeague.points_per_loss,\n      targetLegs: sourceLeague.target_legs,")
 
-          # One persistence adapter keeps legacy rows/test fixtures compatible while max_legs is authoritative after migration.
           Path('src/server/db/scoring-rules.ts').write_text("""import { maxLegsFromLegacyTarget, type LeagueScoringRules } from '../domain/scoring';
 
 export interface PersistedLeagueScoring {
@@ -96,22 +85,18 @@ export function scoringRulesForLeague(league: PersistedLeagueScoring): LeagueSco
 }
 """)
 
-          # Fixture-backed results validate against the authoritative Best-of contract.
           replace('src/server/db/fixture-results.ts',
               "import { getMembership } from './leagues';",
               "import { getMembership } from './leagues';\nimport { scoringRulesForLeague } from './scoring-rules';")
           replace('src/server/db/fixture-results.ts',
               "function resultFromFixtureInput(fixture: FixtureRecord, input: unknown, targetLegs: number): ResultInput {",
               "function resultFromFixtureInput(fixture: FixtureRecord, input: unknown, rules: ReturnType<typeof scoringRulesForLeague>): ResultInput {")
-          replace('src/server/db/fixture-results.ts',
-              "  }, targetLegs);",
-              "  }, rules);")
+          replace('src/server/db/fixture-results.ts', "  }, targetLegs);", "  }, rules);")
           replace('src/server/db/fixture-results.ts',
               "  const result = resultFromFixtureInput(fixture, input, league.target_legs);",
               "  const result = resultFromFixtureInput(fixture, input, scoringRulesForLeague(league));",
               2)
 
-          # Legacy/free-form result paths use the same league scoring contract.
           replace('src/server/db/results.ts',
               "import { getLeagueById, getMembership, listLeagueMembers } from './leagues';",
               "import { getLeagueById, getMembership, listLeagueMembers } from './leagues';\nimport { scoringRulesForLeague } from './scoring-rules';")
@@ -123,7 +108,6 @@ export function scoringRulesForLeague(league: PersistedLeagueScoring): LeagueSco
               "validateAndNormalize(input, scoringRulesForLeague(league))",
               3)
 
-          # Legacy league CRUD persists and returns the new fields too.
           replace('src/server/db/leagues.ts',
               "  points_per_win: number;\n  target_legs: number;",
               "  max_legs: number;\n  points_per_win: number;\n  points_per_draw: number;\n  points_per_loss: number;\n  target_legs: number;")
@@ -150,7 +134,6 @@ export function scoringRulesForLeague(league: PersistedLeagueScoring): LeagueSco
               ").bind(input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.targetLegs, input.maxPlayers, input.matchesPerPair, input.visibility, timestamp, leagueId, leagueId, input.maxPlayers).run();",
               ").bind(input.name, input.slug, input.seasonName, input.status, input.pointsPerWin, input.pointsPerDraw, input.pointsPerLoss, input.maxLegs, input.targetLegs, input.maxPlayers, input.matchesPerPair, input.visibility, timestamp, leagueId, leagueId, input.maxPlayers).run();")
 
-          # Public and legacy-admin JSON contracts expose Best-of plus W/D/L scoring.
           replace('src/server/routes/leagues.ts',
               "    pointsPerWin: league.points_per_win,\n    targetLegs: league.target_legs,",
               "    maxLegs: league.max_legs ?? ((league.target_legs * 2) - 1),\n    pointsPerWin: league.points_per_win,\n    pointsPerDraw: league.points_per_draw ?? 0,\n    pointsPerLoss: league.points_per_loss ?? 0,\n    targetLegs: league.target_legs,")
@@ -164,7 +147,6 @@ export function scoringRulesForLeague(league: PersistedLeagueScoring): LeagueSco
               "      matchesPerPair: body?.matchesPerPair ?? current.matches_per_pair,\n      pointsPerWin: body?.pointsPerWin ?? current.points_per_win,\n      targetLegs: body?.targetLegs ?? current.target_legs,",
               "      matchesPerPair: body?.matchesPerPair ?? current.matches_per_pair,\n      maxLegs: body?.maxLegs ?? (body?.targetLegs === undefined ? current.max_legs : undefined),\n      pointsPerWin: body?.pointsPerWin ?? current.points_per_win,\n      pointsPerDraw: body?.pointsPerDraw ?? current.points_per_draw,\n      pointsPerLoss: body?.pointsPerLoss ?? current.points_per_loss,\n      targetLegs: body?.targetLegs ?? current.target_legs,")
 
-          # Update old in-memory DB fakes to model migration 0005 rather than misreading the new bind order.
           replace('tests/server/competition-routes.test.ts',
               "  points_per_win: number; target_legs: number; created_at: string; updated_at: string; created_by: string | null;",
               "  max_legs: number; points_per_win: number; points_per_draw: number; points_per_loss: number; target_legs: number; created_at: string; updated_at: string; created_by: string | null;")
@@ -195,7 +177,6 @@ export function scoringRulesForLeague(league: PersistedLeagueScoring): LeagueSco
               "      const [name, slug, seasonName, status, pointsPerWin, targetLegs, maxPlayers, matchesPerPair, visibility, updatedAt, id] = values as [string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, 'PUBLIC' | 'PRIVATE', string, string];\n      if (sql.includes('SELECT COUNT(*) FROM league_players')) {\n        const activeCount = [...this.memberships].filter((key) => key.startsWith(`${String(values[11])}:`)).length;\n        if (activeCount > Number(values[6])) return { success: true, meta: { changes: 0 } };\n      }\n      const league = this.leagues.get(id)!;\n      Object.assign(league, { name, slug, season_name: seasonName, status, points_per_win: pointsPerWin, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC', updated_at: updatedAt });",
               "      const [name, slug, seasonName, status, win, draw, loss, maxLegs, targetLegs, maxPlayers, matchesPerPair, visibility, updatedAt, id] = values as [string, string, string, 'OPEN' | 'CLOSED', number, number, number, number, number, number, number, 'PUBLIC' | 'PRIVATE', string, string];\n      if (sql.includes('SELECT COUNT(*) FROM league_players')) {\n        const activeCount = [...this.memberships].filter((key) => key.startsWith(`${String(values[14])}:`)).length;\n        if (activeCount > Number(values[15])) return { success: true, meta: { changes: 0 } };\n      }\n      const league = this.leagues.get(id)!;\n      Object.assign(league, { name, slug, season_name: seasonName, status, max_legs: maxLegs, points_per_win: win, points_per_draw: draw, points_per_loss: loss, target_legs: targetLegs, max_players: maxPlayers, matches_per_pair: matchesPerPair, visibility: visibility ?? 'PUBLIC', updated_at: updatedAt });")
 
-          # Remove this transient workflow so no delivery infrastructure is left behind.
           Path('.github/workflows/task4-agent-patch.yml').unlink()
           PY
       - name: Commit patched implementation
@@ -208,3 +189,4 @@ export function scoringRulesForLeague(league: PersistedLeagueScoring): LeagueSco
           git diff --cached --quiet && { echo "No changes produced"; exit 1; }
           git commit -m "feat: persist configurable scoring rules"
           git push origin HEAD:feat/configurable-match-scoring
+# trigger
