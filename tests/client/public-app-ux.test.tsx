@@ -46,7 +46,7 @@ describe('public UX compression', () => {
     state.failLeagueList = true;
     render(<App />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('The club table could not be loaded.');
+    expect((await screen.findByRole('alert')).textContent).toBe('The club table could not be loaded.');
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(screen.queryByText('No public leagues are published yet.')).toBeNull();
 
