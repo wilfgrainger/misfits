@@ -1,5 +1,5 @@
 interface AppIconProps {
-  name: 'share' | 'users' | 'calendar' | 'target' | 'rules' | 'lock' | 'league' | 'results' | 'more' | 'record' | 'players' | 'profile' | 'refresh';
+  name: 'share' | 'users' | 'calendar' | 'clock' | 'target' | 'rules' | 'lock' | 'league' | 'results' | 'more' | 'record' | 'players' | 'profile' | 'refresh';
   className?: string;
 }
 
@@ -22,6 +22,8 @@ export function AppIcon({ name, className }: AppIconProps) {
       return <svg {...common}><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.4-4 2.4-6 5.5-6s5.1 2 5.5 6"/><path d="M15 6.5a2.5 2.5 0 0 1 0 5"/><path d="M16.5 13.5c2.4.5 3.7 2.2 4 5"/></svg>;
     case 'calendar':
       return <svg {...common}><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>;
+    case 'clock':
+      return <svg {...common}><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>;
     case 'target':
       return <svg {...common}><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>;
     case 'rules':
