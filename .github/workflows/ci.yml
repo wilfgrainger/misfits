@@ -5,37 +5,6 @@ on:
   pull_request:
 
 jobs:
-  align-story-authority:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/spec/ux-compression'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: spec/ux-compression
-      - name: Align canonical catalogue authority note
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('docs/superpowers/specs/2026-08-21-user-stories.md')
-          text = path.read_text()
-          anchor = 'This file is the **master user-story list for Misfits 501**. It owns the functional backlog for administrator, player and deliberately public club behaviour.\n'
-          note = '\nStory wording and acceptance criteria live here. **Operational completion state is owned by the latest validation evidence plus the corresponding GitHub issue**, not by an older row label in isolation. A stale catalogue status must not silently reopen or close work; align the row when that story is next touched.\n'
-          if note.strip() not in text:
-              if anchor not in text:
-                  raise SystemExit('authority anchor not found')
-              path.write_text(text.replace(anchor, anchor + note, 1))
-          PY
-          if git diff --quiet -- docs/superpowers/specs/2026-08-21-user-stories.md; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/superpowers/specs/2026-08-21-user-stories.md
-          git commit -m "docs: clarify story completion authority"
-          git push origin HEAD:spec/ux-compression
-
   verify:
     runs-on: ubuntu-latest
     steps:
