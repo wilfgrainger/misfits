@@ -240,7 +240,7 @@ describe('administrator competition workspace', () => {
   it('keeps result correction and club-access operations inside the unified admin task rail', async () => {
     const { fetchMock } = renderDesk();
     fireEvent.click(await screen.findByRole('tab', { name: 'Results' }));
-    expect(await screen.findByText(/Alpha 3 - 1 Bravo/)).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Enter official fixture result' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Edit result Alpha vs Bravo' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Club access' }));
