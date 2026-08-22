@@ -4,7 +4,7 @@
 **Current branch:** `feat/configurable-match-scoring`
 **Current base:** `main` at `b8d42ea479fd6afc5c754d444704693e85477f55`
 **Current PR:** #17 `feat: configurable Best-of scoring and head-to-head standings`
-**Current scope:** final PR review/release gate for the approved configurable match-scoring plan
+**Current scope:** final PR-head verification, merge and production deploy verification
 
 ## Authority
 
@@ -15,6 +15,7 @@
 - Approved scoring design: `docs/superpowers/specs/2026-08-22-configurable-match-scoring-design.md`.
 - Approved implementation plan: `docs/superpowers/plans/2026-08-22-configurable-match-scoring.md`.
 - Story-level evidence: `docs/superpowers/evidence/2026-08-21-story-by-story-audit.md`.
+- Production migration evidence: `docs/operations/evidence/2026-08-22-d1-migration-0005.md`.
 - Delivery authority: Superpowers executing-plans + TDD + systematic debugging + verification-before-completion.
 
 ## Completed audited chunks
@@ -100,25 +101,46 @@ Rules:
 - First candidate left one obsolete historical W-L assertion; only that test contract was aligned.
 - Final GREEN CI `32561215701`: **238/238 tests across 57 files**, Wrangler types, TypeScript and production build.
 
-### Task 9 — canonical re-audit — COMPLETE, clean PR gate pending
+### Task 9 — canonical re-audit — COMPLETE
 
-- Canonical master now marks ADM-024, ADM-025 and ADM-070 **DELIVERED · P0**.
+- Canonical master marks ADM-024, ADM-025 and ADM-070 **DELIVERED · P0**.
 - Story audit marks all three **VERIFIED** with exact RED/GREEN evidence.
 - `tests/release/story-adm-070.test.ts` pins promotion-boundary rank authority.
-- Temporary audit staging run `32561337615` had **237/238 passing**; the sole failure was the release guardrail detecting the temporary `task9_docs` workflow job. The audit helper restored the canonical two-job workflow and self-removed successfully.
-- Current durable branch head before this checkpoint: `615d01180314fe33087280d0b83fb1c840c50e3a`.
+- Temporary audit staging run `32561337615` had **237/238 passing**; the sole failure was the release guardrail detecting the temporary `task9_docs` workflow job. The helper restored the canonical two-job workflow and self-removed.
+- Clean ordinary Task 9 gate `32561427365` passed Wrangler types, TypeScript, **238/238 tests**, and production build.
 
-## Release gates remaining
+## Review gate
 
-1. This checkpoint must receive a clean ordinary CI run: Wrangler types, TypeScript, **238/238 tests**, production build.
-2. Request Codex review on PR #17 and address any substantive findings with focused RED → GREEN evidence.
-3. Run a fresh final PR-head CI after review changes, if any.
-4. **Production D1 migration `0005_configurable_match_scoring.sql` must be explicitly applied and evidenced before merge.** The ordinary Worker deployment intentionally does not run migrations.
-5. Only after the migration gate is satisfied may PR #17 be merged; then verify the `main` CI and production Worker deployment.
+- Fresh Codex review was requested on PR #17 with `@codex review`.
+- Codex did **not** return a code review. The connector bot reported that the account's Codex code-review usage limit had been reached. Do not record this as Codex approval.
+- Because the external reviewer was unavailable, a focused fallback review inspected the changed migration, scoring/result/standings domains, promotion rank authority, D1 persistence/read paths, route compatibility, admin/player/public presentation and focused tests.
+- The fallback review found one non-runtime quality seam: `cloneSeasonStructure()` retained a transitional `as never` cast even though the new scoring object satisfies `CompetitionLeagueInput`.
+- Commit `3e05ca2be95bb1762b04d00cfd7617bda5a27987` removed that type escape.
+- Fresh CI `32562784439` then passed Wrangler types, TypeScript, the full test suite and production build.
+- No Critical or Important fallback-review defect remains known.
+
+## Production D1 migration gate — SATISFIED
+
+- Production binding: `DB`, database `misfits`, ID `9702b993-f0b7-479b-9679-7e32a1c35214`.
+- Migration: `migrations/0005_configurable_match_scoring.sql`.
+- A one-shot branch-scoped GitHub Actions migration runner used the repository's existing Cloudflare credentials and the documented `wrangler d1 migrations apply DB --remote` process.
+- Verification workflow run `32562916750` recorded **no unapplied migrations before or after** its idempotent apply step, proving 0005 was already applied by the preceding one-shot run.
+- The same verification successfully queried `SELECT max_legs, points_per_draw, points_per_loss FROM leagues LIMIT 0;` against the production remote D1 schema.
+- Durable evidence commit: `8553ad63cc52e8afdb552e2bf82365de4c5af3ca` in `docs/operations/evidence/2026-08-22-d1-migration-0005.md`.
+- The temporary migration workflow was then removed in commit `b21014a0dc3e8b8d458da93ee0cede4f03ce352c`; the normal deployment workflow remains migration-free.
+
+## Remaining release steps
+
+1. Require the final ordinary PR-head CI after this durable checkpoint to pass Wrangler types, TypeScript, all **238 tests**, and production build.
+2. Mark PR #17 ready for review/integration once that exact head is green.
+3. Merge only that verified PR head into `main`.
+4. Verify the resulting `main` Actions run: verify job green and **Deploy Worker** green.
+5. Perform a production smoke check of public league/rules/standings and an authorised admin league rules read if available.
+6. Record the merge SHA, main CI/deploy run and smoke evidence here.
 
 ## Production migration guardrail
 
-Do not merge schema-dependent code before production D1 has received `migrations/0005_configurable_match_scoring.sql` through the authorised remote-migration process. Do not add migration execution to the normal Worker deploy and do not weaken `tests/release/deploy-workflow.test.ts`.
+The ordinary `main` Worker deployment intentionally does **not** apply remote D1 migrations automatically. Preserve that boundary for future migrations. Apply and verify each schema migration explicitly before merging code that depends on it.
 
 ## Known operational constraint
 
