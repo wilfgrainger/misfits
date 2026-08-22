@@ -1,9 +1,9 @@
 # Misfits 501 Progress
 
 **Updated:** 22 August 2026  
-**Current branch:** `refactor/test-suite-simplification`  
-**Current focus:** Release 1.5 Cave Pony test-suite simplification, final verification  
-**Production/main baseline:** Release 1 UX Compression merged as `aed8df57e4342c341af3405ba031d94c95379f2d`
+**Current branch:** `main`  
+**Current focus:** Releases 1 and 1.5 complete; 33 incomplete stories remain parked  
+**Main:** `2ddcd678aac8cb256056a7abc6e369f6b7fbba73` plus this documentation-only checkpoint
 
 ## Authority
 
@@ -19,45 +19,68 @@
 
 **117/150 stories are verified/closed. 33 remain deliberately parked and open: 12 PARTIAL + 21 MISSING.**
 
-Open distribution: Admin 6, Player 26, Public 1. Release 1 and Release 1.5 do not close them.
+Open distribution: Admin 6, Player 26, Public 1.
 
-## Release 1 — UX Compression — MERGED
+## Release 1 — UX Compression — COMPLETE
 
 PR #168 merged to `main` as `aed8df57e4342c341af3405ba031d94c95379f2d`.
 
-Final PR-head gate `32586862564` passed `npm ci`, Wrangler types, both TypeScript projects, full Vitest and production build. Impeccable deterministic scan returned 0 findings.
+Final PR-head CI `32586862564` passed `npm ci`, Wrangler types, both TypeScript projects, full Vitest and production build. Impeccable deterministic scan returned 0 findings.
 
-Delivered player/public/admin UX compression, direct canonical Results composition, dead UI/dependency cleanup, documentation authority alignment and removal of the duplicate parent Results request. No D1/schema/API architecture change was introduced.
+Delivered:
+- mobile member navigation with 44px scrollable targets;
+- blank consequential result-score defaults;
+- compressed signed-in identity/context chrome;
+- explicit public failure/empty/Retry states and `Share league` wording;
+- one canonical admin Results composition with no portal/DOM-query bridge;
+- actual fixture player names in official result fields;
+- progressive disclosure for secondary Season/League setup and destructive actions;
+- dead `AdminLeagueDesk` and unused direct client dependencies removed;
+- duplicate parent Results API load removed;
+- VISION/DESIGN/story-authority wording aligned.
 
-## Release 1.5 — Cave Pony test-suite simplification
+No D1/schema/API architecture change was introduced.
 
-User explicitly approved this follow-up because the repository was paying too much process/test tax for small UI changes.
+## Release 1.5 — Cave Pony test-suite simplification — COMPLETE
 
-### Audit conclusion
+PR #169 merged to `main` as `2ddcd678aac8cb256056a7abc6e369f6b7fbba73`.
 
-The focused `tests/domain/` and `tests/server/` suites are the integrity spine and are intentionally retained. They protect scoring, standings, promotion, authentication, authorization, persistence and route contracts.
+Final PR-head CI `32587464954` passed:
+- `npm ci`;
+- Wrangler types;
+- both TypeScript projects;
+- **231/231 tests across 57 files**;
+- production build.
 
-The avoidable weight was concentrated in client UI archaeology, story-number duplication and a brittle CI meta-test.
+Vitest runtime was 20.43s.
 
-### Changes
+Simplification:
+- removed duplicated `weekly-ledger-structure` coverage;
+- removed repository-history/CSS/deleted-filename contract tests;
+- removed duplicate player UX-compression test file while retaining the behaviours in canonical player suites;
+- removed duplicate ADM-070 release coverage because the stronger rank-authority tests live in `tests/domain/competition.test.ts`;
+- kept the deployment test but changed it to assert safety rather than an exact CI job count;
+- kept all focused domain/server authentication, authorization, persistence, schema, scoring, standings and promotion coverage;
+- `AGENTS.md` now requires focused tests during implementation and one fresh full repository gate before merge, rather than full CI after every small edit/checkpoint.
 
-Deleted as duplicate or historical-structure coverage:
-- `tests/client/weekly-ledger-structure.test.tsx` — public happy-path and semantic standings coverage already owned by `public-league.test.tsx` + `standings-table.test.tsx`.
-- `tests/client/repository-contract.test.ts` — asserted docs/CSS strings, deleted filenames and unused package history rather than user/runtime behaviour.
-- `tests/client/player-result-rules.test.tsx` — navigation reachability remains in `player-app.test.tsx`; blank score behaviour remains in `player-scoring-rules.test.tsx` and league-switch coverage.
-- `tests/release/story-adm-070.test.ts` — weaker duplicate of the promotion rank-authority cases already in `tests/domain/competition.test.ts`.
+Release 1.5 changed no production code.
 
-Simplified:
-- `tests/release/deploy-workflow.test.ts` now asserts the real safety contract (verification required, deploy main-only, pinned Cloudflare action/secrets, no remote migration) without requiring CI to contain exactly two jobs.
-- `AGENTS.md` now requires focused proof during development and one fresh full repository gate before review/merge, rather than repeatedly retriggering full CI after every small edit/checkpoint.
-- Story-number tests must not be added when another suite already owns the same acceptance contract.
-- Tests must not assert that a deleted filename stays deleted or that CI has an exact job count.
+### Operational verification note
 
-### Cave Pony boundary
+The connected GitHub tool available in this session exposes PR-triggered workflow runs but not the push-triggered `main` run, so the final `main` Deploy Worker job could not be independently queried here without adding more observer infrastructure. We deliberately did not add that machinery. Release 1.5 is test/docs-only; its verified production build contains the same application code merged in Release 1.
 
-No production code changed in Release 1.5. No domain/server security, permission, schema, migration or persistence test has been removed. The goal is less brittle proof, not less assurance.
+Do not claim a specific `main` deploy run ID unless a future session can actually read it.
 
-**Next:** create the Release 1.5 PR from this branch, run one authoritative full repository gate, merge only if green, then verify the combined `main` release/deploy once.
+## Test ownership policy
+
+- `tests/domain/`: pure competition/validation invariants.
+- `tests/server/`: auth, permissions, persistence and API behaviour.
+- `tests/client/`: user journeys and presentation behaviour.
+- `tests/release/`: deployment/schema/operational guardrails not already owned elsewhere.
+
+During implementation, run the smallest focused proof. Batch coherent low-risk changes. Run one fresh full repository gate before review/merge. Expand proof for security, permissions, migrations, destructive operations or data-loss risk.
+
+Do not add a story-number test when another suite already proves the same contract. Do not test repository history such as deleted filenames or an exact count of CI jobs.
 
 ## Next planned product releases
 
@@ -74,5 +97,5 @@ Normal players still cannot read fixtures because `PlayerLeague -> ApiClient.fix
 
 - Keep all 33 incomplete story issues open until separately revalidated.
 - Preserve Worker authorization, same-origin security, competition invariants, auditability and accessibility.
-- Use focused tests while implementing; run one full fresh gate before integration.
-- Merge only a freshly verified PR head.
+- No new router, state framework, component library, backend service or Cloudflare product without a real requirement.
+- Use the simplified verification policy above; do not recreate micro-CI loops.
