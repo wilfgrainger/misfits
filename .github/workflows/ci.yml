@@ -5,6 +5,31 @@ on:
   pull_request:
 
 jobs:
+  sync-lockfile:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/spec/ux-compression'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: spec/ux-compression
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --package-lock-only --ignore-scripts
+      - name: Commit lockfile if npm changed it
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore: prune unused client dependencies from lockfile"
+          git push origin HEAD:spec/ux-compression
+
   verify:
     runs-on: ubuntu-latest
     steps:
