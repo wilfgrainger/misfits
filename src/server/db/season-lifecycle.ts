@@ -78,7 +78,7 @@ export async function cloneSeasonStructure(
       hierarchyPosition: sourceLeague.hierarchy_position,
       promotionPlaces: sourceLeague.promotion_places,
       relegationPlaces: sourceLeague.relegation_places,
-    } as never, now));
+    }, now));
   }
 
   return { season, leagues };
