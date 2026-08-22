@@ -1,8 +1,9 @@
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useState } from 'react';
 import {
   ApiClient,
-  type AdminInvite,
+  type AdminClubInvite,
   type AdminPlayer,
+  type AdminPlayerChanges,
   type CompetitionMember,
   type FixturePreview,
   type FixtureStatus,
@@ -25,7 +26,7 @@ type AdminTask = 'season' | 'leagues' | 'members' | 'fixtures' | 'results' | 'pr
 const tasks: Array<{ key: AdminTask; label: string }> = [
   { key: 'season', label: 'Season' },
   { key: 'leagues', label: 'Leagues' },
-  { key: 'members', label: 'Members & invites' },
+  { key: 'members', label: 'Season members' },
   { key: 'fixtures', label: 'Fixtures' },
   { key: 'results', label: 'Results' },
   { key: 'promotion', label: 'Promotion' },
@@ -60,10 +61,14 @@ function fixtureLabel(status: FixtureStatus) {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
-function formatExpiry(value: string | null) {
-  if (!value) return 'No expiry';
+function formatDate(value: string) {
+  if (!value) return 'Unknown date';
   const formatted = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value));
-  return `Expires ${formatted.replace('Sept', 'Sep')}`;
+  return formatted.replace('Sept', 'Sep');
+}
+
+function formatExpiry(value: string | null) {
+  return value ? `Expires ${formatDate(value)}` : 'No expiry';
 }
 
 function describeMatchFormat(maxLegs: number) {
@@ -84,8 +89,9 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const [membersByLeague, setMembersByLeague] = useState<Record<string, CompetitionMember[]>>({});
   const [leagueSummariesReady, setLeagueSummariesReady] = useState(false);
   const [unassigned, setUnassigned] = useState<UnassignedPlayer[]>([]);
-  const [invites, setInvites] = useState<AdminInvite[]>([]);
+  const [clubInvites, setClubInvites] = useState<AdminClubInvite[]>([]);
   const [inviteUrl, setInviteUrl] = useState('');
+  const [inviteExpiry, setInviteExpiry] = useState('');
   const [fixtures, setFixtures] = useState<FixtureSummary[]>([]);
   const [fixturePreview, setFixturePreview] = useState<FixturePreview | null>(null);
   const [fixtureFilter, setFixtureFilter] = useState<'ALL' | FixtureStatus>('ALL');
@@ -120,6 +126,9 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const selectedLeague = leagues.find((league) => league.id === effectiveLeagueId) ?? null;
   const memberLeague = selectedLeague ?? orderedLeagues[0] ?? null;
   const leagueSummaryComplete = orderedLeagues.length > 0 && leagueSummariesReady && orderedLeagues.every((league) => Object.prototype.hasOwnProperty.call(membersByLeague, league.id));
+  const pendingPlayers = useMemo(() => players.filter((player) => player.clubStatus === 'PENDING').sort((a, b) => a.createdAt.localeCompare(b.createdAt)), [players]);
+  const approvedPlayers = useMemo(() => players.filter((player) => player.clubStatus === 'APPROVED'), [players]);
+  const rejectedPlayers = useMemo(() => players.filter((player) => player.clubStatus === 'REJECTED'), [players]);
 
   const clear = () => { setMessage(''); setError(''); };
 
@@ -218,16 +227,20 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     }
   };
 
-  const loadInvites = async () => {
-    if (!memberLeague) return setInvites([]);
-    try { setInvites((await api.adminInvites(memberLeague.id)).invites); }
-    catch (cause) { setError(describeError(cause, 'Invites could not be loaded.')); }
+  const loadClubAccess = async () => {
+    try {
+      const [playerPayload, invitePayload] = await Promise.all([api.adminPlayers(), api.adminClubInvites()]);
+      setPlayers(playerPayload.players);
+      setClubInvites(invitePayload.invites);
+    } catch (cause) {
+      setError(describeError(cause, 'Club access could not be loaded.'));
+    }
   };
 
   useEffect(() => {
     clear();
     if (task === 'leagues') void loadLeagueMembers();
-    if (task === 'members') { void loadRoster(); void loadInvites(); }
+    if (task === 'members') void loadRoster();
     if (task === 'fixtures' && selectedLeague) api.fixtures(selectedLeague.id).then((payload) => setFixtures(payload.fixtures)).catch((cause) => setError(describeError(cause, 'Fixtures could not be loaded.')));
     if (task === 'promotion' && selectedSeason) Promise.all([api.promotionPreview(selectedSeason.id), ...orderedLeagues.map((league) => api.competitionMembers(league.id))]).then(([preview, ...memberPayloads]) => {
       setPromotion((preview as { preview: PromotionProjection }).preview);
@@ -235,7 +248,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       orderedLeagues.forEach((league, index) => { next[league.id] = (memberPayloads[index] as { members: CompetitionMember[] }).members; });
       setMembersByLeague((current) => ({ ...current, ...next }));
     }).catch((cause) => setError(describeError(cause, 'Promotion projection could not be loaded.')));
-    if (task === 'access') api.adminPlayers().then((payload) => setPlayers(payload.players)).catch((cause) => setError(describeError(cause, 'Club access could not be loaded.')));
+    if (task === 'access') void loadClubAccess();
   }, [task, selectedLeague?.id, memberLeague?.id, selectedSeason?.id, leagues.length]);
 
   useEffect(() => {
@@ -347,14 +360,22 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     });
   };
 
-  const createInvite = async () => {
-    if (!memberLeague) return; clear();
+  const createClubInvite = async () => {
+    clear(); setBusy('club-invite');
     try {
-      const payload = await api.createInvite(memberLeague.id);
+      const expiresAt = inviteExpiry ? new Date(inviteExpiry).toISOString() : null;
+      const payload = await api.createAdminClubInvite(expiresAt);
       setInviteUrl(payload.invite.url);
-      setInvites((current) => [{ id: payload.invite.id, leagueId: payload.invite.leagueId, expiresAt: payload.invite.expiresAt, uses: 0, revokedAt: null, createdAt: new Date().toISOString() }, ...current]);
-      setMessage('Invite link ready.');
-    } catch (cause) { setError(describeError(cause, 'Invite could not be created.')); }
+      setClubInvites((current) => [{
+        id: payload.invite.id,
+        createdBy: payload.invite.createdBy,
+        expiresAt: payload.invite.expiresAt,
+        uses: payload.invite.uses ?? 0,
+        revokedAt: payload.invite.revokedAt ?? null,
+        createdAt: payload.invite.createdAt ?? new Date().toISOString(),
+      }, ...current]);
+      setMessage('Club invite link ready.');
+    } catch (cause) { setError(describeError(cause, 'Club invite could not be created.')); } finally { setBusy(null); }
   };
 
   const copyInvite = async () => {
@@ -414,7 +435,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     catch (cause) { setError(describeError(cause, 'Next-season placements could not be applied.')); }
   };
 
-  const updatePlayer = async (player: AdminPlayer, changes: { role?: AdminPlayer['role']; status?: AdminPlayer['status'] }) => {
+  const updatePlayer = async (player: AdminPlayer, changes: AdminPlayerChanges) => {
     clear();
     try {
       const payload = await api.updateAdminPlayer(player.id, changes);
@@ -423,7 +444,10 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   };
 
   return <section className="admin-desk admin-competition-desk" aria-labelledby="competition-admin-title">
-    <div className="workspace-heading"><div><h2 id="competition-admin-title">Competition admin</h2><p className="form-help">Season structure, weekly settlement and next-season movement in one place.</p></div><button className="refresh-button" type="button" onClick={() => void loadCore()}>Refresh</button></div>
+    <div className="workspace-heading">
+      <div><h2 id="competition-admin-title">Competition admin</h2><p className="form-help">Season structure, weekly settlement and club access in one place.</p></div>
+      <button className="refresh-button" type="button" onClick={() => void loadCore()}>Refresh</button>
+    </div>
     {message && <p className="success-message" role="status">{message}</p>}
     {error && <p className="error-message" role="alert">{error}</p>}
 
@@ -457,7 +481,6 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       <div className="admin-block"><div className="section-heading"><h3>Unassigned players</h3><span className="count-label">{unassigned.length}</span></div><ul className="admin-list">{unassigned.map((player) => <li key={player.id}><div><strong>{player.username ?? 'Name pending'}</strong><small>{player.email}</small></div><div className="inline-actions"><select aria-label={`League for ${player.username}`} value={assignmentTargets[player.id] ?? ''} onChange={(e) => setAssignmentTargets((current) => ({ ...current, [player.id]: e.target.value }))}>{orderedLeagues.map((league) => <option key={league.id} value={league.id}>{league.name}</option>)}</select><button className="action-button" type="button" onClick={() => void assignPlayer(player)}>Assign {player.username}</button></div></li>)}</ul>{unassigned.length === 0 && <p className="empty-message">Every active club player has a league placement.</p>}</div>
       <div className="admin-block"><div className="section-heading"><h3>Season rosters</h3><span className="count-label">{Object.values(membersByLeague).flat().filter((member) => member.active).length}</span></div>{orderedLeagues.map((league) => <div className="roster-group" key={league.id}><h4>{league.name} · {(membersByLeague[league.id] ?? []).filter((member) => member.active).length}/{league.maxPlayers}</h4><ul className="admin-list">{(membersByLeague[league.id] ?? []).map((member) => <li key={member.userId}><div><strong>{member.username ?? 'Name pending'}</strong><small>{member.active ? 'Active' : 'Inactive'}</small></div><div className="inline-actions"><select aria-label={`Move ${member.username}`} value={moveTargets[member.userId] ?? league.id} onChange={(e) => setMoveTargets((current) => ({ ...current, [member.userId]: e.target.value }))}>{orderedLeagues.map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}</select><button className="action-button" type="button" disabled={!member.active || (moveTargets[member.userId] ?? league.id) === league.id} onClick={() => void moveMember(member)}>Move {member.username}</button><button className="action-button" type="button" onClick={() => void setMemberActive(member, !member.active)}>{member.active ? `Deactivate ${member.username}` : `Reactivate ${member.username}`}</button></div></li>)}</ul></div>)}</div>
       {selectedSeason && <div className="admin-block stack-form"><h3>Draft starting placements</h3><p className="form-help">Copy this season's reviewed league placements into a draft season, then adjust promotions or overrides before opening.</p><label>Draft season for baseline placements<select value={baselineSeasonId} onChange={(e) => setBaselineSeasonId(e.target.value)}><option value="">Choose draft season</option>{seasons.filter((season) => season.id !== selectedSeason.id && season.status === 'DRAFT').map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}</select></label><button className="secondary-button" type="button" disabled={!baselineSeasonId} onClick={copyBaseline}>Copy current placements to draft</button></div>}
-      {memberLeague && <div className="admin-block"><div className="section-heading"><h3>{memberLeague.name} invites</h3><span className="count-label">{invites.filter((invite) => !invite.revokedAt).length} active</span></div><button className="primary-button" type="button" onClick={() => void createInvite()}>Create invite for {memberLeague.name}</button>{inviteUrl && <div className="stack-form"><label>Latest invite<input value={inviteUrl} readOnly /></label><button className="secondary-button" type="button" onClick={() => void copyInvite()}>Copy invite link</button></div>}<ul className="admin-list">{invites.map((invite) => <li key={invite.id}><div><strong>{invite.revokedAt ? 'Revoked invite' : 'Active invite'}</strong><small>{invite.uses} uses · {formatExpiry(invite.expiresAt)}</small></div>{!invite.revokedAt && <button className="action-button" type="button" onClick={() => setConfirm({ title: 'Revoke invite?', message: 'The link will stop admitting new players; existing memberships remain.', action: async () => { await api.revokeInvite(invite.id); setInvites((current) => current.map((row) => row.id === invite.id ? { ...row, revokedAt: new Date().toISOString() } : row)); setMessage('Invite revoked.'); } })}>Revoke</button>}</li>)}</ul></div>}
     </div>
 
     <div role="tabpanel" hidden={task !== 'fixtures'}>{selectedLeague && <><div className="admin-block"><div className="section-heading"><h3>{selectedLeague.name} fixture health</h3><span className="count-label">{fixtures.length} total</span></div><div className="fixture-health"><button className="action-button" type="button" onClick={() => setFixtureFilter('OUTSTANDING')}>Outstanding {fixtureCounts.outstanding}</button><button className="action-button" type="button" onClick={() => setFixtureFilter('PENDING_CONFIRMATION')}>Pending {fixtureCounts.pending}</button><button className="action-button" type="button" onClick={() => setFixtureFilter('DISPUTED')}>Disputed {fixtureCounts.disputed}</button><button className="action-button" type="button" onClick={() => setFixtureFilter('CONFIRMED')}>Completed {fixtureCounts.completed}</button></div><div className="inline-actions"><button className="secondary-button" type="button" onClick={() => void previewFixtures()}>Preview fixtures</button><button className="primary-button" type="button" onClick={() => void commitFixtures()}>Commit fixtures</button><button className="secondary-button" type="button" onClick={() => setConfirm({ title: 'Reset unplayed fixtures?', message: 'The server refuses reset after protected play begins.', action: async () => { await api.resetFixtures(selectedLeague.id); setFixtures([]); setFixturePreview(null); setMessage('Unplayed fixtures reset.'); } })}>Reset before play</button></div></div>{fixturePreview && <div className="admin-block"><div className="section-heading"><h3>Preview</h3><span className="count-label">{fixturePreview.expectedFixtureCount} fixture{fixturePreview.expectedFixtureCount === 1 ? '' : 's'} expected</span></div><ul className="admin-list">{fixturePreview.fixtures.map((item) => <li key={`${item.playerAId}:${item.playerBId}:${item.meetingNumber}`}><div><strong>{memberName(item.playerAId)} vs {memberName(item.playerBId)}</strong><small>Round {item.round} · meeting {item.meetingNumber}</small></div></li>)}</ul></div>}<div className="admin-block"><ul className="admin-list">{visibleFixtures.map((item) => <li key={item.id}><div><strong>{item.playerAUsername ?? memberName(item.playerAId)} vs {item.playerBUsername ?? memberName(item.playerBId)}</strong><small>Round {item.round} · meeting {item.meetingNumber} · {fixtureLabel(item.status)}</small></div>{(item.status === 'OUTSTANDING' || item.status === 'VOID') && <button className="action-button" type="button" onClick={() => void voidFixture(item)}>{item.status === 'VOID' ? `Restore ${item.playerAUsername} vs ${item.playerBUsername}` : `Void ${item.playerAUsername} vs ${item.playerBUsername}`}</button>}</li>)}</ul></div></>}</div>
@@ -466,7 +489,26 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
 
     <div role="tabpanel" hidden={task !== 'promotion'}><div className="admin-block"><div className="section-heading"><h3>Promotion & relegation</h3>{promotion && <span className="status-label">{promotion.provisional ? 'Provisional' : 'Final eligible'}</span>}</div><ul className="admin-list">{promotion?.movements.map((movement) => <li key={movement.userId}><div><strong>{memberName(movement.userId)}</strong><small>{leagueName(movement.fromLeagueId)} → {leagueName(movement.toLeagueId)} · {movement.kind.toLowerCase()}</small></div></li>)}</ul></div><div className="admin-block stack-form"><label>Next season<select value={targetSeasonId} onChange={(e) => setTargetSeasonId(e.target.value)}><option value="">Choose draft season</option>{seasons.filter((season) => season.id !== selectedSeasonId && season.status === 'DRAFT').map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}</select></label><button className="primary-button" type="button" disabled={!targetSeasonId || promotion?.provisional === true} onClick={() => void createProposal()}>Create promotion proposal</button></div>{proposal.length > 0 && <div className="admin-block"><ul className="admin-list">{proposal.map((movement) => <li key={movement.userId}><div><strong>{memberName(movement.userId)}</strong><small>{leagueName(movement.fromLeagueId)} → {leagueName(movement.toLeagueId)}</small></div><div className="proposal-controls"><label>Override destination for {memberName(movement.userId)}<select value={overrideTargets[movement.userId] ?? movement.toLeagueId ?? ''} onChange={(e) => setOverrideTargets((current) => ({ ...current, [movement.userId]: e.target.value }))}>{targetLeagues.map((league) => <option key={league.id} value={league.id}>{league.name}</option>)}</select></label><label>Override reason for {memberName(movement.userId)}<input value={overrideReasons[movement.userId] ?? ''} onChange={(e) => setOverrideReasons((current) => ({ ...current, [movement.userId]: e.target.value }))} /></label><button className="action-button" type="button" onClick={() => void saveOverride(movement)}>Save override for {memberName(movement.userId)}</button></div></li>)}</ul><button className="primary-button" type="button" onClick={() => void applyProposal()}>Apply to next season</button></div>}</div>
 
-    <div role="tabpanel" hidden={task !== 'access'}><div className="admin-block"><div className="section-heading"><h3>Club access</h3><span className="count-label">{players.length}</span></div><ul className="admin-list">{players.map((player) => <li key={player.id}><div><strong>{player.username ?? 'Name pending'}</strong><small>{player.email} · {player.role} · {player.status}</small>{player.isMasterAdmin && <small>Protected master administrator</small>}</div>{!player.isMasterAdmin && <div className="inline-actions">{player.role === 'PLAYER' ? <button className="action-button" type="button" onClick={() => void updatePlayer(player, { role: 'ADMIN' })}>Make {player.username} admin</button> : <button className="action-button" type="button" onClick={() => void updatePlayer(player, { role: 'PLAYER' })}>Remove {player.username} admin</button>}{player.status === 'ACTIVE' ? <button className="action-button" type="button" onClick={() => void updatePlayer(player, { status: 'SUSPENDED' })}>Suspend {player.username}</button> : <button className="action-button" type="button" onClick={() => void updatePlayer(player, { status: 'ACTIVE' })}>Reactivate {player.username}</button>}</div>}</li>)}</ul></div></div>
+    <div role="tabpanel" hidden={task !== 'access'} className="club-access-panel">
+      <section className="admin-block club-access-priority" aria-label="Pending membership requests">
+        <div className="section-heading"><div><h3>Pending requests</h3><p className="form-help">Approval grants permanent club access. League placement remains a separate season action.</p></div><span className="count-label">{pendingPlayers.length}</span></div>
+        {pendingPlayers.length === 0 ? <p className="empty-message">No membership requests are waiting.</p> : <ul className="admin-list club-request-list">{pendingPlayers.map((player) => <li key={player.id}><div><strong>{player.email}</strong><small>Requested {formatDate(player.createdAt)} · No club data access yet</small></div><div className="inline-actions"><button className="primary-button compact-button" type="button" aria-label={`Approve ${player.email}`} onClick={() => void updatePlayer(player, { clubStatus: 'APPROVED' })}>Approve</button><button className="secondary-button compact-button" type="button" aria-label={`Reject ${player.email}`} onClick={() => setConfirm({ title: `Reject ${player.email}?`, message: 'This rejects the membership request. A new invitation will not reset a rejected account automatically.', action: async () => { await updatePlayer(player, { clubStatus: 'REJECTED' }); } })}>Reject</button></div></li>)}</ul>}
+      </section>
+
+      <section className="admin-block" aria-label="Club members">
+        <div className="section-heading"><div><h3>Members</h3><p className="form-help">Club access and account safety live here. Season placement lives under Season members.</p></div><span className="count-label">{approvedPlayers.length}</span></div>
+        <ul className="admin-list club-member-list">{approvedPlayers.map((player) => <li key={player.id}><div><strong>{player.username ?? player.email}</strong><small>{player.email} · {player.role} · {player.status}</small><div className="status-chip-row"><span className="status-label">Approved</span><span className="status-label">{player.leagueActive ? 'Season placed' : 'Not placed this season'}</span></div>{player.isMasterAdmin && <small>Protected master administrator</small>}</div>{!player.isMasterAdmin && <div className="inline-actions">{player.role === 'PLAYER' ? <button className="action-button" type="button" onClick={() => void updatePlayer(player, { role: 'ADMIN' })}>Make {player.username} admin</button> : <button className="action-button" type="button" onClick={() => void updatePlayer(player, { role: 'PLAYER' })}>Remove {player.username} admin</button>}{player.status === 'ACTIVE' ? <button className="action-button" type="button" onClick={() => void updatePlayer(player, { status: 'SUSPENDED' })}>Suspend {player.username}</button> : <button className="action-button" type="button" onClick={() => void updatePlayer(player, { status: 'ACTIVE' })}>Reactivate {player.username}</button>}</div>}</li>)}</ul>
+      </section>
+
+      {rejectedPlayers.length > 0 && <section className="admin-block" aria-label="Rejected membership requests"><div className="section-heading"><div><h3>Rejected requests</h3><p className="form-help">Rejected accounts remain outside the club until an administrator deliberately changes their membership state.</p></div><span className="count-label">{rejectedPlayers.length}</span></div><ul className="admin-list">{rejectedPlayers.map((player) => <li key={player.id}><div><strong>{player.email}</strong><small>Rejected · requested {formatDate(player.createdAt)}</small></div></li>)}</ul></section>}
+
+      <section className="admin-block club-invite-panel" aria-label="Club invitation">
+        <div className="section-heading"><div><h3>Club invitation</h3><p className="form-help">Create a private admission link. Using it creates a pending request only; it never assigns a league.</p></div><span className="count-label">{clubInvites.filter((invite) => !invite.revokedAt).length} active</span></div>
+        <div className="club-invite-create"><label>Optional invite expiry<input type="datetime-local" value={inviteExpiry} onChange={(event) => setInviteExpiry(event.target.value)} /></label><button className="primary-button" type="button" disabled={busy === 'club-invite'} onClick={() => void createClubInvite()}>Create club invite</button></div>
+        {inviteUrl && <div className="invite-secret-callout stack-form"><p className="form-help">This secret link is shown once. Copy it before leaving this screen.</p><label>Latest club invite<input value={inviteUrl} readOnly /></label><button className="secondary-button" type="button" onClick={() => void copyInvite()}>Copy invite link</button></div>}
+        <ul className="admin-list club-invite-list">{clubInvites.map((invite) => <li key={invite.id}><div><strong>{invite.revokedAt ? 'Revoked invite' : 'Active invite'}</strong><small>{invite.uses} uses · {formatExpiry(invite.expiresAt)} · created {formatDate(invite.createdAt)}</small></div>{!invite.revokedAt && <button className="action-button" type="button" onClick={() => setConfirm({ title: 'Revoke club invite?', message: 'The link will stop accepting new membership requests. Existing requests and members are unchanged.', action: async () => { await api.revokeAdminClubInvite(invite.id); setClubInvites((current) => current.map((row) => row.id === invite.id ? { ...row, revokedAt: new Date().toISOString() } : row)); setMessage('Club invite revoked.'); } })}>Revoke</button>}</li>)}</ul>
+      </section>
+    </div>
 
     {confirm && <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-labelledby="competition-confirm-title" className="confirm-dialog"><h3 id="competition-confirm-title">{confirm.title}</h3><p>{confirm.message}</p><div className="inline-actions"><button className="secondary-button" type="button" onClick={() => setConfirm(null)}>Cancel</button><button className="primary-button" type="button" onClick={() => { const current = confirm; setConfirm(null); void current.action().catch((cause) => setError(describeError(cause, 'Action could not be completed.'))); }}>Confirm</button></div></div></div>}
   </section>;
