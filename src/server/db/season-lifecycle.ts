@@ -1,5 +1,6 @@
 import { AppError } from '../errors';
 import type { SeasonInput } from '../domain/competition';
+import { maxLegsFromLegacyTarget } from '../domain/scoring';
 import { createSeason, getSeason, listSeasonLeagues, updateSeason, type CompetitionLeagueRecord, type SeasonRecord } from './competition';
 import { createSeasonLeague } from './competition-leagues';
 
@@ -69,7 +70,10 @@ export async function cloneSeasonStructure(
       slug: `${sourceLeague.slug}-${suffix}`,
       maxPlayers: sourceLeague.max_players,
       matchesPerPair: sourceLeague.matches_per_pair,
+      maxLegs: maxLegsFromLegacyTarget(sourceLeague.target_legs),
       pointsPerWin: sourceLeague.points_per_win,
+      pointsPerDraw: 0,
+      pointsPerLoss: 0,
       targetLegs: sourceLeague.target_legs,
       visibility: sourceLeague.visibility,
       hierarchyPosition: sourceLeague.hierarchy_position,
