@@ -21,11 +21,14 @@ Mobile comes first because the club uses it around a board. Desktop is a first-c
 - Publicly chosen club table and confirmed results.
 - Google-backed member identity, invite-based league access and profile basics.
 - Player result submission, opponent confirmation/dispute and administrator correction with audit records.
+- Administrator-managed seasons, divisions, persisted competition fixtures, rules and promotion/relegation workflow.
 - A quiet public entrance, a focused member workspace and a restrained club control room.
 
 ## What does not belong until separately approved
 
-Fixtures, membership requests, archives, player bios, social links, WhatsApp, rich statistics, live scoring, payments, tournaments, teams, multi-club support and paid infrastructure.
+Player-facing fixture-first browsing and entry, membership requests, archives, player bios, social links, WhatsApp, rich statistics, live scoring, payments, tournaments, teams, multi-club support and paid infrastructure.
+
+Persisted fixtures are already part of the competition record. What remains separately staged is how normal players and the public browse and act on those fixtures, without weakening the administrator permission boundary.
 
 ## Platform promise
 
