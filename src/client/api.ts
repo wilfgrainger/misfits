@@ -47,7 +47,11 @@ export interface LeagueSummary {
   slug: string;
   seasonName: string;
   status: 'OPEN' | 'CLOSED';
+  maxLegs: number;
   pointsPerWin: number;
+  pointsPerDraw: number;
+  pointsPerLoss: number;
+  /** Derived compatibility mirror. New admin writes use maxLegs only. */
   targetLegs: number;
   maxPlayers: number;
   matchesPerPair: number;
@@ -276,14 +280,20 @@ function normalizeSeason(value: unknown): SeasonSummary {
 
 function normalizeLeague(value: unknown): LeagueSummary {
   const row = asRecord(value);
+  const legacyTargetLegs = numberValue(row, 'targetLegs', 'target_legs');
+  const maxLegs = numberValue(row, 'maxLegs', 'max_legs') ?? ((legacyTargetLegs ?? 3) * 2) - 1;
+  const targetLegs = legacyTargetLegs ?? Math.floor(maxLegs / 2) + 1;
   return {
     id: stringValue(row, 'id') ?? '',
     name: stringValue(row, 'name') ?? '',
     slug: stringValue(row, 'slug') ?? '',
     seasonName: stringValue(row, 'seasonName', 'season_name') ?? '',
     status: (stringValue(row, 'status') ?? 'OPEN') as LeagueSummary['status'],
+    maxLegs,
     pointsPerWin: numberValue(row, 'pointsPerWin', 'points_per_win') ?? 2,
-    targetLegs: numberValue(row, 'targetLegs', 'target_legs') ?? 3,
+    pointsPerDraw: numberValue(row, 'pointsPerDraw', 'points_per_draw') ?? 0,
+    pointsPerLoss: numberValue(row, 'pointsPerLoss', 'points_per_loss') ?? 0,
+    targetLegs,
     maxPlayers: numberValue(row, 'maxPlayers', 'max_players') ?? 32,
     matchesPerPair: numberValue(row, 'matchesPerPair', 'matches_per_pair') ?? 1,
     createdBy: nullableStringValue(row, 'createdBy', 'created_by'),
