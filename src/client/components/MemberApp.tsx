@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, type LeaguePlayer, type LeagueSummary, type UserSummary } from '../api';
 import { AppIcon } from './AppIcons';
 import { MemberNavigation, type MemberDestination } from './MemberNavigation';
@@ -20,13 +20,14 @@ function CompetitionButton({ league, onOpen }: { league: LeagueSummary; onOpen: 
   );
 }
 
-export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdmin, onSignOut }: {
+export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdmin, onSignOut, profileRequestKey = 0 }: {
   user: UserSummary;
   clubLeagues: LeagueSummary[];
   myLeagues: LeagueSummary[];
   onUserSaved: (user: UserSummary) => void;
   onOpenAdmin?: () => void;
   onSignOut: () => void;
+  profileRequestKey?: number;
 }) {
   const [destination, setDestination] = useState<MemberDestination>('home');
   const [focusedLeagueId, setFocusedLeagueId] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdm
   const [players, setPlayers] = useState<LeaguePlayer[]>([]);
   const [playersLoading, setPlayersLoading] = useState(false);
   const [playersError, setPlayersError] = useState('');
+  const seenProfileRequest = useRef(profileRequestKey);
 
   const eligibleRecordLeagues = useMemo(() => myLeagues.filter((league) => league.status === 'OPEN'), [myLeagues]);
   const focusedLeague = clubLeagues.find((league) => league.id === focusedLeagueId) ?? null;
@@ -46,6 +48,13 @@ export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdm
     if (eligibleRecordLeagues.length === 1) setRecordLeagueId(eligibleRecordLeagues[0].id);
     else if (recordLeagueId && !eligibleRecordLeagues.some((league) => league.id === recordLeagueId)) setRecordLeagueId(null);
   }, [eligibleRecordLeagues, recordLeagueId]);
+
+  useEffect(() => {
+    if (profileRequestKey === seenProfileRequest.current) return;
+    seenProfileRequest.current = profileRequestKey;
+    setDestination('more');
+    setMoreView('profile');
+  }, [profileRequestKey]);
 
   const selectDestination = (next: MemberDestination) => {
     setDestination(next);
