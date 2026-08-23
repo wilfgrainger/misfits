@@ -1,10 +1,9 @@
 # Misfits 501 Progress
 
-**Updated:** 23 August 2026  
-**Current branch:** `feat/club-first-navigation`  
-**PR:** #174 `feat: make member navigation club-first`  
-**Current focus:** final exact-head CI → Cave Pony/Impeccable release review → merge → verify main deploy → production smoke  
-**Backend/schema/infra change in PR #174:** NONE  
+**Updated:** 23 August 2026
+**Current branch:** `copilot/fix-outstanding-issues`
+**Current focus:** security verification → handoff
+**Backend/schema/infra change in this repair:** NONE
 **Production D1 migration required:** NO
 
 ## Restart here
@@ -16,10 +15,25 @@ Read, in order:
 3. `PRODUCT.md`
 4. `VISION.md`
 5. `DESIGN.md`
-6. `docs/superpowers/specs/2026-08-23-club-first-navigation-design.md`
-7. `docs/superpowers/plans/2026-08-23-club-first-navigation.md`
+6. `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`
 
-This file is the current execution-state authority. The Superpowers plan records delivery structure; CI and the latest PR head are the release evidence.
+This file is the current execution-state authority. The evidence document records the story-by-story repair; the latest local gate and pushed repair commits are the current release evidence.
+
+## Outstanding-story repair
+
+The repair branch addresses all 33 implementation gaps identified by the 22 August audit:
+
+- Admin: ADM-075, ADM-081, ADM-083, ADM-084, ADM-087 and ADM-088.
+- Player: PLY-009, PLY-012, PLY-014, PLY-016, PLY-022–024, PLY-026–040, PLY-050, PLY-052, PLY-053 and PLY-055.
+- Public: PUB-005 remains intentionally blocked by the private-club product authority; anonymous public fixture access is not part of Misfits 501.
+
+The implementation preserves the existing Worker + static assets + D1 architecture, Google-only sign-in, server-side authorization, DartCounter scoring ownership and additive-migration policy. No migration or production D1 operation is required for this repair.
+
+The member fixture surface is protected for approved club members, while the existing `/api/public` naming is retained for compatibility; it does not mean anonymous access. Fixture lifecycle states, result summaries, progress, round/meeting context, canonical player ordering, movement projections/history, season health and whole-season readiness are now represented in the relevant server and client workflows. Material admin actions use accessible confirmation dialogs. Suspended request sessions remain distinguishable from ordinary unauthenticated sessions without weakening fail-closed direct session resolution.
+
+### Validation evidence
+
+The focused suspension regression passed after the final patch: **2 files, 11 tests**. The final repository gate passed **64 Vitest files / 269 tests**, client and Worker TypeScript, Wrangler types, production Vite build, Impeccable detection (`[]`) and `git diff --check`. The latest changed files have passed secret scanning; the final CodeQL rerun remains pending.
 
 ## Production baseline already complete
 
@@ -188,4 +202,4 @@ After merge:
 - Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
 - No private club data may be exposed before Worker-verified `APPROVED` membership.
 - Club approval never implies season/league participation.
-- Keep all **33 parked functional stories** open until separately revalidated.
+- Keep the implementation and evidence aligned with the 33-story repair table; GitHub issue state is tracked separately and has not been mutated by this branch.

@@ -201,7 +201,7 @@ Definitions:
 | PUB-006 | **VERIFIED** | Stable public league deep link and clipboard/native share fallback are tested. |
 | PUB-007 | **VERIFIED** | Private league reads use `canViewLeague`; unauthenticated guessed routes fail without returning protected league data. |
 
-## Incomplete story set
+## Baseline incomplete story set (superseded)
 
 ### PARTIAL
 
@@ -220,6 +220,65 @@ ADM-083, PLY-014, PLY-023, PLY-024, PLY-026, PLY-027, PLY-028, PLY-029, PLY-030,
 5. **Admin operational polish:** wire season health (ADM-083), ambiguity display (ADM-075), then close mobile/desktop acceptance (ADM-087/088).
 6. **Public fixtures:** implement permission-safe PUBLIC fixture read/render for PUB-005.
 
+## Superseding repair revalidation — 23 August 2026
+
+The baseline findings above are retained as the decision trail. They are superseded by the repair commits on branch `copilot/fix-outstanding-issues`, which revalidated every implementation gap listed in the baseline incomplete set. `PUB-005` is the sole exception: anonymous public fixtures remain intentionally out of scope because `PRODUCT.md` defines Misfits 501 as one private club. The protected member fixture view is not anonymous public access.
+
+| Audience | Total | VERIFIED | BLOCKED BY PRODUCT AUTHORITY | REMAINING IMPLEMENTATION GAP |
+|---|---:|---:|---:|---:|
+| Admin | 88 | 88 | 0 | 0 |
+| Player | 55 | 55 | 0 | 0 |
+| Public | 7 | 6 | 1 | 0 |
+| **Total** | **150** | **149** | **1** | **0** |
+
+| Story | Repair validation | Evidence |
+|---|---|---|
+| ADM-075 | **VERIFIED** | Admin movement projection now renders boundary ambiguities and provisional movement state; promotion route and admin competition coverage exercise the projection path. |
+| ADM-081 | **VERIFIED** | Whole-season fixture commitment rejects active approved club players without a placement; season roster/readiness flows expose the unassigned state. |
+| ADM-083 | **VERIFIED** | Season health is routed and rendered with unresolved setup, fixture and result counts in the admin competition desk. |
+| ADM-084 | **VERIFIED** | Fixture void/restore, publication, placement application, access changes and roster deactivation use the accessible confirmation dialog with cancellation and focus handling. |
+| ADM-087 | **VERIFIED** | Mobile-first admin controls retain the 44px base touch target and responsive layout; the final Impeccable detector is `[]`. |
+| ADM-088 | **VERIFIED** | Desktop admin composition presents season, roster, fixture and movement operations in the wide workspace; the final Impeccable detector is `[]`. |
+| PLY-009 | **VERIFIED** | Fresh sign-in and existing suspended sessions render an explicit Account suspended state; protected server requests return a distinct forbidden response while direct session resolution remains fail-closed. |
+| PLY-012 | **VERIFIED** | Member league ordering prefers the current season before status/name ordering. |
+| PLY-014 | **VERIFIED** | Approved members can browse the club's current-season competition list and open another permitted league from the club-first Leagues destination. |
+| PLY-016 | **VERIFIED** | The league rule summary includes best-of target, derived winning target, W/D/L points, meeting frequency and tie-break explanation. |
+| PLY-022 | **VERIFIED** | Player movement presentation includes published tie-break context and explicit ambiguity messaging at movement boundaries. |
+| PLY-023 | **VERIFIED** | Standings rows mark configured promotion positions. |
+| PLY-024 | **VERIFIED** | Standings rows mark configured relegation positions. |
+| PLY-026 | **VERIFIED** | Approved members load their complete fixture list through the member-protected fixture route. |
+| PLY-027 | **VERIFIED** | Outstanding fixtures have a dedicated status and are surfaced in the fixture browser and Record flow. |
+| PLY-028 | **VERIFIED** | Completed fixtures link the official result and display score/average summaries. |
+| PLY-029 | **VERIFIED** | Pending-confirmation fixtures remain visible with awaiting-confirmation and action context. |
+| PLY-030 | **VERIFIED** | Disputed fixtures remain visible with needs-admin-review state and dispute context. |
+| PLY-031 | **VERIFIED** | My Fixtures and All League Fixtures scopes expose both personal and whole-league progress. |
+| PLY-032 | **VERIFIED** | Fixture progress reports played, remaining and total counts for the signed-in player. |
+| PLY-033 | **VERIFIED** | League fixture progress reports played, remaining and total counts for the visible scope. |
+| PLY-034 | **VERIFIED** | Fixture rows include round and meeting number so repeated pairings remain distinguishable. |
+| PLY-035 | **VERIFIED** | VOID fixtures are labelled Voided and remain visible in the fixture history. |
+| PLY-036 | **VERIFIED** | Record opens from an outstanding fixture picker; the arbitrary-opponent path is not used when published fixtures exist. |
+| PLY-037 | **VERIFIED** | Fixture-linked result entry captures both canonical players' leg scores and enforces the scoring rules. |
+| PLY-038 | **VERIFIED** | Fixture-linked result entry captures both DartCounter three-dart averages with server validation. |
+| PLY-039 | **VERIFIED** | Submission carries the selected fixture ID and remains pending until opponent confirmation. |
+| PLY-040 | **VERIFIED** | The submitting player's own pending result is included in the results view with awaiting-confirmation state. |
+| PLY-050 | **VERIFIED** | Historical season-labelled leagues retain table, fixtures and results access without rewriting prior memberships. |
+| PLY-052 | **VERIFIED** | Player movement is labelled PROJECTED during an unresolved/live season and is kept separate from saved movement. |
+| PLY-053 | **VERIFIED** | Saved end-of-season movement is labelled SAVED and rendered with the destination placement. |
+| PLY-055 | **VERIFIED** | Members without a next-season placement see explicit pending/unassigned copy rather than a misleading league. |
+| PUB-005 | **BLOCKED BY PRODUCT AUTHORITY** | Anonymous public fixture browsing is intentionally not implemented; the private-club authority permits protected approved-member fixture access only. |
+
+### Repair verification
+
+- Focused final suspension checks: **2 files, 11 tests passed**.
+- Final full repair gate: **64 Vitest files / 269 tests passed**.
+- Client and Worker TypeScript checks: passed.
+- Wrangler type generation: passed.
+- Production Vite build: passed.
+- Impeccable detector: `[]`.
+- `git diff --check`: passed.
+- Secret scan: no secrets detected.
+- CodeQL: 0 alerts before the final suspended-session patch; a final rerun is pending.
+
 ## Handoff rule
 
-Until the incomplete set above is implemented and re-tested, **do not claim 150/150 story completion**. The next agent should use this validation file plus `PROGRESS.md` as the current completion authority, while the canonical story file remains the authority for story wording and acceptance criteria.
+Use this repair section and `PROGRESS.md` as the current completion authority; the canonical story file remains the authority for story wording and acceptance criteria. Do not describe `PUB-005` as an implementation gap unless the private-club product decision changes. GitHub issue state is separate from implementation evidence and must not be represented as closed without an authorized issue-state update.
