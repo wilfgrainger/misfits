@@ -1,9 +1,7 @@
 import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
 import { AppIcon } from './components/AppIcons';
-import { EmptyMemberWorkspace } from './components/EmptyMemberWorkspace';
-import { LeagueTabs } from './components/LeagueTabs';
-import { PlayerLeague } from './components/PlayerLeague';
+import { MemberApp } from './components/MemberApp';
 import { ApiClient, ApiClientError, type AuthPayload, type LeagueSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
 
@@ -50,7 +48,6 @@ export default function App() {
   const [clubInviteToken, setClubInviteToken] = useState<string | null>(() => initialClubInvite());
   const [clubLeagues, setClubLeagues] = useState<LeagueSummary[]>([]);
   const [myLeagues, setMyLeagues] = useState<LeagueSummary[]>([]);
-  const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [adminSelectedLeagueId, setAdminSelectedLeagueId] = useState<string | null>(null);
   const [adminMode, setAdminMode] = useState(false);
   const [clubLoadError, setClubLoadError] = useState('');
@@ -59,24 +56,16 @@ export default function App() {
   const clearClubData = () => {
     setClubLeagues([]);
     setMyLeagues([]);
-    setSelectedLeagueId(null);
     setAdminSelectedLeagueId(null);
     setClubLoadError('');
   };
 
-  const loadApprovedClub = async (preferredLeagueId?: string | null) => {
+  const loadApprovedClub = async () => {
     setClubLoadError('');
     try {
       const [clubPayload, personalPayload] = await Promise.all([api.leagues(), api.myLeagues()]);
       setClubLeagues(clubPayload.leagues);
       setMyLeagues(personalPayload.leagues);
-      setSelectedLeagueId((current) => {
-        const available = clubPayload.leagues;
-        if (preferredLeagueId && available.some((league) => league.id === preferredLeagueId)) return preferredLeagueId;
-        if (current && available.some((league) => league.id === current)) return current;
-        const personal = personalPayload.leagues.find((league) => available.some((candidate) => candidate.id === league.id));
-        return personal?.id ?? available[0]?.id ?? null;
-      });
     } catch (cause) {
       clearClubData();
       setClubLoadError(messageFor(cause, 'Your private club workspace could not be loaded.'));
@@ -106,7 +95,7 @@ export default function App() {
     }
 
     setView('signed-in');
-    setMessage('Your Misfits 501 club workspace is ready.');
+    setMessage('');
     await loadApprovedClub();
   };
 
@@ -191,15 +180,12 @@ export default function App() {
   const saveUser = (saved: UserSummary) => setUser(saved);
   const handleLeagueCreated = (league: LeagueSummary) => {
     setClubLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : [league, ...current]);
-    setSelectedLeagueId(league.id);
     setAdminSelectedLeagueId(league.id);
   };
   const handleLeagueChanged = (league: LeagueSummary) => {
     setClubLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : current);
     setMyLeagues((current) => current.map((item) => item.id === league.id ? league : item));
   };
-  const selectedLeague = clubLeagues.find((league) => league.id === selectedLeagueId) ?? null;
-  const selectedLeagueIsMine = selectedLeague ? myLeagues.some((league) => league.id === selectedLeague.id) : false;
   const googleSlot = <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />;
 
   if (view === 'loading') {
@@ -232,12 +218,9 @@ export default function App() {
 
   return <ClubShell user={user} wide>
     {view === 'signed-in' && user && <div className="account-panel signed-in-experience private-member-app">
-      {message && <p className="success-message compact-message" role="status">{message}</p>}
       {clubLoadError && <div className="experience-empty experience-error" role="alert"><strong>{clubLoadError}</strong><button className="secondary-button" type="button" onClick={() => void loadApprovedClub()}>Retry club workspace</button></div>}
       {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><p className="form-help">Club administration</p></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
-      {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area">
-        {clubLeagues.length > 0 ? <>{clubLeagues.length > 1 && <LeagueTabs leagues={clubLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Club leagues" />}{selectedLeague && <PlayerLeague user={user} league={selectedLeague} isParticipant={selectedLeagueIsMine} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}</> : <EmptyMemberWorkspace user={user} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}
-      </div>}
+      {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area"><MemberApp user={user} clubLeagues={clubLeagues} myLeagues={myLeagues} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} /></div>}
     </div>}
   </ClubShell>;
 }
