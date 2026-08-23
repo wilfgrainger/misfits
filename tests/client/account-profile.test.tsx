@@ -47,7 +47,7 @@ describe('account profile access', () => {
   it('keeps club-first navigation and profile available before any league is published', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Home' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Good to see you, Admin.' })).toBeTruthy();
     expect(screen.getByText('Misfits Darts Club')).toBeTruthy();
     expect(screen.getByAltText('Misfits 501 club seal')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Season admin' })).toBeNull();
@@ -67,7 +67,7 @@ describe('account profile access', () => {
     user.isMasterAdmin = false;
     render(<App />);
 
-    await screen.findByRole('heading', { name: 'Home' });
+    await screen.findByRole('heading', { name: 'Good to see you, Admin.' });
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Admin' }));
 
