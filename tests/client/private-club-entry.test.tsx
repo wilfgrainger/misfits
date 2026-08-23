@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const calls = {
@@ -159,5 +159,17 @@ describe('private club entry', () => {
     expect(await screen.findByRole('heading', { name: 'Set your player nickname' })).toBeTruthy();
     expect(calls.leagues).toBe(0);
     expect(calls.myLeagues).toBe(0);
+  });
+
+  it('lands approved members on Home with the club-first global navigation', async () => {
+    meResult = () => Promise.resolve({ user: approvedUser, requiresOnboarding: false });
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Home' })).toBeTruthy();
+    const nav = screen.getByRole('navigation', { name: 'Member workspace' });
+    expect(within(nav).getAllByRole('button').map((button) => button.textContent?.trim()))
+      .toEqual(['Home', 'Record', 'Leagues', 'More']);
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByText('Your Misfits 501 club workspace is ready.')).toBeNull();
   });
 });
