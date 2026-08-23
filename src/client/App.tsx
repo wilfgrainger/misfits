@@ -5,7 +5,7 @@ import { MemberApp } from './components/MemberApp';
 import { ApiClient, ApiClientError, type AuthPayload, type LeagueSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
 
-type ViewState = 'loading' | 'signed-out' | 'pending' | 'rejected' | 'onboarding' | 'signed-in';
+type ViewState = 'loading' | 'signed-out' | 'pending' | 'rejected' | 'suspended' | 'onboarding' | 'signed-in';
 const CLUB_INVITE_KEY = 'misfits_pending_club_invite';
 const api = new ApiClient();
 
@@ -140,6 +140,10 @@ export default function App() {
         if (!active) return;
         setSigningIn(false);
         if (error instanceof ApiClientError && error.code === 'INVITE_REQUIRED') setMessage('A club invitation is required');
+        else if (error instanceof ApiClientError && error.code === 'FORBIDDEN' && /suspended/i.test(error.message)) {
+          setView('suspended');
+          setMessage('This account is suspended');
+        }
         else setMessage(messageFor(error, 'Google sign-in could not be completed.'));
       });
     }, () => {
@@ -214,6 +218,10 @@ export default function App() {
 
   if (view === 'rejected' && user) {
     return <ClubShell user={user}><section className="private-entry-state membership-state" aria-labelledby="rejected-membership-title"><span className="private-entry-icon"><AppIcon name="lock" /></span><p className="entry-kicker">Private club access</p><h1 id="rejected-membership-title">Membership request not approved</h1><p className="entry-copy">Your account does not currently have access to Misfits club data.</p><p className="form-help">If you think this needs reviewing, contact a club administrator directly.</p><button className="secondary-button private-signout-button" type="button" onClick={() => void logout()}>Sign out</button></section></ClubShell>;
+  }
+
+  if (view === 'suspended') {
+    return <ClubShell><section className="private-entry-state membership-state" aria-labelledby="suspended-account-title"><span className="private-entry-icon"><AppIcon name="lock" /></span><p className="entry-kicker">Private club access</p><h1 id="suspended-account-title">Account suspended</h1><p className="entry-copy">This account cannot sign in to Misfits while it is suspended.</p><p className="form-help">Contact a club administrator if you think this needs reviewing.</p><button className="secondary-button private-signout-button" type="button" onClick={() => { setView('signed-out'); setMessage('Private club access'); }}>Return to sign in</button></section></ClubShell>;
   }
 
   if (view === 'onboarding' && user) {

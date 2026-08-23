@@ -841,6 +841,53 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   line-height: 1.45;
 }
 .movement-summary strong { color: var(--text); }
+.movement-confirmed { color: var(--success); font-weight: 700; }
+.movement-pending { color: var(--warning); font-weight: 700; }
+.movement-history {
+  display: grid;
+  gap: .45rem;
+  margin-top: .35rem;
+  padding-top: .55rem;
+  border-top: 1px solid var(--border);
+}
+.movement-history ul { display: grid; gap: .35rem; margin: 0; padding-left: 1.1rem; }
+.movement-history li { display: flex; justify-content: space-between; gap: .75rem; color: var(--text-3); font-size: .78rem; }
+.movement-history li span:last-child { color: var(--text-2); font-weight: 700; white-space: nowrap; }
+.competition-fixtures { margin-top: 1.5rem; }
+.fixture-browser-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fixture-browser-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.fixture-browser-list li > div:first-child { display: grid; gap: .25rem; min-width: 0; }
+.fixture-browser-list li strong { color: var(--text); font-size: .9rem; }
+.fixture-browser-list li span { color: var(--text-3); font-size: .78rem; }
+.fixture-browser-list .fixture-result-summary { line-height: 1.4; }
+.fixture-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem .8rem;
+  margin: .8rem 0;
+  color: var(--text-3);
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+}
+.fixture-progress strong { color: var(--text); }
+.fixture-scope-toggle { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
+.fixture-scope-toggle .secondary-button { width: auto; margin-top: 0; padding-inline: .8rem; font-size: .78rem; }
+.fixture-scope-toggle .secondary-button.active { color: var(--text); border-color: var(--red); }
+.fixture-row-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; }
+.fixture-row-actions .action-button { width: auto; margin-top: 0; padding-inline: .75rem; font-size: .78rem; }
 .fixture-result-summary { color: var(--text-2) !important; font-weight: 650; }
 
 /* ─── Empty / onboarding ─────────────────────────────────────────────────── */

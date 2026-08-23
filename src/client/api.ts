@@ -181,6 +181,7 @@ export interface PromotionMovement {
   fromPosition: number;
   kind: 'PROMOTED' | 'RELEGATED' | 'MANUAL';
   status?: 'PROPOSED' | 'APPROVED' | 'APPLIED';
+  source?: 'SAVED' | 'PROJECTED';
   reason?: string | null;
   decidedBy?: string | null;
   createdAt?: string;
@@ -398,6 +399,7 @@ function normalizeMovement(value: unknown): PromotionMovement {
     fromPosition: numberValue(row, 'fromPosition', 'from_position') ?? 0,
     kind: (stringValue(row, 'kind') ?? 'MANUAL') as PromotionMovement['kind'],
     status: stringValue(row, 'status') as PromotionMovement['status'],
+    source: (stringValue(row, 'source') as PromotionMovement['source']) ?? undefined,
     reason: nullableStringValue(row, 'reason'),
     decidedBy: nullableStringValue(row, 'decidedBy', 'decided_by'),
     createdAt: stringValue(row, 'createdAt', 'created_at'),

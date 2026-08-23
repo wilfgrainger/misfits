@@ -50,6 +50,7 @@ export interface MemberPromotionMovement extends Omit<PromotionMovement, 'kind' 
   toLeagueId: string | null;
   kind: SeasonMovementRecord['kind'];
   status?: SeasonMovementRecord['status'];
+  source: 'SAVED' | 'PROJECTED';
   fromLeagueName?: string;
   toLeagueName?: string;
 }
@@ -182,12 +183,14 @@ export async function getMemberPromotionPreview(db: D1Database, seasonId: string
       fromPosition: movement.from_position,
       kind: movement.kind,
       status: movement.status,
+      source: 'SAVED',
       fromLeagueName: sourceById.get(movement.from_league_id)?.name,
       toLeagueName: (movement.to_league_id ? targetById.get(movement.to_league_id) : undefined)?.name
         ?? sourceById.get(movement.to_league_id ?? '')?.name,
     }))
     : preview.movements.map((movement) => ({
       ...movement,
+      source: 'PROJECTED' as const,
       fromLeagueName: sourceById.get(movement.fromLeagueId)?.name,
       toLeagueName: sourceById.get(movement.toLeagueId)?.name,
     }));

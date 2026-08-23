@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiClient, type FixtureSummary, type LeagueDetail, type LeagueSummary, type PromotionProjection, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
+import { ApiClient, type FixtureSummary, type LeagueDetail, type LeagueSummary, type MemberMovementRecord, type PromotionProjection, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
 import { effectiveMaxLegs, leagueScoringSummary, legsToWin, matchFormatDescription, resultOutcomeLabel, TABLE_TIE_BREAK_DESCRIPTION } from '../scoring';
 import { AppIcon } from './AppIcons';
 import { ProfilePanel } from './ProfilePanel';
@@ -19,6 +19,7 @@ interface PlayerLeagueProps {
   onSignOut: () => void;
   embedded?: boolean;
   embeddedView?: EmbeddedLeagueView;
+  onEmbeddedViewChange?: (view: EmbeddedLeagueView) => void;
 }
 
 function displayDate(value: string): string {
@@ -36,14 +37,22 @@ function fixtureStatusLabel(status: FixtureSummary['status']): string {
 function fixtureResultLabel(fixture: FixtureSummary, userId: string): string | null {
   const result = fixture.result;
   if (!result) return null;
-  if (result.status === 'PENDING') return result.submittedBy === userId ? 'Your result · awaiting opponent' : 'Result submitted · needs your confirmation';
-  if (result.status === 'DISPUTED') return result.disputeNote ? `Disputed: ${result.disputeNote}` : 'Disputed for admin review';
-  if (result.status === 'CONFIRMED') return `Confirmed · ${result.playerALegs}-${result.playerBLegs}`;
+  const score = `${result.playerALegs}-${result.playerBLegs}`;
+  const averages = `${result.playerAAverage.toFixed(2)} / ${result.playerBAverage.toFixed(2)} avg`;
+  if (result.status === 'PENDING') return result.submittedBy === userId
+    ? `Your result · awaiting opponent · ${score} · ${averages}`
+    : `Result submitted · needs your confirmation · ${score} · ${averages}`;
+  if (result.status === 'DISPUTED') return result.disputeNote
+    ? `Disputed: ${result.disputeNote} · ${score} · ${averages}`
+    : `Disputed for admin review · ${score} · ${averages}`;
+  if (result.status === 'CONFIRMED') return `Confirmed · ${score} · ${averages}`;
   return null;
 }
 
 function ResultRow({ result, user, onResolve }: { result: ResultSummary; user: UserSummary; onResolve: (result: ResultSummary) => void }) {
-  const isPlayerA = result.playerAId === user.id;
+  const canReview = result.status === 'PENDING'
+    && (result.playerAId === user.id || result.playerBId === user.id)
+    && result.submittedBy !== user.id;
   const outcome = resultOutcomeLabel(result.playerALegs, result.playerBLegs, result.playerAUsername, result.playerBUsername);
   return (
     <div className="result-row">
@@ -57,14 +66,14 @@ function ResultRow({ result, user, onResolve }: { result: ResultSummary; user: U
         <span>{displayDate(result.createdAt)}</span>
       </div>
       {result.status !== 'CONFIRMED' && <span className={`status-label status-${result.status.toLowerCase()}`}>{result.status}</span>}
-      {result.status === 'PENDING' && !isPlayerA && result.submittedBy !== user.id && <button className="action-button" type="button" onClick={() => onResolve(result)}>Review result</button>}
+      {canReview && <button className="action-button" type="button" onClick={() => onResolve(result)}>Review result</button>}
       {result.status === 'DISPUTED' && result.disputeNote && <p className="dispute-note">{result.disputeNote}</p>}
       {result.status === 'CONFIRMED' && <span className="result-winner">{outcome}</span>}
     </div>
   );
 }
 
-export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenAdmin, onSignOut, embedded = false, embeddedView }: PlayerLeagueProps) {
+export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenAdmin, onSignOut, embedded = false, embeddedView, onEmbeddedViewChange }: PlayerLeagueProps) {
   const maxLegs = effectiveMaxLegs(league);
   const targetLegs = legsToWin(maxLegs);
   const [view, setView] = useState<PlayerView>(embeddedView ?? 'table');
@@ -73,12 +82,14 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
   const [results, setResults] = useState<ResultSummary[]>([]);
   const [myResults, setMyResults] = useState<ResultSummary[]>([]);
   const [fixtures, setFixtures] = useState<FixtureSummary[]>([]);
+  const [movementHistory, setMovementHistory] = useState<MemberMovementRecord[]>([]);
   const [promotion, setPromotion] = useState<PromotionProjection | null>(null);
   const [detail, setDetail] = useState<LeagueDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
+  const [fixtureScope, setFixtureScope] = useState<'mine' | 'all'>('mine');
   const [opponentId, setOpponentId] = useState('');
   const [playerALegs, setPlayerALegs] = useState('');
   const [playerBLegs, setPlayerBLegs] = useState('');
@@ -98,6 +109,7 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
     setLoading(true);
     setError('');
     setPromotion(null);
+    setMovementHistory([]);
     try {
       const [standingPayload, resultPayload, detailPayload, mine, fixturePayload] = await Promise.all([
         api.standings(league.id),
@@ -110,6 +122,9 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
       const promotionPayload = seasonId && typeof api.memberPromotionPreview === 'function'
         ? await api.memberPromotionPreview(seasonId).catch(() => null)
         : null;
+      const movementPayload = typeof api.memberMovementHistory === 'function'
+        ? await api.memberMovementHistory().catch(() => ({ movements: [] as MemberMovementRecord[] }))
+        : { movements: [] as MemberMovementRecord[] };
       if (request !== loadRequest.current) return;
       setStandings(standingPayload.standings);
       setResults(resultPayload.results);
@@ -117,6 +132,7 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
       setMyResults(mine.results.filter((result) => result.leagueId === league.id));
       setFixtures(fixturePayload.fixtures ?? []);
       setPromotion(promotionPayload?.preview ?? null);
+      setMovementHistory(movementPayload.movements);
       setOpponentId((current) => current || detailPayload.players.find((player) => player.id !== user.id)?.id || '');
     } catch (cause) {
       if (request === loadRequest.current) setError(cause instanceof Error ? cause.message : 'League data could not be loaded.');
@@ -131,16 +147,39 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
   const pending = myResults.filter((result) => result.status === 'PENDING' && result.submittedBy !== user.id);
   const submittedPending = myResults.filter((result) => result.status === 'PENDING' && result.submittedBy === user.id);
   const canRecord = league.status === 'OPEN' && isParticipant;
-  const availableFixtures = useMemo(() => fixtures.filter((fixture) => fixture.status === 'OUTSTANDING' && (fixture.playerAId === user.id || fixture.playerBId === user.id)), [fixtures, user.id]);
+  const playerFixtures = useMemo(() => fixtures.filter((fixture) => fixture.playerAId === user.id || fixture.playerBId === user.id), [fixtures, user.id]);
+  const availableFixtures = useMemo(() => playerFixtures.filter((fixture) => fixture.status === 'OUTSTANDING'), [playerFixtures]);
   const selectedFixture = fixtures.find((fixture) => fixture.id === selectedFixtureId) ?? null;
   const leagueUsesFixtures = fixtures.length > 0;
+  const visibleFixtures = fixtureScope === 'mine' ? playerFixtures : fixtures;
+  const scheduledFixtures = fixtures.filter((fixture) => fixture.status !== 'VOID');
+  const scheduledPlayerFixtures = playerFixtures.filter((fixture) => fixture.status !== 'VOID');
+  const fixtureProgress = {
+    played: scheduledFixtures.filter((fixture) => fixture.status === 'CONFIRMED').length,
+    total: scheduledFixtures.length,
+    outstanding: scheduledFixtures.filter((fixture) => fixture.status === 'OUTSTANDING').length,
+    pending: scheduledFixtures.filter((fixture) => fixture.status === 'PENDING_CONFIRMATION').length,
+    disputed: scheduledFixtures.filter((fixture) => fixture.status === 'DISPUTED').length,
+  };
+  const playerFixtureProgress = {
+    played: scheduledPlayerFixtures.filter((fixture) => fixture.status === 'CONFIRMED').length,
+    total: scheduledPlayerFixtures.length,
+    outstanding: scheduledPlayerFixtures.filter((fixture) => fixture.status === 'OUTSTANDING').length,
+    pending: scheduledPlayerFixtures.filter((fixture) => fixture.status === 'PENDING_CONFIRMATION').length,
+    disputed: scheduledPlayerFixtures.filter((fixture) => fixture.status === 'DISPUTED').length,
+  };
   const movementAmbiguities = promotion?.ambiguities.filter((ambiguity) => ambiguity.leagueId === league.id) ?? [];
   const ownMovement = promotion?.movements.find((movement) => movement.userId === user.id) ?? null;
+  const movementHistoryForLeague = movementHistory.filter((movement) => movement.fromLeagueId === league.id || movement.toLeagueId === league.id);
+  const confirmedMovement = movementHistoryForLeague.find((movement) => movement.status === 'APPLIED' && movement.toSeasonId) ?? null;
+  const pendingMovement = movementHistoryForLeague.find((movement) => movement.status !== 'APPLIED') ?? null;
+  const visibleFixtureProgress = fixtureScope === 'mine' ? playerFixtureProgress : fixtureProgress;
 
   useEffect(() => {
     setView(embeddedView ?? 'table');
     setMoreView('menu');
     setSelectedFixtureId(null);
+    setFixtureScope('mine');
     setOpponentId('');
     setPlayerALegs('');
     setPlayerBLegs('');
@@ -200,12 +239,13 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
     setNotice('');
     try {
       if (selectedFixtureId) {
+        const playerAIsCurrentUser = selectedFixture?.playerAId === user.id;
         await api.submitFixtureResult(league.id, {
           fixtureId: selectedFixtureId,
-          playerALegs: Number(playerALegs),
-          playerBLegs: Number(playerBLegs),
-          playerAAverage: Number(playerAAverage),
-          playerBAverage: Number(playerBAverage),
+          playerALegs: Number(playerAIsCurrentUser ? playerALegs : playerBLegs),
+          playerBLegs: Number(playerAIsCurrentUser ? playerBLegs : playerALegs),
+          playerAAverage: Number(playerAIsCurrentUser ? playerAAverage : playerBAverage),
+          playerBAverage: Number(playerAIsCurrentUser ? playerBAverage : playerAAverage),
         });
       } else {
         const input: ResultInput = { playerAId: user.id, playerBId: opponentId, playerALegs: Number(playerALegs), playerBLegs: Number(playerBLegs), playerAAverage: Number(playerAAverage), playerBAverage: Number(playerBAverage) };
@@ -269,9 +309,38 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
       {error && <p className="error-message" role="alert">{error}</p>}
       {loading && <p className="loading-message">Loading league data...</p>}
 
-      {!loading && view === 'table' && <section className="standings-card" aria-labelledby="player-standings-title"><div className="experience-section-heading"><div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="results" /></span><h3 id="player-standings-title">Standings</h3></div></div>{((league.promotionPlaces ?? 0) > 0 || (league.relegationPlaces ?? 0) > 0) && <p className="movement-legend">Zones show {league.promotionPlaces ? `${league.promotionPlaces} promotion place${league.promotionPlaces === 1 ? '' : 's'}` : 'no promotion places'}{league.relegationPlaces ? ` and ${league.relegationPlaces} relegation place${league.relegationPlaces === 1 ? '' : 's'}` : ''}.</p>}<StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} highlightPlayerId={user.id} promotionPlaces={league.promotionPlaces} relegationPlaces={league.relegationPlaces} />{promotion && <section className="movement-summary" aria-label="Season movement"><strong>{promotion.provisional ? 'Movement is provisional' : 'Movement is final eligible'}</strong>{promotion.unresolvedCount > 0 && <span>{promotion.unresolvedCount} fixture or result{promotion.unresolvedCount === 1 ? '' : 's'} still need resolution.</span>}{ownMovement && <span>Your projection: {ownMovement.kind === 'PROMOTED' ? 'promotion' : 'relegation'}{ownMovement.toLeagueName ? ` to ${ownMovement.toLeagueName}` : ''}.</span>}{movementAmbiguities.map((ambiguity) => <span key={`${ambiguity.boundary}-${ambiguity.position}`}>{ambiguity.leagueName ?? league.name}: {ambiguity.tiedUserIds.map((id) => detail?.players.find((player) => player.id === id)?.username ?? 'Player').join(', ')} are tied at the {ambiguity.boundary.toLowerCase()} boundary (position {ambiguity.position}); movement stays provisional.</span>)}{promotion.ambiguities.length > movementAmbiguities.length && <span>Other movement boundaries remain tied; final destinations will wait for a resolved table.</span>}</section>}{standings.length === 0 && <div className="experience-empty"><AppIcon name="target" /><strong>No table movement yet</strong><span>Confirmed results will settle the table here.</span></div>}</section>}
+      {!loading && view === 'table' && <section className="standings-card" aria-labelledby="player-standings-title">
+        <div className="experience-section-heading"><div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="results" /></span><h3 id="player-standings-title">Standings</h3></div></div>
+        {((league.promotionPlaces ?? 0) > 0 || (league.relegationPlaces ?? 0) > 0) && <p className="movement-legend">Zones show {league.promotionPlaces ? `${league.promotionPlaces} promotion place${league.promotionPlaces === 1 ? '' : 's'}` : 'no promotion places'}{league.relegationPlaces ? ` and ${league.relegationPlaces} relegation place${league.relegationPlaces === 1 ? '' : 's'}` : ''}.</p>}
+        <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} highlightPlayerId={user.id} promotionPlaces={league.promotionPlaces} relegationPlaces={league.relegationPlaces} />
+        {(promotion || confirmedMovement || pendingMovement) && <section className="movement-summary" aria-label="Season movement">
+          {promotion && <><strong>{promotion.provisional ? 'PROVISIONAL: Movement may change' : 'Movement is final eligible'}</strong>{promotion.unresolvedCount > 0 && <span>{promotion.unresolvedCount} fixture or result{promotion.unresolvedCount === 1 ? '' : 's'} still need resolution.</span>}{ownMovement && <span>{ownMovement.source === 'SAVED' ? 'Confirmed movement' : 'Projected movement'}: {ownMovement.kind === 'PROMOTED' ? 'promotion' : 'relegation'}{ownMovement.toLeagueName ? ` to ${ownMovement.toLeagueName}` : ' · placement pending'}.</span>}{movementAmbiguities.map((ambiguity) => <span key={`${ambiguity.boundary}-${ambiguity.position}`}>{ambiguity.leagueName ?? league.name}: {ambiguity.tiedUserIds.map((id) => detail?.players.find((player) => player.id === id)?.username ?? 'Player').join(', ')} are tied at the {ambiguity.boundary.toLowerCase()} boundary (position {ambiguity.position}); movement stays provisional.</span>)}{promotion.ambiguities.length > movementAmbiguities.length && <span>Other movement boundaries remain tied; final destinations will wait for a resolved table.</span>}</>}
+          {confirmedMovement && <span className="movement-confirmed">Confirmed movement: {confirmedMovement.fromSeasonName} · {confirmedMovement.fromLeagueName} → {confirmedMovement.toSeasonName ?? 'Next season'}{confirmedMovement.toLeagueName ? ` · ${confirmedMovement.toLeagueName}` : ' · placement pending'}.</span>}
+          {!confirmedMovement && pendingMovement && <span className="movement-pending">Next-season placement is pending admin review for {pendingMovement.toSeasonName ?? 'the next season'}{pendingMovement.toLeagueName ? ` · projected for ${pendingMovement.toLeagueName}` : ''}.</span>}
+          {movementHistoryForLeague.length > 0 && <div className="movement-history"><strong>Movement history</strong><ul>{movementHistoryForLeague.map((movement) => <li key={movement.id ?? `${movement.fromSeasonId}-${movement.createdAt}`}><span>{movement.fromSeasonName}: {movement.fromLeagueName} → {movement.toSeasonName ?? 'Next season'}{movement.toLeagueName ? ` · ${movement.toLeagueName}` : ' · placement pending'}</span><span>{movement.status === 'APPLIED' ? 'Confirmed' : 'Pending'}</span></li>)}</ul></div>}
+        </section>}
+        {standings.length === 0 && <div className="experience-empty"><AppIcon name="target" /><strong>No table movement yet</strong><span>Confirmed results will settle the table here.</span></div>}
+      </section>}
 
-      {!loading && view === 'fixtures' && <section className="competition-fixtures" aria-labelledby="competition-fixtures-title"><div className="experience-section-heading"><h3 id="competition-fixtures-title">Fixtures</h3></div>{fixtures.length === 0 ? <div className="experience-empty"><AppIcon name="calendar" /><strong>No fixtures published yet</strong><span>This season has no published schedule yet.</span></div> : <ul className="fixture-browser-list">{fixtures.map((fixture) => <li key={fixture.id}><div><strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong><span>Round {fixture.round} · Meeting {fixture.meetingNumber}</span>{fixtureResultLabel(fixture, user.id) && <span className="fixture-result-summary">{fixtureResultLabel(fixture, user.id)}</span>}</div><span className={`status-label status-${fixture.status.toLowerCase()}`}>{fixtureStatusLabel(fixture.status)}</span></li>)}</ul>}</section>}
+      {!loading && view === 'fixtures' && <section className="competition-fixtures" aria-labelledby="competition-fixtures-title">
+        <div className="experience-section-heading"><h3 id="competition-fixtures-title">Fixtures</h3></div>
+        {fixtures.length === 0 ? <div className="experience-empty"><AppIcon name="calendar" /><strong>No fixtures published yet</strong><span>This season has no published schedule yet.</span></div> : <>
+          <div className="fixture-progress" aria-label={`${visibleFixtureProgress.played} of ${visibleFixtureProgress.total} fixtures played`}>
+            <strong>{visibleFixtureProgress.played} / {visibleFixtureProgress.total} played</strong>
+            <span>{visibleFixtureProgress.outstanding} outstanding</span>
+            {visibleFixtureProgress.pending > 0 && <span>{visibleFixtureProgress.pending} awaiting confirmation</span>}
+            {visibleFixtureProgress.disputed > 0 && <span>{visibleFixtureProgress.disputed} disputed</span>}
+          </div>
+          <div className="fixture-scope-toggle" role="group" aria-label="Fixture scope">
+            <button className={fixtureScope === 'mine' ? 'secondary-button active' : 'secondary-button'} type="button" aria-pressed={fixtureScope === 'mine'} onClick={() => setFixtureScope('mine')}>My fixtures</button>
+            <button className={fixtureScope === 'all' ? 'secondary-button active' : 'secondary-button'} type="button" aria-pressed={fixtureScope === 'all'} onClick={() => setFixtureScope('all')}>All league fixtures</button>
+          </div>
+          {visibleFixtures.length === 0 ? <div className="experience-empty"><AppIcon name="calendar" /><strong>No fixtures involving you</strong><span>Your fixtures will appear here once an admin assigns them.</span></div> : <ul className="fixture-browser-list">{visibleFixtures.map((fixture) => {
+            const canRecordFixture = canRecord && fixture.status === 'OUTSTANDING' && (fixture.playerAId === user.id || fixture.playerBId === user.id);
+            return <li key={fixture.id}><div><strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong><span>Round {fixture.round} · Meeting {fixture.meetingNumber}</span>{fixtureResultLabel(fixture, user.id) && <span className="fixture-result-summary">{fixtureResultLabel(fixture, user.id)}</span>}</div><div className="fixture-row-actions"><span className={`status-label status-${fixture.status.toLowerCase()}`}>{fixtureStatusLabel(fixture.status)}</span>{canRecordFixture && <button className="action-button" type="button" onClick={() => { chooseFixture(fixture); setView('record'); onEmbeddedViewChange?.('record'); }}>Record this fixture</button>}</div></li>;
+          })}</ul>}
+        </>}
+      </section>}
 
       {!loading && view === 'record' && !isParticipant && <section className="result-form record-browse-only" aria-labelledby="record-browse-title"><div className="form-heading"><h3 id="record-browse-title">Record</h3><p className="form-help">You can browse this league, but you are not currently assigned to it. An admin must place you in the season before you can record results.</p></div></section>}
 
