@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
 import { AppIcon } from './components/AppIcons';
 import { LeagueTabs } from './components/LeagueTabs';
@@ -24,7 +24,7 @@ function initialClubInvite(): string | null {
 }
 
 function ClubShell({ children, user, onSignOut, wide = false }: {
-  children: React.ReactNode;
+  children: ReactNode;
   user?: UserSummary | null;
   onSignOut?: () => void;
   wide?: boolean;
@@ -52,7 +52,7 @@ export default function App() {
   const [myLeagues, setMyLeagues] = useState<LeagueSummary[]>([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [adminSelectedLeagueId, setAdminSelectedLeagueId] = useState<string | null>(null);
-  const [adminMode, setAdminMode] = useState<'admin' | 'player'>('player');
+  const [adminMode, setAdminMode] = useState(false);
   const [clubLoadError, setClubLoadError] = useState('');
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
@@ -87,6 +87,7 @@ export default function App() {
     setSigningIn(false);
     setUser(payload.user);
     clearClubData();
+    setAdminMode(false);
 
     if (payload.user.clubStatus === 'PENDING') {
       setView('pending');
@@ -182,7 +183,7 @@ export default function App() {
     setSigningIn(false);
     setUser(null);
     clearClubData();
-    setAdminMode('player');
+    setAdminMode(false);
     setView('signed-out');
     setMessage('Private club access');
   };
@@ -195,10 +196,11 @@ export default function App() {
     setAdminSelectedLeagueId(league.id);
   };
   const handleLeagueChanged = (league: LeagueSummary) => {
-    setClubLeagues((current) => current.some((item) => item.id === league.id ? true : false) ? current.map((item) => item.id === league.id ? league : item) : current);
+    setClubLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : current);
     setMyLeagues((current) => current.map((item) => item.id === league.id ? league : item));
   };
   const selectedLeague = clubLeagues.find((league) => league.id === selectedLeagueId) ?? null;
+  const selectedLeagueIsMine = selectedLeague ? myLeagues.some((league) => league.id === selectedLeague.id) : false;
   const googleSlot = <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />;
 
   if (view === 'loading') {
@@ -229,14 +231,14 @@ export default function App() {
     return <ClubShell user={user} onSignOut={() => void logout()}><form className="onboarding-form private-onboarding-card" onSubmit={submitUsername}><div className="form-heading"><p className="entry-kicker">Membership approved</p><h1>Set your player nickname</h1><p className="form-help">This is how your name will appear to other approved club members on tables and results.</p></div><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. Bullseye Billy" autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Enter Misfits</button>{message && message !== 'Choose the name your club will see.' && <p className="form-help" role="status">{message}</p>}</form></ClubShell>;
   }
 
-  return <ClubShell user={user} onSignOut={() => void logout()} wide>
+  const signedInNeedsHeaderSignOut = view === 'signed-in' && user && clubLeagues.length === 0;
+  return <ClubShell user={user} onSignOut={signedInNeedsHeaderSignOut ? () => void logout() : undefined} wide>
     {view === 'signed-in' && user && <div className="account-panel signed-in-experience private-member-app">
-      {user.role === 'ADMIN' && <nav className="segmented-tabs" aria-label="Admin views"><button className={adminMode === 'admin' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" onClick={() => setAdminMode('admin')}>Season admin</button><button className={adminMode === 'player' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" onClick={() => setAdminMode('player')}>Club table</button></nav>}
       {message && <p className="success-message compact-message" role="status">{message}</p>}
       {clubLoadError && <div className="experience-empty experience-error" role="alert"><strong>{clubLoadError}</strong><button className="secondary-button" type="button" onClick={() => void loadApprovedClub()}>Retry club workspace</button></div>}
-      {user.role === 'ADMIN' && adminMode === 'admin' && <div className="admin-workbench"><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
-      {(user.role !== 'ADMIN' || adminMode === 'player') && !clubLoadError && <div className="member-workbench member-area">
-        {clubLeagues.length > 0 ? <>{clubLeagues.length > 1 && <LeagueTabs leagues={clubLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Club leagues" />}{selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}</> : <><div className="empty-member private-empty-member"><span className="private-entry-icon"><AppIcon name="target" /></span><h2>You're in the club.</h2><p>No league has been published for members yet. Your profile is ready while the competition is set up.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}
+      {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><p className="form-help">Club administration</p></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
+      {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area">
+        {clubLeagues.length > 0 ? <>{clubLeagues.length > 1 && <LeagueTabs leagues={clubLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Club leagues" />}{selectedLeague && <PlayerLeague user={user} league={selectedLeague} isParticipant={selectedLeagueIsMine} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}</> : <><div className="empty-member private-empty-member"><span className="private-entry-icon"><AppIcon name="target" /></span><h2>You're in the club.</h2><p>No league has been published for members yet. Your profile is ready while the competition is set up.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}
       </div>}
     </div>}
   </ClubShell>;
