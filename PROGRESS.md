@@ -3,10 +3,11 @@
 **Updated:** 23 August 2026  
 **Current branch:** `feat/private-club-entry`  
 **Draft PR:** #172 `feat: make Misfits private and invite-approved`  
-**Current focus:** Task 7 — final UI/design/simplification/release review  
-**Verified through:** Task 6 — private entry plus final member navigation  
-**Latest verified code SHA:** `b4aec58467c1d59e316b73016f1ab5d38a72e52e`  
-**Latest verified CI:** run #789 — Wrangler types, TypeScript, 62 test files / 257 tests, and production build GREEN; deploy skipped
+**Current focus:** Production D1 migration gate  
+**Verified through:** Tasks 1–7 — private club entry, admin admission, final member navigation and UI/simplification review  
+**Latest verified code SHA:** `e7d61767d588c9e318125f0bae211d8a0c0c779f`  
+**Latest verified code CI:** run #796 — Wrangler types, TypeScript, Impeccable source detector, 62 test files / 257 tests and production build GREEN; deploy skipped  
+**Production migration approval:** RECEIVED from user on 23 August 2026  
 
 ## Authority
 
@@ -28,9 +29,9 @@
 
 The private-club release does not close parked stories merely by changing access/UI.
 
-## Private Club Entry — Tasks 1–6 verified
+## Private Club Entry — Tasks 1–7 COMPLETE
 
-User-approved product decisions remain authoritative:
+The release contract is now implemented on the feature branch:
 
 - Misfits is private: anonymous users see no league, season, player, standings or result data.
 - A brand-new person must arrive through a valid club invite before Google sign-in may create a membership request.
@@ -40,9 +41,9 @@ User-approved product decisions remain authoritative:
 - Club approval is permanent Misfits membership.
 - Season/league assignment remains separate in `league_players`.
 - Approved but unassigned members may browse private club leagues/standings/results but cannot participate as competitors.
-- Pending users see only the private membership-pending experience.
+- Pending and rejected users remain outside all club-data surfaces.
 - Primary app navigation is exactly `League · Record · Results · More`; Admin lives under More for admins.
-- Normal interaction accent is Misfits red; green is semantic success/status only.
+- Normal interaction accent is Misfits red; green is semantic OPEN/success/confirmed/winner state only.
 
 ### Task 1 — migration and permanent membership model: COMPLETE
 
@@ -51,7 +52,7 @@ User-approved product decisions remain authoritative:
 - Added hashed `club_invites` table.
 - Existing admins/master admin/active league members backfill to APPROVED; other historical users remain PENDING.
 - Existing leagues harden to PRIVATE.
-- Migration has **not** been applied to production.
+- Migration has **not** yet been applied to production.
 
 ### Task 2 — invite-only admission and authentication: COMPLETE
 
@@ -73,8 +74,7 @@ User-approved product decisions remain authoritative:
 - Profile, nickname, personal results and result mutations require APPROVED membership.
 - `requireAdmin` requires both APPROVED membership and ADMIN role.
 - League placement remains participation authority, not read authority.
-- Architectural cleanup introduced `listClubLeagues` as the club read authority and retired legacy public-read authority.
-- CI #756 passed Wrangler types, TypeScript, full tests and production build.
+- `listClubLeagues` is the club read authority; legacy public-read authority was retired.
 
 ### Task 4 — admin-controlled club admission: COMPLETE
 
@@ -84,20 +84,17 @@ User-approved product decisions remain authoritative:
 - Club-wide invite create/list/revoke uses the permanent `club_invites` authority.
 - Raw invite token is exposed only when created; token hashes are never exposed.
 - Admission and role changes are audited.
-- Legacy league self-join and league-scoped invite runtime routes were retired.
-- Season members now own placement only, not club admission.
-- Verified implementation SHA `80bd855c23540dda65cf1992f962bb30c5b072ed`; CI #759 GREEN.
+- Legacy league-scoped invite runtime routes and player self-enrolment were retired.
+- Season members own placement only, not club admission.
 
 ### Task 5 — private entry states: COMPLETE
 
-- TDD RED contract began at `6cbc95226002a5bb64c0bd64d61d1ad7f7773a31`.
 - App does not request club leagues before authentication/membership is resolved.
 - Signed-out shell exposes no club data.
-- Normal Google sign-in cannot admit an unknown user without an invite.
-- `/join/:token` keeps the token only through Google admission, then clears session storage and the raw URL.
+- `/join/:token` carries the invite only through Google admission, then clears session storage and the raw URL.
 - PENDING and REJECTED users remain locked outside the club application.
-- APPROVED users missing a nickname enter onboarding.
-- Private-entry tests are GREEN in CI #789.
+- APPROVED users missing a nickname enter onboarding before club data loads.
+- Vitest 4 rejected-Promise setup noise was fixed by making rejection mocks lazy rather than pre-rejected.
 
 ### Task 6 — final member navigation: COMPLETE
 
@@ -107,42 +104,73 @@ User-approved product decisions remain authoritative:
 - Approved unassigned members can browse a league but cannot record results.
 - Retired `Season admin / Club table` top-level switcher is gone.
 - Admin league selection remains separate from the player workspace.
-- A genuine zero-league edge case was fixed: an approved admin can still open More → Admin and create the first league.
-- Zero-league approved users now retain the same four-item member navigation through `EmptyMemberWorkspace`.
-- Member navigation and account/admin-access tests are GREEN in CI #789.
+- Zero-league approved users retain the same four-item member navigation.
+- An approved admin with zero leagues can open More → Admin and create the first league.
 
-## CI blocker diagnosis — RESOLVED
+### Task 7 — design, Impeccable and simplification: COMPLETE
 
-The long-running red CI was not one product defect and must not be treated as such.
+- `DESIGN.md` is now the private-club visual authority and documents admission states, exact navigation, red/green colour semantics, responsive widths and accessibility rules.
+- `member-experience.css` and `private-club.css` implement Misfits red for normal interaction while preserving green for semantic positive state.
+- Safe-area-aware mobile navigation, 44px member targets, focus-visible treatment and reduced-motion behavior are present.
+- Repo-local Impeccable detector is now a named CI gate.
+- CI #794 correctly rejected one stereotyped side-tab stripe in Club access; the stripe was removed rather than suppressing the detector.
+- Impeccable is GREEN in CI #796.
+- Retired client `joinInvite()` was deleted; retired `src/server/db/invites.ts` is absent.
+- Cave Pony simplicity result: no new runtime/service/framework; one permanent membership authority (`users.club_status`), one admission-invite authority (`club_invites`), one participation authority (`league_players`), one member navigation owner and no legacy self-enrolment runtime path.
+- Rendered/manual pixel screenshot acceptance was not performed in this tool session; automated behavior, accessibility-oriented structure, responsive CSS and source-quality gates are recorded instead.
 
-Evidence:
+## Verification evidence
 
-- CI #768 at `e2380233542c6997dfe1ae223464093b7029bdcc` was GREEN before Task 5 RED tests were introduced.
-- CI #769 at `6cbc95226002a5bb64c0bd64d61d1ad7f7773a31` went RED deliberately when the Task 5 contract tests were added.
-- Later red runs predated Task 6, proving the four-tab navigation implementation was not the origin.
-- `tests/client/app-league-create.test.tsx` still asserted the retired `Season admin / Club table` switcher and an obsolete entry state. Those tests were rewritten around the approved private-club UI while preserving the useful league/admin invariants.
-- Vitest 4.1.11 reported already-rejected Promises created during `beforeEach` in `private-club-entry.test.tsx` as unhandled rejections even though all six private-entry assertions passed. The mocks now create rejection Promises lazily when `me()` / `signIn()` consume them, removing the harness false signal without weakening product behavior.
-- CI #787 exposed three additional test-only `ReferenceError` failures from omitted hoisted fixture destructuring; those were corrected without changing production behavior.
-- CI #789 at code SHA `b4aec58467c1d59e316b73016f1ab5d38a72e52e` is the confirming gate: **62/62 test files and 257/257 tests passed**, with Wrangler types, TypeScript and production Vite build also GREEN. Deploy was skipped.
+Latest code gate before this handoff update:
 
-The only genuine application defect uncovered during this diagnosis was the zero-league admin navigation gap described in Task 6; it is fixed and covered by tests.
+- SHA `e7d61767d588c9e318125f0bae211d8a0c0c779f`
+- CI #796
+- Wrangler generated types: GREEN
+- TypeScript client + Worker: GREEN
+- Impeccable source detector: GREEN
+- Vitest: **62/62 files, 257/257 tests**
+- Vite production build: GREEN
+- production deploy job: SKIPPED on PR, as intended
 
-## Next action — Task 7
+A fresh CI run is required on the final documentation head before migration/merge.
 
-Finish the release without changing the approved product contract:
+## PRODUCTION D1 GATE — APPROVED, NOT YET EXECUTED
 
-1. Update `DESIGN.md` to describe the private signed-out shell, pending/rejected states, fixed four-item navigation, Misfits red interaction accent, semantic-only green, and Club access hierarchy.
-2. Apply the repo-local Impeccable audit/polish/adapt/colorize/clarify/harden/normalize/typeset guidance where relevant.
-3. Run a Cave Pony simplification review: one invite authority, one membership authority, no dead public surface, no duplicate navigation, no unnecessary infrastructure or prop-drilled file forest.
-4. Check 360/390/430px mobile layouts and desktop ≥1024px for safe areas, overflow, tap targets, focus/keyboard behavior, empty/loading/error states and Club access readability.
-5. Run the final full CI gate and record exact evidence here.
-6. Recheck PR #172 draft/mergeability state. Do not merge at this stage.
+The user explicitly approved the production gate on 23 August 2026.
 
-## PRODUCTION D1 HARD STOP
+`0006_private_club_membership.sql` is still **unapplied remotely** at this checkpoint.
 
-`0006_private_club_membership.sql` has **not** been applied remotely.
+Repository-supported remote command:
 
-Do not apply migration `0006`, deploy code that depends on it to production, or merge PR #172 until Task 7 and the final repository gate are complete and the user gives explicit approval at the production D1 migration gate.
+```bash
+npm run db:migrate:remote
+# -> wrangler d1 migrations apply misfits --remote
+```
+
+Required post-migration verification:
+
+```sql
+PRAGMA table_info(users);
+SELECT name FROM sqlite_master WHERE type='table' AND name='club_invites';
+SELECT club_status, COUNT(*) FROM users GROUP BY club_status;
+SELECT visibility, COUNT(*) FROM leagues GROUP BY visibility;
+```
+
+Record real command/output evidence in `docs/operations/evidence/2026-08-22-d1-migration-0006.md` without secrets or raw invite tokens.
+
+### Current operational constraint
+
+The repository has only `.github/workflows/ci.yml`; there is no manual migration workflow/dispatch. CI intentionally does **not** run D1 migrations automatically. The current connected tool set can operate GitHub but does not expose an authenticated Cloudflare/Wrangler shell or Cloudflare connector capable of executing the approved remote migration.
+
+Therefore **do not merge PR #172 or trigger the main deployment until migration 0006 has actually succeeded and its remote schema verification has been captured**. Do not add an automatic migration to CI merely to bypass this gate.
+
+## After remote migration succeeds
+
+1. Create `docs/operations/evidence/2026-08-22-d1-migration-0006.md` with actual migration/verification evidence.
+2. Re-run/refetch the exact PR head gate if the evidence commit changes the head.
+3. Mark PR #172 ready if still draft and merge to `main`.
+4. Verify main CI and Cloudflare Worker deployment are GREEN.
+5. Perform a production health/auth/privacy smoke check without exposing club data.
 
 ## Guardrails
 
