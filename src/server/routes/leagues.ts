@@ -3,7 +3,7 @@ import { requireClubMember, requireUser, type AuthAppEnv } from '../auth/guards'
 import { AppError, jsonError } from '../errors';
 import { getLeagueByIdOrSlug, listClubLeagues, listLeagueMembers, listUserLeagues } from '../db/leagues';
 import { listFixtures } from '../db/competition';
-import { getMemberPromotionPreview } from '../db/promotion';
+import { getMemberPromotionPreview, listMemberMovementHistory } from '../db/promotion';
 
 interface LeagueRouteDependencies {
   now?: () => Date;
@@ -36,6 +36,28 @@ function publicPlayers(members: Awaited<ReturnType<typeof listLeagueMembers>>) {
   return members
     .filter((member) => member.active === 1)
     .map((member) => ({ id: member.user_id, username: member.username, profileImageUrl: member.profile_image_url }));
+}
+
+function memberMovement(movement: Awaited<ReturnType<typeof listMemberMovementHistory>>[number]) {
+  return {
+    id: movement.id,
+    fromSeasonId: movement.from_season_id,
+    toSeasonId: movement.to_season_id,
+    userId: movement.user_id,
+    fromLeagueId: movement.from_league_id,
+    toLeagueId: movement.to_league_id,
+    fromPosition: movement.from_position,
+    kind: movement.kind,
+    status: movement.status,
+    reason: movement.reason,
+    decidedBy: movement.decided_by,
+    createdAt: movement.created_at,
+    updatedAt: movement.updated_at,
+    fromSeasonName: movement.from_season_name,
+    toSeasonName: movement.to_season_name,
+    fromLeagueName: movement.from_league_name,
+    toLeagueName: movement.to_league_name,
+  };
 }
 
 export function createLeagueRoutes(_dependencies: LeagueRouteDependencies = {}) {
@@ -109,6 +131,11 @@ export function createLeagueRoutes(_dependencies: LeagueRouteDependencies = {}) 
       if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('VALIDATION_ERROR', 'Movement projection could not be loaded', 400));
     }
+  });
+
+  routes.get('/api/me/movements', requireUser, requireClubMember, async (c) => {
+    const movements = await listMemberMovementHistory(c.env.DB, c.get('user').id);
+    return c.json({ movements: movements.map(memberMovement) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
   routes.get('/api/me/leagues', requireUser, requireClubMember, async (c) => {

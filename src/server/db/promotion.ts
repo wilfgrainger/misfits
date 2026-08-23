@@ -30,6 +30,13 @@ export interface SeasonMovementRecord {
   updated_at: string;
 }
 
+export interface MemberMovementRecord extends SeasonMovementRecord {
+  from_season_name: string;
+  to_season_name: string | null;
+  from_league_name: string;
+  to_league_name: string | null;
+}
+
 export interface PromotionPreview {
   seasonId: string;
   provisional: boolean;
@@ -244,6 +251,23 @@ export async function listSeasonMovements(db: D1Database, fromSeasonId: string, 
       WHERE from_season_id = ?${targetClause}
       ORDER BY from_league_id, from_position, user_id`,
   ).bind(...values).all<SeasonMovementRecord>();
+  return result.results;
+}
+
+export async function listMemberMovementHistory(db: D1Database, userId: string): Promise<MemberMovementRecord[]> {
+  const result = await db.prepare(
+    `SELECT sm.id, sm.from_season_id, sm.to_season_id, sm.user_id, sm.from_league_id, sm.to_league_id,
+            sm.from_position, sm.kind, sm.status, sm.reason, sm.decided_by, sm.created_at, sm.updated_at,
+            source_season.name AS from_season_name, target_season.name AS to_season_name,
+            source_league.name AS from_league_name, target_league.name AS to_league_name
+       FROM season_movements sm
+       JOIN seasons source_season ON source_season.id = sm.from_season_id
+       LEFT JOIN seasons target_season ON target_season.id = sm.to_season_id
+       JOIN leagues source_league ON source_league.id = sm.from_league_id
+       LEFT JOIN leagues target_league ON target_league.id = sm.to_league_id
+      WHERE sm.user_id = ?
+      ORDER BY sm.updated_at DESC, sm.created_at DESC`,
+  ).bind(userId).all<MemberMovementRecord>();
   return result.results;
 }
 

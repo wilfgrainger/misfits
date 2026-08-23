@@ -205,6 +205,13 @@ export interface PromotionProjection {
   ambiguities: PromotionAmbiguity[];
 }
 
+export interface MemberMovementRecord extends Omit<PromotionMovement, 'fromLeagueName' | 'toLeagueName'> {
+  fromSeasonName: string;
+  toSeasonName: string | null;
+  fromLeagueName: string;
+  toLeagueName: string | null;
+}
+
 export interface ResultSummary {
   id: string;
   fixtureId?: string | null;
@@ -422,6 +429,17 @@ function normalizePromotionProjection(value: unknown): PromotionProjection {
   };
 }
 
+function normalizeMemberMovement(value: unknown): MemberMovementRecord {
+  const movement = normalizeMovement(value);
+  return {
+    ...movement,
+    fromSeasonName: stringValue(asRecord(value), 'fromSeasonName', 'from_season_name') ?? '',
+    toSeasonName: nullableStringValue(asRecord(value), 'toSeasonName', 'to_season_name') ?? null,
+    fromLeagueName: movement.fromLeagueName ?? '',
+    toLeagueName: movement.toLeagueName ?? null,
+  };
+}
+
 export class ApiClientError extends Error {
   constructor(
     public readonly status: number,
@@ -550,6 +568,9 @@ export class ApiClient {
   }
   memberPromotionPreview(seasonId: string) {
     return this.call<{ preview: unknown }>(`/api/public/seasons/${encodeURIComponent(seasonId)}/promotion`).then(({ preview }) => ({ preview: normalizePromotionProjection(preview) }));
+  }
+  memberMovementHistory() {
+    return this.call<{ movements: unknown[] }>('/api/me/movements').then(({ movements }) => ({ movements: movements.map(normalizeMemberMovement) }));
   }
   createPromotionProposal(fromSeasonId: string, toSeasonId: string) {
     return this.call<{ movements: unknown[] }>(`/api/admin/seasons/${encodeURIComponent(fromSeasonId)}/promotion/proposal`, { method: 'POST', body: JSON.stringify({ toSeasonId }) }).then(({ movements }) => ({ movements: movements.map(normalizeMovement) }));
