@@ -161,6 +161,7 @@ describe('private club entry', () => {
     expect(calls.myLeagues).toBe(0);
   });
 
+  // This acceptance test intentionally stays RED until the signed-in shell is club-first.
   it('lands approved members on Home with the club-first global navigation', async () => {
     meResult = () => Promise.resolve({ user: approvedUser, requiresOnboarding: false });
     render(<App />);
