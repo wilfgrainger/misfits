@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - run: npx wrangler types
       - run: npm run typecheck
+      - name: Impeccable source detector
+        run: node .agents/skills/impeccable/scripts/detect.mjs --json src/client
       - run: npm test
       - run: npm run build
 
