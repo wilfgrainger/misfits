@@ -26,6 +26,7 @@ vi.mock('../../src/client/api', () => {
     seasonLeagues() { return Promise.resolve({ leagues: [] }); }
     adminClubInvites() { return Promise.resolve({ invites: [] }); }
     adminPlayers() { return Promise.resolve({ players: [{ id: 'player-1', username: 'Player', role: 'PLAYER', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-01T00:00:00.000Z', profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false, email: 'player@example.com', leagueActive: false }] }); }
+    updateProfile() { return Promise.resolve({ profile: user }); }
   }
   return { ApiClient: MockApiClient, ApiClientError: MockApiClientError };
 });
@@ -39,28 +40,36 @@ describe('account profile access', () => {
     cleanup();
     vi.restoreAllMocks();
     user.isMasterAdmin = true;
+    window.sessionStorage.clear();
+    window.history.replaceState({}, '', '/');
   });
 
-  it('keeps profile management available to a signed-in user without memberships', async () => {
+  it('keeps the final member navigation and profile available before any league is published', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Season admin' })).toBeTruthy());
+
+    expect(await screen.findByRole('heading', { name: "You're in the club." })).toBeTruthy();
     expect(screen.getByText('Misfits Darts Club')).toBeTruthy();
-    expect(screen.getByText('Throw together. Stand together.')).toBeTruthy();
-    expect(screen.queryByText('Club darts, properly settled.')).toBeNull();
-    expect(screen.queryByText('WhatsApp for members')).toBeNull();
     expect(screen.getByAltText('Misfits 501 club seal')).toBeTruthy();
-    expect(screen.queryByText(/Current season:/)).toBeNull();
-    expect(screen.getByRole('status').textContent).toBe('Your Misfits 501 club workspace is ready.');
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Player card' })).toBeTruthy());
+    expect(screen.queryByRole('button', { name: 'Season admin' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Club table' })).toBeNull();
+
+    for (const label of ['League', 'Record', 'Results', 'More']) {
+      expect(screen.getByRole('button', { name: label })).toBeTruthy();
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    expect(await screen.findByRole('heading', { name: 'Player card' })).toBeTruthy();
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });
 
-  it('shows Club access controls to promoted administrators', async () => {
+  it('keeps Club access reachable through More for an administrator with no leagues yet', async () => {
     user.isMasterAdmin = false;
     render(<App />);
 
-    const adminTabButton = await screen.findByRole('button', { name: 'Season admin' });
-    fireEvent.click(adminTabButton);
+    await screen.findByRole('heading', { name: "You're in the club." });
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Admin' }));
 
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Club access' })).toBeTruthy());
     fireEvent.click(screen.getByRole('tab', { name: 'Club access' }));
