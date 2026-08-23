@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { issueSession } from '../../src/server/auth/session';
 import { createCompetitionRoutes } from '../../src/server/routes/competition';
 
-type User = { id: string; username: string; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE'; is_master_admin: number };
+type User = { id: string; username: string; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE'; club_status: 'APPROVED'; is_master_admin: number };
 type Session = { token_hash: string; user_id: string; created_at: string; expires_at: string };
 type Season = { id: string; name: string; status: 'DRAFT' | 'OPEN' | 'CLOSED'; is_current: number; created_at: string; updated_at: string; closed_at: string | null };
 type League = { id: string; season_id: string; name: string; slug: string; season_name: string; status: 'OPEN' | 'CLOSED'; points_per_win: number; target_legs: number; created_at: string; updated_at: string; created_by: string; max_players: number; matches_per_pair: number; visibility: 'PRIVATE'; hierarchy_position: number; promotion_places: number; relegation_places: number };
@@ -217,7 +217,7 @@ function addLeague(db: MemoryD1, seasonId: string, id: string, hierarchyPosition
 }
 
 function addPlayer(db: MemoryD1, leagueId: string, seasonId: string, userId: string) {
-  db.users.set(userId, { id: userId, username: userId.toUpperCase(), role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0 });
+  db.users.set(userId, { id: userId, username: userId.toUpperCase(), role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0 });
   db.memberships.set(`${leagueId}:${userId}`, { league_id: leagueId, season_id: seasonId, user_id: userId, active: 1, joined_at: now.toISOString() });
 }
 
@@ -233,7 +233,7 @@ function addClearTable(db: MemoryD1, leagueId: string, prefix: string) {
 
 function setup() {
   const db = new MemoryD1();
-  db.users.set('admin', { id: 'admin', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1 });
+  db.users.set('admin', { id: 'admin', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 1 });
   db.seasons.set('s1', { id: 's1', name: '2026/27', status: 'CLOSED', is_current: 1, created_at: now.toISOString(), updated_at: now.toISOString(), closed_at: now.toISOString() });
   db.seasons.set('s2', { id: 's2', name: '2027/28', status: 'DRAFT', is_current: 0, created_at: now.toISOString(), updated_at: now.toISOString(), closed_at: null });
   for (let position = 1; position <= 3; position += 1) {

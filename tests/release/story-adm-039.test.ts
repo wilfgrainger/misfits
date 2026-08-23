@@ -12,7 +12,7 @@ class BaselineD1 {
   leagues = new Map<string, League>();
   memberships = new Map<string, Membership>();
   sessions = new Map<string, Session>();
-  users = new Map([['admin', { id: 'admin', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1 }]]);
+  users = new Map([['admin', { id: 'admin', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 1 }]]);
 
   prepare(sql: string) {
     return {

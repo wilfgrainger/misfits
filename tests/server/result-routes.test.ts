@@ -10,6 +10,7 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  club_status: 'PENDING' | 'APPROVED' | 'REJECTED';
   is_master_admin: number;
   profile_image_url: string | null;
   darts_counter_url: string | null;
@@ -157,9 +158,9 @@ const now = new Date('2026-08-20T12:00:00.000Z');
 
 function setup() {
   const db = new MemoryD1();
-  db.users.set('admin-1', { id: 'admin-1', google_sub: 'g-admin-1', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+  db.users.set('admin-1', { id: 'admin-1', google_sub: 'g-admin-1', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 1, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
   for (const [id, username, role] of [['player-a', 'Alpha', 'PLAYER'], ['player-b', 'Bravo', 'PLAYER'], ['player-c', 'Charlie', 'PLAYER']] as const) {
-    db.users.set(id, { id, google_sub: `g-${id}`, email: `${id}@example.com`, username, role, status: 'ACTIVE', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
+    db.users.set(id, { id, google_sub: `g-${id}`, email: `${id}@example.com`, username, role, status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0, profile_image_url: null, darts_counter_url: null, created_at: now.toISOString(), last_login_at: now.toISOString() });
     db.memberships.add(`league-1:${id}`);
   }
   db.leagues.set('league-1', { id: 'league-1', name: 'Misfits 501', slug: 'misfits-501', season_name: '2026', status: 'OPEN', points_per_win: 2, target_legs: 3, max_players: 8, matches_per_pair: 1, created_at: now.toISOString(), updated_at: now.toISOString(), created_by: 'player-a' });
@@ -180,24 +181,27 @@ function resultBody(playerAId: string, playerBId: string) {
 }
 
 describe('result routes', () => {
-  it('hides private standings and results from anonymous requests but allows members', async () => {
+  it('denies anonymous private standings and results but allows approved unassigned club members', async () => {
     const { db, env, routes } = setup();
     const anonymousStandings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/standings'), env, {} as never);
-    expect(anonymousStandings.status).toBe(404);
+    expect(anonymousStandings.status).toBe(401);
     const anonymousResults = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/results'), env, {} as never);
-    expect(anonymousResults.status).toBe(404);
+    expect(anonymousResults.status).toBe(401);
 
-    const member = await cookieFor(db, 'player-a');
-    const memberStandings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/standings', { headers: { Cookie: member } }), env, {} as never);
-    expect(memberStandings.status).toBe(200);
-    const memberResults = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/results', { headers: { Cookie: member } }), env, {} as never);
-    expect(memberResults.status).toBe(200);
+    const approvedUnassigned = await cookieFor(db, 'admin-1');
+    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/standings', { headers: { Cookie: approvedUnassigned } }), env, {} as never);
+    expect(standings.status).toBe(200);
+    expect(standings.headers.get('cache-control')).toBe('private, no-store');
+    const results = await routes.fetch(new Request('https://misfits.test/api/public/leagues/private-1/results', { headers: { Cookie: approvedUnassigned } }), env, {} as never);
+    expect(results.status).toBe(200);
+    expect(results.headers.get('cache-control')).toBe('private, no-store');
   });
 
-  it('resolves public standings and results by league slug', async () => {
-    const { env, routes } = setup();
-    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/misfits-501/standings'), env, {} as never);
-    const results = await routes.fetch(new Request('https://misfits.test/api/public/leagues/misfits-501/results'), env, {} as never);
+  it('resolves club standings and results by league slug for approved members', async () => {
+    const { db, env, routes } = setup();
+    const cookie = await cookieFor(db, 'player-b');
+    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/misfits-501/standings', { headers: { Cookie: cookie } }), env, {} as never);
+    const results = await routes.fetch(new Request('https://misfits.test/api/public/leagues/misfits-501/results', { headers: { Cookie: cookie } }), env, {} as never);
     expect(standings.status).toBe(200);
     expect(results.status).toBe(200);
   });
@@ -297,7 +301,7 @@ describe('result routes', () => {
     expect(disputed.status).toBe(201);
     expect(dispute.status).toBe(200);
 
-    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/standings'), env, {} as never);
+    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/standings', { headers: { Cookie: playerA } }), env, {} as never);
     expect(standings.status).toBe(200);
     const body = await standings.json() as { standings: Array<{ playerId: string; played: number; points: number }> };
     expect(body.standings.find((row) => row.playerId === 'player-a')).toMatchObject({ played: 1, points: 2 });
@@ -328,12 +332,13 @@ describe('result routes', () => {
       submitted_by: 'player-a', status: 'CONFIRMED', confirmed_by: 'admin-1', dispute_note: null,
       created_at: now.toISOString(), updated_at: now.toISOString(), confirmed_at: now.toISOString(), deleted_at: null,
     });
+    const cookie = await cookieFor(db, 'player-a');
 
-    const publicResults = await routes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/results'), env, {} as never);
-    expect(publicResults.status).toBe(200);
-    expect(await publicResults.json()).toMatchObject({ results: [{ playerAAverage: 0, playerBAverage: 0 }] });
+    const clubResults = await routes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/results', { headers: { Cookie: cookie } }), env, {} as never);
+    expect(clubResults.status).toBe(200);
+    expect(await clubResults.json()).toMatchObject({ results: [{ playerAAverage: 0, playerBAverage: 0 }] });
 
-    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/standings'), env, {} as never);
+    const standings = await routes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/standings', { headers: { Cookie: cookie } }), env, {} as never);
     expect(standings.status).toBe(200);
     const standingsBody = await standings.json() as { standings: Array<{ playerId: string; average: number }> };
     expect(standingsBody.standings.find((row) => row.playerId === 'player-a')).toMatchObject({ average: 0 });

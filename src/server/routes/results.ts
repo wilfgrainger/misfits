@@ -1,8 +1,7 @@
-import { Hono, type Context } from 'hono';
-import { requireNamedUser, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
-import { resolveRequestSession } from '../auth/session';
+import { Hono } from 'hono';
+import { requireClubMember, requireNamedUser, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { AppError, jsonError } from '../errors';
-import { getLeagueByIdOrSlug, canViewLeague } from '../db/leagues';
+import { getLeagueByIdOrSlug } from '../db/leagues';
 import { getPlayerResults, getPublicResults, getLeagueStandings, serializeResult, submitPlayerResult, confirmResult, disputeResult } from '../db/results';
 import {
   fixtureIdForResult,
@@ -14,13 +13,6 @@ import {
 
 interface ResultRouteDependencies {
   now?: () => Date;
-}
-
-async function findViewableLeague(c: Context<AuthAppEnv>, leagueId: string) {
-  const league = await getLeagueByIdOrSlug(c.env.DB, leagueId);
-  if (!league) return null;
-  const user = await resolveRequestSession(c.env.DB, c.req.raw);
-  return await canViewLeague(c.env.DB, league, user ?? undefined) ? league : null;
 }
 
 function serializeFixtureResult(result: FixtureResultRecord) {
@@ -54,30 +46,30 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
   const routes = new Hono<AuthAppEnv>();
   const now = dependencies.now ?? (() => new Date());
 
-  routes.get('/api/public/leagues/:leagueId/standings', async (c) => {
-    const league = await findViewableLeague(c, c.req.param('leagueId'));
+  routes.get('/api/public/leagues/:leagueId/standings', requireUser, requireClubMember, async (c) => {
+    const league = await getLeagueByIdOrSlug(c.env.DB, c.req.param('leagueId'));
     if (!league) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404));
     try {
-      return c.json({ standings: await getLeagueStandings(c.env.DB, league.id) }, 200, { 'Cache-Control': league.visibility === 'PUBLIC' ? 'public, max-age=15' : 'private, no-store' });
+      return c.json({ standings: await getLeagueStandings(c.env.DB, league.id) }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
       return jsonError(c, new AppError('VALIDATION_ERROR', 'Standings could not be loaded', 400));
     }
   });
 
-  routes.get('/api/public/leagues/:leagueId/results', async (c) => {
-    const league = await findViewableLeague(c, c.req.param('leagueId'));
+  routes.get('/api/public/leagues/:leagueId/results', requireUser, requireClubMember, async (c) => {
+    const league = await getLeagueByIdOrSlug(c.env.DB, c.req.param('leagueId'));
     if (!league) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404));
     const results = await getPublicResults(c.env.DB, league.id);
-    return c.json({ results: results.map(serializeResult) }, 200, { 'Cache-Control': league.visibility === 'PUBLIC' ? 'public, max-age=15' : 'private, no-store' });
+    return c.json({ results: results.map(serializeResult) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
-  routes.get('/api/me/results', requireUser, async (c) => {
+  routes.get('/api/me/results', requireUser, requireClubMember, async (c) => {
     const results = await getPlayerResults(c.env.DB, c.get('user').id);
     return c.json({ results: results.map(serializeResult) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
-  routes.post('/api/leagues/:leagueId/results', requireSameOrigin, requireUser, requireNamedUser, async (c) => {
+  routes.post('/api/leagues/:leagueId/results', requireSameOrigin, requireUser, requireClubMember, requireNamedUser, async (c) => {
     const leagueId = c.req.param('leagueId');
     const body = await c.req.json().catch(() => null);
     try {
@@ -96,7 +88,7 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
     }
   });
 
-  routes.post('/api/results/:resultId/confirm', requireSameOrigin, requireUser, async (c) => {
+  routes.post('/api/results/:resultId/confirm', requireSameOrigin, requireUser, requireClubMember, async (c) => {
     const resultId = c.req.param('resultId');
     try {
       const result = await confirmResult(c.env.DB, c.get('user').id, resultId, now());
@@ -108,7 +100,7 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
     }
   });
 
-  routes.post('/api/results/:resultId/dispute', requireSameOrigin, requireUser, async (c) => {
+  routes.post('/api/results/:resultId/dispute', requireSameOrigin, requireUser, requireClubMember, async (c) => {
     const resultId = c.req.param('resultId');
     const body = await c.req.json().catch(() => null) as { note?: unknown } | null;
     if (typeof body?.note !== 'string') return jsonError(c, new AppError('INVALID_RESULT', 'A dispute note is required', 400));

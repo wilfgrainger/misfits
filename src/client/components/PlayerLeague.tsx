@@ -6,12 +6,16 @@ import { ProfilePanel } from './ProfilePanel';
 import { StandingsTable } from './StandingsTable';
 
 const api = new ApiClient();
-type PlayerView = 'table' | 'fixtures' | 'results' | 'players' | 'record' | 'profile';
+type PlayerView = 'table' | 'record' | 'results' | 'more';
+type MoreView = 'menu' | 'players' | 'profile';
 
 interface PlayerLeagueProps {
   user: UserSummary;
   league: LeagueSummary;
+  isParticipant: boolean;
   onUserSaved: (user: UserSummary) => void;
+  onOpenAdmin?: () => void;
+  onSignOut: () => void;
 }
 
 function displayDate(value: string): string {
@@ -40,10 +44,11 @@ function ResultRow({ result, user, onResolve }: { result: ResultSummary; user: U
   );
 }
 
-export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
+export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenAdmin, onSignOut }: PlayerLeagueProps) {
   const maxLegs = effectiveMaxLegs(league);
   const targetLegs = legsToWin(maxLegs);
   const [view, setView] = useState<PlayerView>('table');
+  const [moreView, setMoreView] = useState<MoreView>('menu');
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [results, setResults] = useState<ResultSummary[]>([]);
   const [myResults, setMyResults] = useState<ResultSummary[]>([]);
@@ -97,12 +102,14 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
 
   const opponents = useMemo(() => detail?.players?.filter((player) => player.id !== user.id) ?? [], [detail?.players, user.id]);
   const pending = myResults.filter((result) => result.status === 'PENDING' && result.submittedBy !== user.id);
-  const canRecord = league.status === 'OPEN';
-  const fixtureNavigationAvailable = fixtures.length > 0;
-  const moreActive = view === 'players' || view === 'profile';
+  const canRecord = league.status === 'OPEN' && isParticipant;
+  const availableFixtures = useMemo(() => fixtures.filter((fixture) => fixture.status === 'OUTSTANDING' && (fixture.playerAId === user.id || fixture.playerBId === user.id)), [fixtures, user.id]);
+  const selectedFixture = fixtures.find((fixture) => fixture.id === selectedFixtureId) ?? null;
+  const leagueUsesFixtures = fixtures.length > 0;
 
   useEffect(() => {
     setView('table');
+    setMoreView('menu');
     setSelectedFixtureId(null);
     setOpponentId('');
     setPlayerALegs('');
@@ -144,8 +151,16 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
     }
   }, [disputeId]);
 
+  const chooseFixture = (fixture: FixtureSummary) => {
+    setSelectedFixtureId(fixture.id);
+    setOpponentId(fixture.playerAId === user.id ? fixture.playerBId : fixture.playerAId);
+    setError('');
+    setNotice('');
+  };
+
   const submitResult = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canRecord) return;
     setBusyResult('new');
     setError('');
     setNotice('');
@@ -163,13 +178,13 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         await api.submitResult(league.id, input);
       }
       setNotice('Result sent to your opponent.');
-      setView('results');
       setSelectedFixtureId(null);
       setPlayerALegs('');
       setPlayerBLegs('');
       setPlayerAAverage('');
       setPlayerBAverage('');
       await load();
+      setView('record');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Result could not be recorded.');
     } finally {
@@ -194,6 +209,7 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
   };
 
   const saveUser = (profile: Pick<UserSummary, 'username' | 'profileImageUrl' | 'dartsCounterUrl'>) => onUserSaved({ ...user, ...profile });
+  const showMore = (next: MoreView = 'menu') => { setMoreView(next); setView('more'); };
 
   return (
     <section className="player-workspace league-experience" aria-labelledby="league-title">
@@ -233,55 +249,57 @@ export function PlayerLeague({ user, league, onUserSaved }: PlayerLeagueProps) {
         </section>
       )}
 
-      {!loading && view === 'fixtures' && fixtureNavigationAvailable && (
-        <div className="admin-block">
-          <div className="section-heading"><h3>League fixtures</h3><span className="count-label">{fixtures.length}</span></div>
-          <ul className="admin-list">
-            {fixtures.map((fixture) => {
-              const isMine = fixture.playerAId === user.id || fixture.playerBId === user.id;
-              return (
-                <li key={fixture.id}>
-                  <div><strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong><small>Round {fixture.round} · Meeting {fixture.meetingNumber} · {fixture.status}</small></div>
-                  {isMine && fixture.status === 'OUTSTANDING' && league.status === 'OPEN' && <button className="action-button" type="button" onClick={() => { setSelectedFixtureId(fixture.id); setView('record'); }}>Record result</button>}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+      {!loading && view === 'record' && !isParticipant && (
+        <section className="result-form record-browse-only" aria-labelledby="record-browse-title">
+          <div className="form-heading"><h3 id="record-browse-title">Record</h3><p className="form-help">You can browse this league, but you are not currently assigned to it. An admin must place you in the season before you can record results.</p></div>
+        </section>
       )}
 
-      {!loading && view === 'results' && (
-        <div className="result-feed"><h3>Confirmed games</h3><ul className="result-list">{results.map((result) => <li key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /></li>)}</ul><h3 className="subsection-title">Your pending games</h3><ul className="result-list">{pending.map((result) => <li className="review-row" key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /><div className="review-actions"><button className="primary-button" type="button" disabled={busyResult === result.id} aria-busy={busyResult === result.id} onClick={() => void confirm(result)}>{busyResult === result.id ? 'Saving' : 'Confirm'}</button><button className="secondary-button" type="button" onClick={(event) => { disputeTriggerRef.current = event.currentTarget; setDisputeId(result.id); }}>Dispute</button></div></li>)}{pending.length === 0 && <li className="empty-message">No pending games.</li>}</ul></div>
+      {!loading && view === 'record' && isParticipant && leagueUsesFixtures && !selectedFixture && (
+        <section className="result-form fixture-record-picker" aria-labelledby="fixture-record-title">
+          <div className="form-heading"><h3 id="fixture-record-title">Record your result</h3><p className="form-help">Choose the outstanding fixture you are settling.</p></div>
+          {!canRecord && <p className="empty-message">Result entry is unavailable while this league is closed.</p>}
+          {availableFixtures.length === 0 ? <p className="empty-message">No outstanding fixtures need your score right now.</p> : <ul className="admin-list fixture-picker-list">{availableFixtures.map((fixture) => <li key={fixture.id}><div><strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong><small>Round {fixture.round} · Meeting {fixture.meetingNumber}</small></div><button className="action-button" type="button" disabled={!canRecord} onClick={() => chooseFixture(fixture)}>Record this fixture</button></li>)}</ul>}
+        </section>
       )}
 
-      {!loading && view === 'players' && <div className="player-more-panel"><nav className="player-more-actions" aria-label="More player options"><button type="button" className="player-more-action player-more-action-active" aria-current="page" onClick={() => setView('players')}><AppIcon name="players" />Players</button><button type="button" className="player-more-action" onClick={() => setView('profile')}><AppIcon name="profile" />Profile</button></nav><ul className="club-player-list">{detail?.players?.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul></div>}
-
-      {view === 'record' && (
+      {!loading && view === 'record' && isParticipant && (!leagueUsesFixtures || selectedFixture) && (
         <form className="result-form" onSubmit={submitResult}>
           <div className="form-heading"><h3>Record your result</h3><p className="form-help">{matchFormatDescription(maxLegs)}</p></div>
           {!canRecord && <p className="empty-message">Result entry is unavailable while this league is closed.</p>}
-          {selectedFixtureId && (() => {
-            const selectedFixture = fixtures.find((fixture) => fixture.id === selectedFixtureId);
-            return <p className="account-context">Selected fixture: {selectedFixture?.playerAUsername} vs {selectedFixture?.playerBUsername} (Round {selectedFixture?.round})</p>;
-          })()}
-          {!selectedFixtureId && <><label htmlFor="opponent">Opponent</label><select id="opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)} required disabled={!canRecord}><option value="">Choose player</option>{opponents.map((player) => <option key={player.id} value={player.id}>{player.username}</option>)}</select></>}
+          {selectedFixture ? <div className="account-context selected-fixture-context"><strong>{selectedFixture.playerAUsername ?? 'Player'} vs {selectedFixture.playerBUsername ?? 'Player'}</strong><span>Round {selectedFixture.round} · Meeting {selectedFixture.meetingNumber}</span><button className="secondary-button" type="button" onClick={() => setSelectedFixtureId(null)}>Choose another fixture</button></div> : <><label htmlFor="opponent">Opponent</label><select id="opponent" aria-label="Opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)} required disabled={!canRecord}><option value="">Choose player</option>{opponents.map((player) => <option key={player.id} value={player.id}>{player.username}</option>)}</select></>}
           <div className="form-grid">
             <label htmlFor="your-legs">Your legs<input id="your-legs" type="number" min="0" max={targetLegs} value={playerALegs} onChange={(event) => setPlayerALegs(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="their-legs">Their legs<input id="their-legs" type="number" min="0" max={targetLegs} value={playerBLegs} onChange={(event) => setPlayerBLegs(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="your-average">Your average<input id="your-average" type="number" min="0" max="200" step="0.01" value={playerAAverage} onChange={(event) => setPlayerAAverage(event.target.value)} required disabled={!canRecord} /></label>
             <label htmlFor="their-average">Their average<input id="their-average" type="number" min="0" max="200" step="0.01" value={playerBAverage} onChange={(event) => setPlayerBAverage(event.target.value)} required disabled={!canRecord} /></label>
           </div>
-          <button className="primary-button" type="submit" disabled={!canRecord || busyResult === 'new' || opponents.length === 0} aria-busy={busyResult === 'new'}>{!canRecord ? 'League closed' : busyResult === 'new' ? 'Sending' : 'Send for confirmation'}</button>
+          <button className="primary-button" type="submit" disabled={!canRecord || busyResult === 'new' || (!selectedFixtureId && opponents.length === 0)} aria-busy={busyResult === 'new'}>{!canRecord ? 'League closed' : busyResult === 'new' ? 'Sending' : 'Send for confirmation'}</button>
         </form>
       )}
 
-      {view === 'profile' && <div className="player-more-panel"><nav className="player-more-actions" aria-label="More player options"><button type="button" className="player-more-action" onClick={() => setView('players')}><AppIcon name="players" />Players</button><button type="button" className="player-more-action player-more-action-active" aria-current="page" onClick={() => setView('profile')}><AppIcon name="profile" />Profile</button></nav><ProfilePanel user={user} onSaved={saveUser} /></div>}
+      {!loading && view === 'results' && (
+        <div className="result-feed"><h3>Confirmed games</h3><ul className="result-list">{results.map((result) => <li key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /></li>)}</ul><h3 className="subsection-title">Your pending games</h3><ul className="result-list">{pending.map((result) => <li className="review-row" key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /><div className="review-actions"><button className="primary-button" type="button" disabled={busyResult === result.id} aria-busy={busyResult === result.id} onClick={() => void confirm(result)}>{busyResult === result.id ? 'Saving' : 'Confirm'}</button><button className="secondary-button" type="button" onClick={(event) => { disputeTriggerRef.current = event.currentTarget; setDisputeId(result.id); }}>Dispute</button></div></li>)}{pending.length === 0 && <li className="empty-message">No pending games.</li>}</ul></div>
+      )}
+
+      {!loading && view === 'more' && moreView === 'menu' && (
+        <nav className="player-more-actions more-menu" aria-label="More player options">
+          <button type="button" className="player-more-action" onClick={() => showMore('players')}><AppIcon name="players" /><span>Players</span></button>
+          <button type="button" className="player-more-action" onClick={() => showMore('profile')}><AppIcon name="profile" /><span>Profile</span></button>
+          {user.role === 'ADMIN' && onOpenAdmin && <button type="button" className="player-more-action" onClick={onOpenAdmin}><AppIcon name="settings" /><span>Admin</span></button>}
+          <button type="button" className="player-more-action" onClick={onSignOut}><AppIcon name="logout" /><span>Sign out</span></button>
+        </nav>
+      )}
+
+      {!loading && view === 'more' && moreView === 'players' && <div className="player-more-panel"><button type="button" className="text-button more-back-button" onClick={() => setMoreView('menu')}>Back to More</button><h3>Players</h3><ul className="club-player-list">{detail?.players?.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul></div>}
+
+      {view === 'more' && moreView === 'profile' && <div className="player-more-panel"><button type="button" className="text-button more-back-button" onClick={() => setMoreView('menu')}>Back to More</button><ProfilePanel user={user} onSaved={saveUser} /></div>}
 
       <nav className="member-app-nav" aria-label="Member workspace">
         <button type="button" className={view === 'table' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'table' ? 'page' : undefined} onClick={() => setView('table')}><AppIcon name="league" /><span>League</span></button>
-        {fixtureNavigationAvailable ? <button type="button" className={view === 'fixtures' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'fixtures' ? 'page' : undefined} onClick={() => setView('fixtures')}><AppIcon name="calendar" /><span>Fixtures</span></button> : <button type="button" className={view === 'record' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'record' ? 'page' : undefined} onClick={() => setView('record')}><AppIcon name="record" /><span>Record</span></button>}
+        <button type="button" className={view === 'record' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'record' ? 'page' : undefined} onClick={() => setView('record')}><AppIcon name="record" /><span>Record</span></button>
         <button type="button" className={view === 'results' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'results' ? 'page' : undefined} onClick={() => setView('results')}><AppIcon name="results" /><span>Results</span></button>
-        <button type="button" className={moreActive ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={moreActive ? 'page' : undefined} onClick={() => setView('players')}><AppIcon name="more" /><span>More</span></button>
+        <button type="button" className={view === 'more' ? 'member-app-nav-item member-app-nav-active' : 'member-app-nav-item'} aria-current={view === 'more' ? 'page' : undefined} onClick={() => showMore('menu')}><AppIcon name="more" /><span>More</span></button>
       </nav>
 
       {disputeId && <div className="modal-backdrop"><form ref={disputeDialogRef} className="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="dispute-title" onSubmit={submitDispute}><h3 id="dispute-title">Dispute result</h3><label htmlFor="dispute-note">What needs checking?</label><textarea ref={disputeNoteRef} id="dispute-note" maxLength={240} value={disputeNote} onChange={(event) => setDisputeNote(event.target.value)} required /><div className="modal-actions"><button className="secondary-button" type="button" onClick={() => { setDisputeId(null); setDisputeNote(''); }}>Cancel</button><button className="primary-button" type="submit" disabled={busyResult === disputeId} aria-busy={busyResult === disputeId}>Send dispute</button></div></form></div>}

@@ -31,12 +31,11 @@ export interface LeagueMemberRecord {
   profile_image_url: string | null;
 }
 
-export async function listPublicLeagues(db: D1Database): Promise<LeagueRecord[]> {
+export async function listClubLeagues(db: D1Database): Promise<LeagueRecord[]> {
   const result = await db.prepare(
     `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
             created_at, updated_at, created_by, max_players, matches_per_pair, visibility
-       FROM leagues WHERE visibility = 'PUBLIC'
-       ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
+       FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
   ).all<LeagueRecord>();
   return result.results;
 }
@@ -118,14 +117,6 @@ export async function getManagedLeague(db: D1Database, user: Pick<AuthUser, 'rol
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
   if (user.role !== 'ADMIN') throw new AppError('FORBIDDEN', 'Administrator access is required', 403);
   return league;
-}
-
-export async function canViewLeague(db: D1Database, league: LeagueRecord, user?: Pick<AuthUser, 'id' | 'role' | 'isMasterAdmin'>): Promise<boolean> {
-  if (league.visibility !== 'PRIVATE') return true;
-  if (!user) return false;
-  if (user.role === 'ADMIN' || user.isMasterAdmin) return true;
-  const membership = await getMembership(db, league.id, user.id);
-  return membership?.active === 1;
 }
 
 export async function createLeague(db: D1Database, actorUserId: string, input: LeagueInput, now = new Date()): Promise<LeagueRecord> {

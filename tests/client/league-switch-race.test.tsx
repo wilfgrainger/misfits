@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LeagueSummary, UserSummary } from '../../src/client/api';
 
@@ -53,10 +53,16 @@ describe('league switch request ordering', () => {
 
   it('does not let a previous league response replace the selected league data', async () => {
     const { firstLeague, secondLeague, user } = state;
-    const view = render(<PlayerLeague user={user} league={firstLeague} onUserSaved={() => undefined} />);
+    const onSignOut = vi.fn();
+    const onUserSaved = vi.fn();
+    const view = render(
+      <PlayerLeague user={user} league={firstLeague} isParticipant onUserSaved={onUserSaved} onSignOut={onSignOut} />,
+    );
     await waitFor(() => expect(state.calls).toContain(firstLeague.id));
 
-    view.rerender(<PlayerLeague user={user} league={secondLeague} onUserSaved={() => undefined} />);
+    view.rerender(
+      <PlayerLeague user={user} league={secondLeague} isParticipant onUserSaved={onUserSaved} onSignOut={onSignOut} />,
+    );
     await waitFor(() => expect(state.calls).toContain(secondLeague.id));
 
     state.gates[secondLeague.id].resolve();
@@ -68,5 +74,4 @@ describe('league switch request ordering', () => {
     expect(screen.queryByText('Stale player')).toBeNull();
     expect(screen.getByText('Fresh player')).toBeTruthy();
   });
-
 });

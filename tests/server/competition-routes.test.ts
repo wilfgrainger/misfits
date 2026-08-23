@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { issueSession } from '../../src/server/auth/session';
 import { createCompetitionRoutes } from '../../src/server/routes/competition';
 
-type User = { id: string; username: string | null; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE' | 'SUSPENDED'; is_master_admin: number };
+type User = { id: string; username: string | null; role: 'PLAYER' | 'ADMIN'; status: 'ACTIVE' | 'SUSPENDED'; club_status: 'PENDING' | 'APPROVED' | 'REJECTED'; is_master_admin: number };
 type Session = { token_hash: string; user_id: string; created_at: string; expires_at: string };
 type Season = { id: string; name: string; status: 'DRAFT' | 'OPEN' | 'CLOSED'; is_current: number; created_at: string; updated_at: string; closed_at: string | null };
 type League = {
@@ -120,9 +120,9 @@ const now = new Date('2026-08-21T16:00:00.000Z');
 
 function setup() {
   const db = new MemoryD1();
-  db.users.set('admin', { id: 'admin', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1 });
-  db.users.set('player', { id: 'player', username: 'Player', role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0 });
-  db.users.set('player-2', { id: 'player-2', username: 'Player Two', role: 'PLAYER', status: 'ACTIVE', is_master_admin: 0 });
+  db.users.set('admin', { id: 'admin', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 1 });
+  db.users.set('player', { id: 'player', username: 'Player', role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0 });
+  db.users.set('player-2', { id: 'player-2', username: 'Player Two', role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0 });
   const env = { DB: db as never, ASSETS: {} as never, APP_ORIGIN: 'https://misfits.test' };
   return { db, env, routes: createCompetitionRoutes({ now: () => now }) };
 }

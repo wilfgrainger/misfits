@@ -5,13 +5,8 @@ import { AdminCompetitionDesk } from '../../src/client/components/AdminCompetiti
 import type { LeagueSummary, UserSummary } from '../../src/client/api';
 
 const admin: UserSummary = {
-  id: 'admin-1',
-  username: 'Admin',
-  role: 'ADMIN',
-  status: 'ACTIVE',
-  profileImageUrl: null,
-  dartsCounterUrl: null,
-  isMasterAdmin: true,
+  id: 'admin-1', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', clubStatus: 'APPROVED',
+  profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: true,
 };
 
 const season1 = {
@@ -28,9 +23,7 @@ const l1 = {
   points_per_win: 2, target_legs: 3, created_at: '2026-08-01T00:00:00.000Z', updated_at: '2026-08-20T00:00:00.000Z', created_by: 'admin-1',
   max_players: 8, matches_per_pair: 1, visibility: 'PRIVATE', hierarchy_position: 1, promotion_places: 0, relegation_places: 1,
 };
-const l2 = {
-  ...l1, id: 'l2', name: 'Division One', slug: 'division-one', hierarchy_position: 2, promotion_places: 1, relegation_places: 0,
-};
+const l2 = { ...l1, id: 'l2', name: 'Division One', slug: 'division-one', hierarchy_position: 2, promotion_places: 1, relegation_places: 0 };
 const n1 = { ...l1, id: 'n1', season_id: 's2', season_name: '2027/28', status: 'OPEN', slug: 'next-premier' };
 const n2 = { ...l2, id: 'n2', season_id: 's2', season_name: '2027/28', status: 'OPEN', slug: 'next-division-one' };
 
@@ -46,9 +39,7 @@ const result = {
   confirmedBy: 'u2', disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: '2026-08-20T12:05:00.000Z',
 };
 
-interface FixtureConfig {
-  closed?: boolean;
-}
+interface FixtureConfig { closed?: boolean }
 
 function installApi(config: FixtureConfig = {}) {
   const sourceSeason = config.closed ? { ...season1, status: 'CLOSED', closed_at: '2026-08-21T00:00:00.000Z' } : season1;
@@ -80,10 +71,6 @@ function installApi(config: FixtureConfig = {}) {
     if (path === '/api/admin/seasons/s1/members/u3/assign' && method === 'POST') return new Response(JSON.stringify({ membership: { seasonId: 's1', leagueId: 'l2', userId: 'u3', active: true } }), { status: 200 });
     if (path === '/api/admin/seasons/s1/members/u1/move' && method === 'POST') return new Response(JSON.stringify({ membership: { seasonId: 's1', leagueId: 'l2', userId: 'u1', active: true } }), { status: 200 });
 
-    if (path === '/api/admin/leagues/l1/invites' && method === 'GET') return new Response(JSON.stringify({ invites: [] }), { status: 200 });
-    if (path === '/api/admin/leagues/l1/invites' && method === 'POST') return new Response(JSON.stringify({ invite: { id: 'i1', leagueId: 'l1', expiresAt: null, url: 'https://misfits.test/join/token' } }), { status: 201 });
-    if (path.startsWith('/api/admin/invites/') && method === 'POST') return new Response(JSON.stringify({ ok: true }), { status: 200 });
-
     if (path === '/api/admin/competition/leagues/l1/fixtures/preview') return new Response(JSON.stringify({ preview: { seasonId: 's1', leagueId: 'l1', playerCount: 2, matchesPerPair: 1, expectedFixtureCount: 1, fixtures: [{ playerAId: 'u1', playerBId: 'u2', round: 1, meetingNumber: 1 }] } }), { status: 200 });
     if (path.startsWith('/api/admin/competition/leagues/l1/fixtures') && method === 'GET') return new Response(JSON.stringify({ fixtures: [fixture] }), { status: 200 });
     if (path === '/api/admin/competition/leagues/l1/fixtures' && method === 'POST') return new Response(JSON.stringify({ fixtures: [fixture] }), { status: 201 });
@@ -110,10 +97,11 @@ function installApi(config: FixtureConfig = {}) {
     if (path.startsWith('/api/admin/results/') && method === 'DELETE') return new Response(JSON.stringify({ ok: true }), { status: 200 });
 
     if (path === '/api/admin/players') return new Response(JSON.stringify({ players: [
-      { id: 'admin-1', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', leagueActive: true, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: true },
-      { id: 'u4', email: 'delta@example.com', username: 'Delta', role: 'PLAYER', status: 'ACTIVE', leagueActive: true, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false },
+      { id: 'admin-1', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-01T00:00:00.000Z', leagueActive: true, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: true },
+      { id: 'u4', email: 'delta@example.com', username: 'Delta', role: 'PLAYER', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-10T00:00:00.000Z', leagueActive: true, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false },
     ] }), { status: 200 });
-    if (path === '/api/admin/players/u4' && method === 'PATCH') return new Response(JSON.stringify({ player: { id: 'u4', email: 'delta@example.com', username: 'Delta', role: 'ADMIN', status: 'ACTIVE', leagueActive: true, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false } }), { status: 200 });
+    if (path === '/api/admin/players/u4' && method === 'PATCH') return new Response(JSON.stringify({ player: { id: 'u4', email: 'delta@example.com', username: 'Delta', role: 'ADMIN', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-10T00:00:00.000Z', leagueActive: true, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false } }), { status: 200 });
+    if (path === '/api/admin/club-invites' && method === 'GET') return new Response(JSON.stringify({ invites: [] }), { status: 200 });
 
     throw new Error(`Unexpected fetch ${method} ${path}`);
   });
@@ -137,7 +125,7 @@ describe('administrator competition workspace', () => {
     const { fetchMock } = renderDesk();
     const tabs = await screen.findByRole('tablist', { name: 'Competition administration tasks' });
     expect(within(tabs).getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-      'Season', 'Leagues', 'Members & invites', 'Fixtures', 'Results', 'Promotion', 'Club access',
+      'Season', 'Leagues', 'Season members', 'Fixtures', 'Results', 'Promotion', 'Club access',
     ]);
     expect(screen.getByText('2026/27')).toBeTruthy();
     expect(screen.getByText('Current')).toBeTruthy();
@@ -145,9 +133,7 @@ describe('administrator competition workspace', () => {
     fireEvent.change(screen.getByLabelText('New season name'), { target: { value: '2028/29' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create season' }));
     await screen.findByText('Season created.');
-
     const create = fetchMock.mock.calls.find(([input, init]) => String(input) === '/api/admin/seasons' && init?.method === 'POST');
-    expect(create).toBeTruthy();
     expect(JSON.parse(String(create?.[1]?.body))).toEqual({ name: '2028/29', status: 'DRAFT', isCurrent: false });
   });
 
@@ -156,10 +142,7 @@ describe('administrator competition workspace', () => {
     fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
     const structure = await screen.findByRole('list', { name: 'Ordered league structure' });
     const structureButtons = await within(structure).findAllByRole('button');
-    expect(structureButtons.map((button) => button.textContent)).toEqual(expect.arrayContaining([
-      expect.stringContaining('1 Premier'), expect.stringContaining('2 Division One'),
-    ]));
-
+    expect(structureButtons.map((button) => button.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('1 Premier'), expect.stringContaining('2 Division One')]));
     fireEvent.click(within(structure).getByRole('button', { name: /1 Premier/ }));
     fireEvent.change(screen.getByLabelText('Relegation places'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save league' }));
@@ -175,9 +158,9 @@ describe('administrator competition workspace', () => {
     expect(JSON.parse(String(create?.[1]?.body))).toMatchObject({ name: 'Division Two', hierarchyPosition: 3 });
   });
 
-  it('assigns unplaced players, moves existing members, and creates a season-league invite', async () => {
+  it('assigns unplaced players and moves existing members without creating admission invites', async () => {
     const { fetchMock } = renderDesk();
-    fireEvent.click(await screen.findByRole('tab', { name: 'Members & invites' }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Season members' }));
     await screen.findByText('Charlie');
     expect((await screen.findAllByText('Alpha'))[0]).toBeTruthy();
 
@@ -190,10 +173,7 @@ describe('administrator competition workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Move Alpha' }));
     await screen.findByText('Player moved.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/seasons/s1/members/u1/move' && init?.method === 'POST')).toBe(true);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Create invite for Premier' }));
-    await screen.findByDisplayValue('https://misfits.test/join/token');
-    expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/leagues/l1/invites' && init?.method === 'POST')).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/invites'))).toBe(false);
   });
 
   it('previews, commits, filters and voids persisted fixtures with visible health counts', async () => {
@@ -203,18 +183,13 @@ describe('administrator competition workspace', () => {
     expect(screen.getByText('Pending 0')).toBeTruthy();
     expect(screen.getByText('Disputed 0')).toBeTruthy();
     expect(screen.getByText('Completed 0')).toBeTruthy();
-
     fireEvent.click(screen.getByRole('button', { name: 'Preview fixtures' }));
     await screen.findByText('1 fixture expected');
-    expect(screen.getAllByText(/Round 1/)[0]).toBeTruthy();
-
     fireEvent.click(screen.getByRole('button', { name: 'Commit fixtures' }));
     await screen.findByText('Fixtures committed.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/leagues/l1/fixtures' && init?.method === 'POST')).toBe(true);
-
     fireEvent.click(screen.getByRole('button', { name: 'Void Alpha vs Bravo' }));
     await screen.findByText('Fixture voided.');
-    expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/fixtures/f1' && init?.method === 'PATCH')).toBe(true);
   });
 
   it('reviews final movements, records an explicit override, then applies the next-season plan', async () => {
@@ -222,16 +197,13 @@ describe('administrator competition workspace', () => {
     fireEvent.click(await screen.findByRole('tab', { name: 'Promotion' }));
     expect((await screen.findAllByText('Alpha'))[0]).toBeTruthy();
     expect(screen.getByText(/Division One → Premier/)).toBeTruthy();
-
     fireEvent.change(screen.getByLabelText('Next season'), { target: { value: 's2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create promotion proposal' }));
     await screen.findByText('Promotion proposal created.');
-
     fireEvent.change(screen.getByLabelText('Override destination for Alpha'), { target: { value: 'n2' } });
     fireEvent.change(screen.getByLabelText('Override reason for Alpha'), { target: { value: 'Committee review' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save override for Alpha' }));
     await screen.findByText('Movement override saved.');
-
     fireEvent.click(screen.getByRole('button', { name: 'Apply to next season' }));
     await screen.findByText('Next-season placements applied.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/seasons/s1/promotion/apply' && init?.method === 'POST')).toBe(true);

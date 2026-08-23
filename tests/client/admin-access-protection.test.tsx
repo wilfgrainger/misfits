@@ -5,7 +5,7 @@ import { AdminCompetitionDesk } from '../../src/client/components/AdminCompetiti
 import type { UserSummary } from '../../src/client/api';
 
 const currentAdmin: UserSummary = {
-  id: 'admin-2', username: 'Second Admin', role: 'ADMIN', status: 'ACTIVE',
+  id: 'admin-2', username: 'Second Admin', role: 'ADMIN', status: 'ACTIVE', clubStatus: 'APPROVED',
   profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false,
 };
 
@@ -16,13 +16,14 @@ describe('ADM-009 master administrator UI protection', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input);
       if (path === '/api/admin/seasons') return new Response(JSON.stringify({ seasons: [] }), { status: 200 });
+      if (path === '/api/admin/club-invites') return new Response(JSON.stringify({ invites: [] }), { status: 200 });
       if (path === '/api/admin/players') return new Response(JSON.stringify({ players: [
         {
-          id: 'master-1', email: 'master@example.com', username: 'Master Admin', role: 'ADMIN', status: 'ACTIVE', leagueActive: false,
+          id: 'master-1', email: 'master@example.com', username: 'Master Admin', role: 'ADMIN', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-01T00:00:00.000Z', leagueActive: false,
           profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: true,
         },
         {
-          id: 'admin-2', email: 'admin2@example.com', username: 'Second Admin', role: 'ADMIN', status: 'ACTIVE', leagueActive: false,
+          id: 'admin-2', email: 'admin2@example.com', username: 'Second Admin', role: 'ADMIN', status: 'ACTIVE', clubStatus: 'APPROVED', createdAt: '2026-08-02T00:00:00.000Z', leagueActive: false,
           profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false,
         },
       ] }), { status: 200 });

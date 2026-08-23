@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
+import { requireClubMember, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { validateProfileInput } from '../domain/profile';
 import { AppError, jsonError } from '../errors';
 import { getProfile, updateProfile } from '../db/profile';
@@ -12,7 +12,7 @@ interface ProfileRouteDependencies {
 export function createProfileRoutes(_dependencies: ProfileRouteDependencies = {}) {
   const routes = new Hono<AuthAppEnv>();
 
-  routes.get('/api/me/profile', requireUser, async (c) => {
+  routes.get('/api/me/profile', requireUser, requireClubMember, async (c) => {
     const profile = await getProfile(c.env.DB, c.get('user').id);
     if (!profile) return jsonError(c, new AppError('UNAUTHENTICATED', 'Sign-in is required', 401));
     return c.json({
@@ -24,7 +24,7 @@ export function createProfileRoutes(_dependencies: ProfileRouteDependencies = {}
     }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
-  routes.patch('/api/me/profile', requireSameOrigin, requireUser, async (c) => {
+  routes.patch('/api/me/profile', requireSameOrigin, requireUser, requireClubMember, async (c) => {
     const body = await c.req.json().catch(() => null);
     const validation = validateProfileInput(body);
     if (!validation.ok) return jsonError(c, new AppError('PROFILE_INVALID', 'Profile details are not valid', 400));

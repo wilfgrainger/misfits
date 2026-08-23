@@ -9,6 +9,7 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  club_status: 'PENDING' | 'APPROVED' | 'REJECTED';
   profile_image_url: string | null;
   darts_counter_url: string | null;
   created_at: string;
@@ -62,7 +63,7 @@ function setup() {
   const db = new MemoryD1();
   db.users.set('player-1', {
     id: 'player-1', google_sub: 'google-1', email: 'player@example.com', username: 'Player',
-    role: 'PLAYER', status: 'ACTIVE', profile_image_url: 'https://lh3.googleusercontent.com/avatar', darts_counter_url: null,
+    role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', profile_image_url: 'https://lh3.googleusercontent.com/avatar', darts_counter_url: null,
     created_at: now.toISOString(), last_login_at: now.toISOString(),
   });
   const env = { DB: db as never, ASSETS: {} as never, APP_ORIGIN: 'https://misfits.test' };
