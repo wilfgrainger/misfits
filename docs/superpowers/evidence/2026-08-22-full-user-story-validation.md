@@ -277,7 +277,11 @@ The baseline findings above are retained as the decision trail. They are superse
 - Impeccable detector: `[]`.
 - `git diff --check`: passed.
 - Secret scan: no secrets detected.
-- CodeQL: 0 alerts before the final suspended-session patch; a final rerun is pending.
+- CodeQL final rerun: **0 alerts**.
+
+### GitHub issue-state recheck
+
+The final repository recheck found **33 open issues** corresponding to the repaired story set and **118 closed issues** overall. The implementation branch did not mutate issue state, so the issues cannot be represented as closed here; closure requires an authorized GitHub issue operation or a merged change with the repository's configured closing workflow.
 
 ## Handoff rule
 

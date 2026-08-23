@@ -33,7 +33,7 @@ The member fixture surface is protected for approved club members, while the exi
 
 ### Validation evidence
 
-The focused suspension regression passed after the final patch: **2 files, 11 tests**. The final repository gate passed **64 Vitest files / 269 tests**, client and Worker TypeScript, Wrangler types, production Vite build, Impeccable detection (`[]`) and `git diff --check`. The latest changed files have passed secret scanning; the final CodeQL rerun remains pending.
+The focused suspension regression passed after the final patch: **2 files, 11 tests**. The final repository gate passed **64 Vitest files / 269 tests**, client and Worker TypeScript, Wrangler types, production Vite build, Impeccable detection (`[]`) and `git diff --check`. The latest changed files passed secret scanning and the final CodeQL rerun found **0 alerts**.
 
 ## Production baseline already complete
 
@@ -202,4 +202,4 @@ After merge:
 - Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
 - No private club data may be exposed before Worker-verified `APPROVED` membership.
 - Club approval never implies season/league participation.
-- Keep the implementation and evidence aligned with the 33-story repair table; GitHub issue state is tracked separately and has not been mutated by this branch.
+- Keep the implementation and evidence aligned with the 33-story repair table; the final GitHub recheck found 33 of those issues still OPEN and 118 issues CLOSED. Issue state has not been mutated by this branch.
