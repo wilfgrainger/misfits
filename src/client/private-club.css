@@ -201,7 +201,7 @@
   border-radius: 18px;
 }
 
-/* Brand red owns ordinary interaction. Green remains semantic state. */
+/* Brand red owns ordinary interaction. Green remains semantic state only. */
 .private-club-shell .primary-button,
 .private-club-shell .segmented-tab-active,
 .private-club-shell .content-tab-active,
@@ -233,6 +233,54 @@
   color: var(--club-red-strong);
   background: var(--club-red-soft);
   border-color: var(--club-red-line);
+}
+
+.private-club-shell .league-hero-card,
+.private-club-shell .player-league-hero {
+  background:
+    radial-gradient(circle at 84% 34%, rgba(212, 64, 64, 0.13), transparent 8rem),
+    linear-gradient(145deg, #211514 0%, #15100f 58%, #0f0d0c 100%);
+  border-color: var(--club-red-line);
+}
+
+.private-club-shell .league-target-mark {
+  color: rgba(212, 64, 64, 0.2);
+  border-color: rgba(212, 64, 64, 0.1);
+}
+
+.private-club-shell .league-target-mark::before,
+.private-club-shell .league-target-mark::after {
+  border-color: rgba(212, 64, 64, 0.14);
+}
+
+.private-club-shell .league-hero-meta svg,
+.private-club-shell .standing-player-avatar,
+.private-club-shell .standing-rank,
+.private-club-shell .standing-points {
+  color: var(--club-red-strong) !important;
+}
+
+.private-club-shell .standing-player-avatar {
+  background: var(--club-red-soft);
+  border-color: var(--club-red-line);
+}
+
+.private-club-shell .league-experience .standings-table tbody th,
+.private-club-shell .league-experience .standings-table tbody td {
+  border-top-color: rgba(212, 64, 64, 0.12);
+  border-bottom-color: rgba(212, 64, 64, 0.12);
+}
+
+.private-club-shell .league-experience .standings-table tbody tr > :first-child {
+  border-left-color: rgba(212, 64, 64, 0.12);
+}
+
+.private-club-shell .league-experience .standings-table tbody tr > :last-child {
+  border-right-color: rgba(212, 64, 64, 0.12);
+}
+
+.private-club-shell .standing-row-you > * {
+  background: #291919 !important;
 }
 
 .private-club-shell .status-open,
