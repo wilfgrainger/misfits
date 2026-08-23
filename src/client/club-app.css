@@ -1,4 +1,4 @@
-/* Club-first signed-in experience. Imported last so this file is the durable visual authority. */
+/* Club-first signed-in experience. Imported last as the member UI authority. */
 
 .private-member-app {
   width: 100%;
@@ -56,9 +56,10 @@
 }
 
 .header-avatar-button {
-  width: 2.35rem;
-  height: 2.35rem;
-  min-height: 0;
+  width: 2.75rem;
+  min-width: 44px;
+  height: 2.75rem;
+  min-height: 44px;
   padding: 0;
   color: var(--club-text);
   background: var(--club-card-raised);
@@ -111,7 +112,9 @@
   min-width: 0;
 }
 
-.club-home-section {
+.club-home-section,
+.record-competition-picker,
+.club-more > .player-more-panel {
   padding: 1rem;
   background: var(--club-card);
   border: 1px solid var(--club-border);
@@ -267,15 +270,7 @@
   border-radius: 0;
 }
 
-.record-competition-picker {
-  display: grid;
-  gap: 0.8rem;
-  padding: 1rem;
-  background: var(--club-card);
-  border: 1px solid var(--club-border);
-  border-radius: 16px;
-}
-
+.record-competition-picker,
 .record-competition-workspace,
 .competition-workspace {
   display: grid;
@@ -406,13 +401,6 @@
   border-color: var(--club-red-line);
 }
 
-.club-more > .player-more-panel {
-  padding: 1rem;
-  background: var(--club-card);
-  border: 1px solid var(--club-border);
-  border-radius: 16px;
-}
-
 .club-more .club-player-list {
   padding: 0;
   background: transparent;
@@ -463,13 +451,6 @@
     min-height: 54px;
     border-radius: 10px;
   }
-
-  .embedded-league-experience .standings-card,
-  .embedded-league-experience .result-form,
-  .embedded-league-experience .result-feed,
-  .competition-fixtures {
-    margin-inline: 0;
-  }
 }
 
 @media (min-width: 681px) {
@@ -479,7 +460,7 @@
 
   .club-member-nav {
     position: sticky;
-    top: calc(4.5rem + env(safe-area-inset-top));
+    top: 4.5rem;
     z-index: 30;
     order: -1;
     width: 100%;
@@ -548,8 +529,7 @@
   }
 
   .club-record,
-  .club-leagues,
-  .club-more {
+  .club-leagues {
     width: min(100%, 64rem);
   }
 
