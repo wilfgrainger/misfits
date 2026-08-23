@@ -302,7 +302,7 @@
 
 .club-access-priority {
   border-color: var(--club-red-line) !important;
-  box-shadow: inset 3px 0 0 var(--club-red), 0 16px 36px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
 }
 
 .club-access-panel .section-heading > div {
