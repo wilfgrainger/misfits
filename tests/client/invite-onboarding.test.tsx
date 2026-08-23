@@ -51,7 +51,7 @@ describe('approved-member onboarding', () => {
     fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'New Player' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enter Misfits' }));
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: "You're in the club." })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Good to see you, New Player.' })).toBeTruthy());
     expect(state.user.username).toBe('New Player');
     expect(state.leagueCalls).toBe(1);
     expect(state.myLeagueCalls).toBe(1);
