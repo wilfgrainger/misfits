@@ -323,4 +323,17 @@ describe('private club league routes', () => {
     expect(approved.headers.get('cache-control')).toBe('private, no-store');
     expect(await approved.json()).toMatchObject({ league: { visibility: 'PRIVATE', slug: 'private-tuesday' } });
   });
+
+  it('allows approved members to read fixture schedules without using admin routes', async () => {
+    const { db, env, publicRoutes } = setup();
+    const anonymous = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/fixtures'), env, {} as never);
+    expect(anonymous.status).toBe(401);
+
+    const approved = await publicRoutes.fetch(new Request('https://misfits.test/api/public/leagues/league-1/fixtures', {
+      headers: { Cookie: await cookieFor(db, 'player-1') },
+    }), env, {} as never);
+    expect(approved.status).toBe(200);
+    expect(approved.headers.get('cache-control')).toBe('private, no-store');
+    expect(await approved.json()).toEqual({ fixtures: [] });
+  });
 });

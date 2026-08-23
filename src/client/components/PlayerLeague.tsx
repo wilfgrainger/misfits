@@ -107,7 +107,7 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
         api.memberFixtures(league.id),
       ]);
       const seasonId = detailPayload.league.seasonId ?? league.seasonId;
-      const promotionPayload = seasonId ? await api.memberPromotionPreview(seasonId) : null;
+      const promotionPayload = seasonId ? await api.memberPromotionPreview(seasonId).catch(() => null) : null;
       if (request !== loadRequest.current) return;
       setStandings(standingPayload.standings);
       setResults(resultPayload.results);

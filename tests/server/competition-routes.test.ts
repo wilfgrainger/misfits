@@ -143,6 +143,21 @@ describe('competition administration routes', () => {
     expect(response.status).toBe(403);
   });
 
+  it('exposes season health to administrators without widening member privileges', async () => {
+    const { db, env, routes } = setup();
+    const adminCookie = await cookieFor(db, 'admin');
+    const created = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', mutation(adminCookie, { name: '2026/27', status: 'DRAFT', isCurrent: false })), env, {} as never);
+    const season = (await created.json() as { season: Season }).season;
+
+    const denied = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}/health`, { headers: { Cookie: await cookieFor(db, 'player') } }), env, {} as never);
+    expect(denied.status).toBe(403);
+
+    const response = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}/health`, { headers: { Cookie: adminCookie } }), env, {} as never);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(await response.json()).toEqual({ health: { unassignedPlayers: 0, outstandingFixtures: 0, pendingConfirmations: 0, disputes: 0 } });
+  });
+
   it('creates, lists and edits an explicit draft season', async () => {
     const { db, env, routes } = setup();
     const cookie = await cookieFor(db, 'admin');
