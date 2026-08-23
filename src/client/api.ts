@@ -446,8 +446,6 @@ export class ApiClient {
   standings(leagueId: string) { return this.call<{ standings: StandingRow[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/standings`); }
   results(leagueId: string) { return this.call<{ results: ResultSummary[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/results`); }
   myResults() { return this.call<{ results: ResultSummary[] }>('/api/me/results'); }
-  /** Temporary compatibility for the pre-private client shell; Task 5 removes this caller and method. */
-  joinInvite(token: string) { return this.call<{ membership: { seasonId?: string; leagueId: string; userId: string; active: boolean } }>(`/api/invites/${encodeURIComponent(token)}/join`, { method: 'POST' }); }
   submitResult(leagueId: string, input: ResultInput) { return this.call<{ result: ResultSummary }>(`/api/leagues/${encodeURIComponent(leagueId)}/results`, { method: 'POST', body: JSON.stringify(input) }); }
   submitFixtureResult(leagueId: string, input: FixtureResultInput) { return this.call<{ result: ResultSummary }>(`/api/leagues/${encodeURIComponent(leagueId)}/results`, { method: 'POST', body: JSON.stringify(input) }); }
   confirmResult(resultId: string) { return this.call<{ result: ResultSummary }>(`/api/results/${encodeURIComponent(resultId)}/confirm`, { method: 'POST' }); }
