@@ -3,14 +3,14 @@
 **Updated:** 23 August 2026  
 **Current branch:** `feat/private-club-entry`  
 **PR:** #172 `feat: make Misfits private and invite-approved`  
-**Current focus:** Dispatch approved production D1 migration 0006 through GitHub Actions, capture evidence, then merge/deploy PR #172  
+**Current focus:** Fresh exact-head CI after recording verified migration 0006 evidence, then ready → merge → deploy → live smoke  
 **Private-club implementation:** Tasks 1–7 COMPLETE  
 **Last fully verified code/ops head:** `b35c08e5a1c4f429405188e03fd860151e1f8019`  
-**Last fully verified CI:** #813 GREEN  
-**Current branch head after policy/handoff docs:** `a146ce249bacda8d9624b17db6aabfc0e7c1c07e` plus this checkpoint commit  
+**Last fully verified CI before migration evidence:** #813 GREEN  
 **Production migration approval:** RECEIVED from user on 23 August 2026  
-**Production migration:** NOT YET EXECUTED  
-**PR #172 merged/deployed:** NO  
+**Production migration:** EXECUTED AND VERIFIED via GitHub Actions run `32633942454`  
+**Migration evidence commit:** `5ada69d8c1b528c095046bbf112fffc956b03f25`  
+**PR #172 merged/deployed:** NO
 
 ## Restart here
 
@@ -59,7 +59,9 @@ The durable D1-management update used RED → GREEN TDD:
 - RED commit `13296817e0ef5af3e5345e54de9de0d18369bce2`, CI #812: exactly the new production D1 management contract failed; 62 existing test files / 257 tests remained green; deploy skipped.
 - GREEN commit `b35c08e5a1c4f429405188e03fd860151e1f8019`, CI #813: Wrangler types, both TypeScript projects, Impeccable, **63/63 test files and 258/258 tests**, production build all GREEN; deploy skipped.
 
-The current documentation-only policy/handoff commits still require one final exact-head CI before merge. Do not claim that gate until it runs.
+The production migration workflow itself reran the approved immutable migration source `fd2f2bb0180d03828131bd700e48d5c6582cabff` before touching D1 and passed Wrangler types, TypeScript, 62/62 test files / 257/257 tests, production build and `git diff --check`.
+
+The documentation-only migration-evidence checkpoint now requires one final exact-head PR CI before merge. Do not claim that gate until it runs on the newest branch head.
 
 ## Production D1 migration 0006
 
@@ -67,38 +69,33 @@ Migration:
 
 `migrations/0006_private_club_membership.sql`
 
-It adds:
+**Status: EXECUTED AND VERIFIED.**
 
-- `users.club_status` with `PENDING / APPROVED / REJECTED`;
-- `club_invites` with hashed invite-token authority;
-- deterministic approval backfill for existing admins/master admin/active league players;
-- PRIVATE visibility for existing leagues.
+GitHub Actions run:
 
-The user has explicitly approved this production migration. It is still **NOT EXECUTED**.
+`https://github.com/wilfgrainger/misfits/actions/runs/32633942454`
+
+Verified facts from the actual production run:
+
+- workflow event was manual `workflow_dispatch` from `main`;
+- approved migration SHA checked out exactly: `fd2f2bb0180d03828131bd700e48d5c6582cabff`;
+- only pending migration before apply was `0006_private_club_membership.sql`;
+- Wrangler applied migration 0006 successfully;
+- `users.club_status` exists as `TEXT NOT NULL` with default `PENDING`;
+- `club_invites` exists;
+- grouped membership state is `APPROVED = 1`, `PENDING = 1`;
+- grouped league visibility is `PRIVATE = 1`;
+- no raw invite token or production credential was recorded in repo evidence.
+
+Durable non-secret evidence is in:
+
+`docs/operations/evidence/2026-08-22-d1-migration-0006.md`
 
 ## Production D1 authority: GitHub Actions only
 
-The controller required for migration 0006 is already on `main`:
+The controller used for migration 0006 is already on `main` from ops PR #173. PR #172 upgrades the same workflow into the durable **Production D1 management** job for future production D1 migrations:
 
-- ops PR #173 `ops: add manual production D1 migration gate`;
-- main SHA `c58718b11cb89e0b04d62c0d11965ede5ba77ee4`;
-- workflow `.github/workflows/manual-d1-migration.yml`;
-- current main display name `Manual production D1 migration`;
-- ops RED CI #801;
-- ops GREEN CI #805.
-
-For migration 0006, run it on `main` with:
-
-```text
-migration_sha = fd2f2bb0180d03828131bd700e48d5c6582cabff
-confirmation  = APPLY-D1
-```
-
-It validates the request, checks out the immutable SHA, runs the full code gate, checks Cloudflare credentials, lists pending D1 migrations, applies `npm run db:migrate:remote`, verifies the migration-specific production state, and never deploys Worker/application code.
-
-PR #172 upgrades the same workflow into the durable **Production D1 management** job for all future production D1 migrations:
-
-- still manual `workflow_dispatch` only;
+- manual `workflow_dispatch` only;
 - immutable source SHA plus typed confirmation;
 - one existing Worker/D1 architecture only;
 - pending migrations listed before and after apply;
@@ -109,47 +106,19 @@ PR #172 upgrades the same workflow into the durable **Production D1 management**
 
 There is no local production migration fallback. Authenticated local Wrangler is for development/non-production use only and must not bypass this GitHub Actions path.
 
-## Current execution blocker
+## Current release gate
 
-The GitHub connection available in the current ChatGPT session can read/write repository content, inspect Actions, review PRs and merge, but it does not expose GitHub's `workflow_dispatch` operation. That tool limitation is **not** a reason to add a weaker trigger or bypass the production D1 gate.
+Migration 0006 is no longer the blocker. The remaining gate is a **fresh green CI run on the newest exact PR head containing the recorded production evidence**.
 
-Therefore migration 0006 remains pending until the existing manual workflow is dispatched from GitHub Actions by an authorized workflow dispatcher. Once dispatched, the run can be inspected and the remaining release can continue from its evidence.
+After that green run:
 
-## Required migration-0006 verification
-
-The current-main workflow runs:
-
-```sql
-PRAGMA table_info(users);
-SELECT name FROM sqlite_master WHERE type='table' AND name='club_invites';
-SELECT club_status, COUNT(*) FROM users GROUP BY club_status;
-SELECT visibility, COUNT(*) FROM leagues GROUP BY visibility;
-```
-
-Verify:
-
-- `users.club_status` exists;
-- `club_invites` exists;
-- club-status grouped counts are plausible under the approved backfill;
-- existing leagues are PRIVATE;
-- no secret, credential or raw invite token is recorded.
-
-Capture the actual run and non-secret output in:
-
-`docs/operations/evidence/2026-08-22-d1-migration-0006.md`
-
-## Exact next sequence
-
-1. In GitHub Actions on `main`, run **Manual production D1 migration** with exact SHA `fd2f2bb0180d03828131bd700e48d5c6582cabff` and confirmation `APPLY-D1`.
-2. If it fails before migration because of Cloudflare token permissions, stop and address only the minimum required D1 permission. Do not merge #172.
-3. If it succeeds, capture run ID/link and non-secret D1 verification output in the evidence document.
-4. Require fresh green PR CI on the resulting exact PR head.
-5. Confirm PR #172 is mergeable and mark ready if still draft.
-6. Merge PR #172 only after migration evidence is good and exact-head CI is green.
-7. Verify the `main` CI and Cloudflare Worker deploy complete successfully.
-8. Smoke-test production health/auth/privacy behavior without exposing private club data.
-9. Perform rendered mobile acceptance when browser tooling is available; otherwise record it as pending rather than inventing evidence.
-10. Update this file with migration run, merge SHA, deploy run and acceptance result.
+1. Re-fetch PR #172 and confirm mergeability/head SHA.
+2. Mark ready if still draft.
+3. Merge PR #172 using the verified exact head.
+4. Verify the new `main` CI and Cloudflare Worker deployment.
+5. Smoke-test production health/auth/privacy behavior without exposing private club data.
+6. Perform rendered mobile acceptance when browser tooling is available; otherwise record it as pending rather than inventing evidence.
+7. Record merge/deploy/smoke evidence in the durable release handoff.
 
 ## Guardrails
 
