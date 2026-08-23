@@ -2,17 +2,18 @@
 
 ## Visual authority
 
-Misfits 501 is a private darts club app: dark, precise, premium and unmistakably club-owned.
+Misfits 501 is one private darts club app: dark, precise, premium and unmistakably club-owned.
 
 The standing implementation authorities are:
 
-- `docs/superpowers/specs/2026-08-22-private-club-entry-design.md` for private admission and member navigation;
-- `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md` for responsive composition, hierarchy and table treatment;
-- this document for durable visual and interaction rules.
+1. `docs/superpowers/specs/2026-08-23-club-first-navigation-design.md` for the signed-in information architecture;
+2. `docs/superpowers/specs/2026-08-22-private-club-entry-design.md` for admission and privacy;
+3. `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md` for responsive composition and table treatment;
+4. this document for durable visual and interaction rules.
 
-Implementation may adapt those references for real data, accessibility and responsive constraints, but must not drift back into a generic responsive website or public league portal.
+Implementation may adapt those references for real data, accessibility and responsive constraints, but must not drift back into a generic responsive website, public league portal or league-framed application.
 
-The league table is the product's shared truth after membership approval. Before approval, privacy is the product truth and no club data is rendered.
+**Club first. Competition second. Task first.** A league is content inside Misfits, never the frame of the whole product.
 
 ## Visual world
 
@@ -21,11 +22,11 @@ The interface is full dark: near-black and charcoal surfaces, warm cream text, M
 The intended feel is **mobile product, not generic website**:
 
 - confident hierarchy;
-- meaningful rounded cards;
 - calm spacing;
-- strong iconography;
+- meaningful surfaces only around real product units;
+- strong, restrained iconography;
 - subtle depth rather than bright SaaS tiles;
-- club-specific imagery used with restraint;
+- club-specific identity used with restraint;
 - no white-label dashboard aesthetic.
 
 ## Palette
@@ -50,12 +51,11 @@ The intended feel is **mobile product, not generic website**:
 Misfits red owns ordinary interaction:
 
 - primary buttons;
-- selected navigation;
-- active tabs;
+- selected global navigation;
+- active competition tabs;
 - focus-visible outlines;
 - ordinary action icons;
-- private-entry emphasis;
-- current-player/rank accents where a brand accent is needed.
+- private-entry emphasis.
 
 Green is semantic only:
 
@@ -75,7 +75,8 @@ The supplied Misfits artwork is never recoloured.
 - Strong hierarchy comes from scale, weight, spacing and contrast.
 - Numeric competition data uses `font-variant-numeric: tabular-nums`.
 - Points remain the strongest standings number.
-- Avoid tiny uppercase labels where sentence case is clearer; compact table labels may remain uppercase.
+- Avoid giant marketing typography inside the signed-in product.
+- Avoid tiny uppercase labels where sentence case is clearer; short section kickers may use compact uppercase treatment.
 
 ## Private entry states
 
@@ -91,22 +92,13 @@ The signed-out state contains:
 4. Google sign-in;
 5. a short privacy statement.
 
-Authentication is intentionally important here because no club record is public.
-
 ### Invited new member
 
 A valid `/join/:token` carries the invite only into Google admission. After successful admission the raw token is removed from session storage and the URL, and the person enters PENDING state.
 
 ### Pending
 
-Pending members see only:
-
-- membership request received;
-- waiting-for-admin explanation;
-- privacy statement;
-- Sign out.
-
-No member navigation or club data is mounted.
+Pending members see only membership-request status, waiting-for-admin explanation, privacy statement and Sign out. No member navigation or club data is mounted.
 
 ### Rejected
 
@@ -119,56 +111,98 @@ Approved members without a nickname see nickname setup before club data is loade
 ## Approved member hierarchy
 
 ```text
-Club header
-→ League selector when multiple leagues exist
-→ League hero
-→ Rules
-→ Current view content
-→ Fixed member navigation
+Compact club header
+→ Global club navigation
+→ Current club task or destination
+→ Competition workspace only when a competition is opened
 ```
 
-Approved but unassigned club members may browse club leagues, standings, results and players. They receive a clear browse-only Record state because season/league placement remains the participation authority.
+The compact header carries club identity and the member avatar. The avatar is an explicit Profile shortcut.
 
-## Navigation
+There is no permanent “workspace ready” success strip after authentication. Successful admission is the normal state, not a recurring notification.
 
-The primary signed-in member navigation is exactly:
+Approved but unassigned club members may browse club leagues, standings, fixtures, results and players. Season/league placement remains the authority for result entry.
 
-`League · Record · Results · More`
+## Global member navigation
 
-This is fixed regardless of whether persisted fixtures exist.
+The primary signed-in navigation is exactly:
 
-### League
+`Home · Record · Leagues · More`
 
-Owns standings and current competition context.
+It is club-wide and stable regardless of the number of leagues or whether persisted fixtures exist.
+
+On narrow phones it is safe-area-aware fixed bottom navigation. On wider screens the same four destinations remain visible as restrained product navigation rather than turning into unrelated dashboard chrome.
+
+### Home
+
+Home is the default signed-in destination.
+
+It contains:
+
+- a compact personal greeting;
+- `Your competitions` for the leagues the member is actually assigned to;
+- `Needs you` for useful attention/task entry points.
+
+Home must not mount a giant league hero, rules card or full table just because one league exists.
+
+When the member has no competition assignment, Home explains that their club membership is active and that competitions will appear when assigned.
 
 ### Record
 
-Owns the entire result-entry journey. If fixtures exist, outstanding fixture selection happens inside Record. `Fixtures` is never a fifth primary member tab.
+Record owns the result-entry journey across the member's eligible open competitions.
 
-Unassigned approved members see the browse-only explanation instead of result controls.
+- zero eligible competitions: intentional contextual empty state;
+- exactly one eligible competition: enter that competition's Record flow directly;
+- more than one eligible competition: ask `What are you recording?` before entering the result flow.
 
-### Results
+If persisted fixtures exist, outstanding fixture selection remains inside Record. `Fixtures` is never a fifth global member destination.
 
-Owns confirmed and member-pending game history.
+Existing result submission, confirmation and dispute integrity remains authoritative. The navigation redesign must not duplicate or replace proven scoring logic.
+
+### Leagues
+
+Leagues is the club competition browser. It may show every competition the approved member is allowed to browse, regardless of whether they participate in it.
+
+Opening a competition creates a **local competition workspace** with exactly:
+
+`Table · Fixtures · Results`
+
+These are local tabs, not global navigation.
+
+A selected competition uses a compact heading with name, season context and refresh. Do not resurrect the old oversized league hero or repeat the league/season identity immediately below it.
 
 ### More
 
-Contains exactly the secondary member destinations appropriate to the current user:
+More deliberately contains secondary club/account tasks:
 
 - Players;
 - Profile;
 - Admin, for admins only;
 - Sign out.
 
-Removed primary destinations must not reappear as duplicate shortcuts elsewhere.
+Approved administrators with no leagues must still be able to reach `More → Admin` and create the first competition.
 
-If no league has yet been published, the same four-item member navigation remains available. League, Record and Results show intentional empty states; More still provides Profile, Sign out and Admin for administrators. This ensures an approved administrator can create the first league without a hidden bootstrap route.
+Removed global destinations must not reappear as duplicate shortcuts elsewhere.
+
+## Competition workspace
+
+Competition data is dense, useful content, not a marketing hero.
+
+The workspace should feel compact and settled:
+
+- competition name and season in a modest heading;
+- local `Table · Fixtures · Results` tabs;
+- one active data/workflow surface below;
+- no duplicated global navigation;
+- no decorative rules wall above the data.
+
+Scoring/rule context appears where it materially helps a result-entry or admin task. It does not need to occupy a permanent hero-sized surface.
 
 ## Admin workspace
 
 Admin is entered through `More → Admin`, not through a competing top-level `Season admin / Club table` switcher.
 
-The admin task rail is:
+The admin task rail remains:
 
 `Season · Leagues · Season members · Fixtures · Results · Promotion · Club access`
 
@@ -176,23 +210,11 @@ The admin task rail is:
 
 `Season members` owns season/league placement only. It does not create admission invitations.
 
-Admin league selection is independent of the member workspace selection. Returning from Admin restores the member's previously selected league.
-
-## League hero and rules
-
-One hero owns current competition identity: league name, season, state and a small amount of truthful metadata. Do not repeat league/season headings immediately below it.
-
-Rules live in a dedicated compact surface, for example:
-
-`Best of 6 · Win 3 · Draw 1 · Loss 0`
-
-`Table: Points → Legs won → Head-to-head`
-
-Rules must remain readable and secondary, never washed-out filler.
+Admin competition selection is independent from member competition browsing. Returning from Admin returns to the club member experience rather than making an admin-selected league the global app frame.
 
 ## Standings
 
-Standings are the primary information card.
+Standings are the competition's shared table truth, but they live inside `Leagues → Table` rather than defining the whole signed-in application.
 
 On narrow phones, show the primary mobile contract:
 
@@ -224,20 +246,22 @@ A contextual rank/encouragement panel is optional and must be truthful. Do not c
 - zero page-level horizontal overflow;
 - no clipped headings/copy;
 - 44px minimum interactive targets;
-- safe-area-aware fixed member navigation;
+- safe-area-aware fixed global member navigation;
 - bottom navigation never overlays content;
-- cards reflow rather than shrink indiscriminately;
+- competition rows reflow rather than shrink indiscriminately;
 - Google sign-in never exceeds the usable viewport.
 
 ### Tablet
 
-- preserve the mobile hierarchy;
-- allow cards/table details to widen intentionally;
+- preserve the club-first hierarchy;
+- allow competition/data details to widen intentionally;
 - use whitespace to separate product units rather than inserting duplicate headings.
 
 ### Desktop
 
-- the same product hierarchy expands rather than transforming into unrelated SaaS dashboard chrome;
+- preserve the same four global destinations;
+- Home may use a deliberate two-column composition for competitions and attention;
+- competition browser may use multiple columns;
 - complete standings information can be visible;
 - admin task navigation may widen where it materially improves scanning;
 - content uses width intentionally rather than merely stretching the phone layout.
@@ -247,6 +271,8 @@ A contextual rank/encouragement panel is optional and must be truthful. Do not c
 - 44px minimum touch targets for member actions.
 - Visible `:focus-visible` treatment using Misfits red for normal navigation/actions.
 - Buttons and icon-only actions have accessible names.
+- The header avatar is a button named `Open profile` for assistive technology.
+- Local competition tabs use tab semantics.
 - Semantic heading hierarchy and landmarks.
 - WCAG-conscious contrast for all body/rule/status text.
 - Destructive actions remain explicit and protected.
@@ -256,12 +282,12 @@ A contextual rank/encouragement panel is optional and must be truthful. Do not c
 
 ## Loading, empty and error states
 
-Every data-bearing member/admin surface must have deliberate loading, empty and failure behaviour. No state should expose anonymous club data as a loading shortcut.
+Every data-bearing member/admin surface must have deliberate loading, empty and failure behaviour. No state may expose anonymous club data as a loading shortcut.
 
 Important empty states include:
 
 - approved club member before any league is published;
-- approved but unassigned member in Record;
+- approved but unassigned member on Home and Record;
 - no outstanding fixtures;
 - no table movement/results;
 - no pending membership requests;
@@ -269,26 +295,30 @@ Important empty states include:
 
 Retry actions remain contextual and do not create duplicate navigation.
 
-## Card rules
+## Surface rules
 
-Cards are encouraged when they represent real product units:
+Use a bordered/raised surface when it represents a real product unit, for example:
 
-- private entry/admission state;
-- current league;
-- rules;
+- private entry/admission;
+- `Your competitions`;
+- `Needs you`;
+- result entry/review;
 - standings;
-- record/results workflow;
+- competition fixtures/results;
 - club-access admission workflow.
 
-Cards are rejected when they are generic KPI tiles, duplicate information already visible elsewhere, or decorative containers with no task/information boundary.
+Do not wrap every heading, row and control in another card. Nested container soup is not premium.
 
 ## Anti-patterns
 
 - No anonymous league or player data.
 - No legacy self-service league invite/join UI.
 - No `Season admin / Club table` top-level switcher.
-- No `Fixtures` primary member tab.
-- No direct `Players` primary member tab.
+- No `League · Record · Results · More` global navigation.
+- No `Fixtures` global member tab.
+- No direct `Players` global member tab.
+- No giant league hero on Home or around the competition workspace.
+- No permanent post-login success strip.
 - No green active navigation or ordinary green CTA.
 - No horizontal page overflow at supported mobile widths.
 - No squeezed seven-column desktop table on a phone.
@@ -298,6 +328,7 @@ Cards are rejected when they are generic KPI tiles, duplicate information alread
 - No low-contrast rules/body copy.
 - No generic SaaS metric-card dashboard.
 - No pill overload.
+- No excessive nested cards.
 - No parchment/beige ledger aesthetic.
 - No artwork behind copy when it reduces readability.
 - No default browser-looking form furniture.
@@ -305,15 +336,19 @@ Cards are rejected when they are generic KPI tiles, duplicate information alread
 
 ## UI acceptance
 
-Material responsive releases are accepted against both behaviour and rendered product evidence.
+Material responsive releases are accepted against behaviour and rendered product evidence.
 
 Required release evidence:
 
 - privacy/no-data-flash tests;
-- member navigation and participation-aware Record tests;
+- club-first member navigation tests;
+- task-first Record and participation tests;
+- competition-local tab tests;
+- profile shortcut test;
 - overflow/touch-target/static responsive audit at required widths;
 - repo-local Impeccable detector/review;
 - Cave Pony simplicity review;
-- one clean full repository gate before production migration and merge.
+- one clean full repository gate before merge;
+- post-merge production deploy verification.
 
-Automated tests can prove privacy, interaction contracts and structural accessibility. Where an interactive browser is unavailable, do not claim manual pixel-perfect screenshot acceptance; record the limitation explicitly and preserve the CSS/static checks for the next rendered review.
+Automated tests can prove privacy, interaction contracts and structural accessibility. Where an interactive browser is unavailable, do not claim manual pixel-perfect screenshot acceptance. Record the limitation explicitly and preserve the CSS/static checks for the next rendered review.
