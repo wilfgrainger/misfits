@@ -5,10 +5,12 @@
 **Feature branch:** `feat/private-club-entry`  
 **PR:** #172 `feat: make Misfits private and invite-approved`  
 **Base:** `main`  
-**Last fully verified feature handoff SHA before ops-policy refresh:** `b35c08e5a1c4f429405188e03fd860151e1f8019`  
-**Last fully verified feature CI:** #813 GREEN  
+**Last fully verified feature code/ops head before migration evidence:** `b35c08e5a1c4f429405188e03fd860151e1f8019`  
+**Last fully verified feature CI before migration evidence:** #813 GREEN  
 **Production D1 migration approval:** RECEIVED  
-**Production migration:** NOT YET EXECUTED  
+**Production migration:** EXECUTED AND VERIFIED  
+**Migration run:** `32633942454`  
+**Migration evidence commit:** `5ada69d8c1b528c095046bbf112fffc956b03f25`  
 **PR #172 merged/deployed:** NO
 
 ## Start here
@@ -59,90 +61,49 @@ The D1-management durability change used fresh TDD:
 - RED commit `13296817e0ef5af3e5345e54de9de0d18369bce2`, CI #812: exactly the new management-workflow contract failed;
 - GREEN commit `b35c08e5a1c4f429405188e03fd860151e1f8019`, CI #813: 63/63 test files, 258/258 tests, Wrangler types, TypeScript, Impeccable and production build all passed; deploy skipped on PR.
 
-## Old CI investigation is closed
+## Production D1 migration 0006 is complete
 
-Do not reopen it unless a new failure gives new evidence. The earlier red period combined deliberate TDD RED tests, stale old-contract tests, a Vitest rejected-Promise harness issue, and one genuine zero-league admin navigation gap. All are resolved.
+The approved migration was executed through the repository's manual production D1 controller:
 
-Do not weaken membership guards, `isParticipant`, or the four-tab navigation to accommodate old assumptions.
+`https://github.com/wilfgrainger/misfits/actions/runs/32633942454`
 
-## The remaining production boundary
+Run facts verified from the actual GitHub Actions logs:
 
-The user has explicitly approved:
+- event: `workflow_dispatch` from `main`;
+- workflow conclusion: success;
+- approved immutable migration SHA checked out exactly: `fd2f2bb0180d03828131bd700e48d5c6582cabff`;
+- pre-migration gate passed Wrangler types, both TypeScript projects, 62/62 test files / 257/257 tests, production build and `git diff --check`;
+- pending migrations before apply contained only `0006_private_club_membership.sql`;
+- Wrangler applied `0006_private_club_membership.sql` successfully;
+- remote `users.club_status` exists as `TEXT NOT NULL` with default `PENDING`;
+- remote `club_invites` table exists;
+- grouped club state is `APPROVED = 1`, `PENDING = 1`;
+- grouped league visibility is `PRIVATE = 1`.
 
-`migrations/0006_private_club_membership.sql`
+No raw invite token or production credential was copied into the repository evidence.
 
-It is still **not applied remotely**.
-
-### Production D1 authority: GitHub Actions
-
-The controller needed for migration 0006 is already on `main`:
-
-- PR #173: `ops: add manual production D1 migration gate`;
-- main merge SHA: `c58718b11cb89e0b04d62c0d11965ede5ba77ee4`;
-- workflow: `.github/workflows/manual-d1-migration.yml`;
-- current main display name: `Manual production D1 migration`;
-- RED evidence: CI #801;
-- GREEN evidence: CI #805.
-
-For this release, invoke it from GitHub Actions on `main` with:
-
-```text
-migration_sha = fd2f2bb0180d03828131bd700e48d5c6582cabff
-confirmation  = APPLY-D1
-```
-
-The fixed SHA is intentional: it is immutable, already verified by CI #800, and the workflow reruns the full gate on that exact source before touching production D1.
-
-PR #172 promotes the same file into the durable **Production D1 management** workflow for future production migrations. It remains manual-only, lists pending migrations before and after apply, runs generic D1 health/schema checks, and never deploys application code.
-
-There is no local production fallback. Authenticated local Wrangler must not be used to bypass the GitHub Actions production D1 path.
-
-### Cloudflare token caveat
-
-The existing GitHub secrets support Worker deployment, but their exact API-token permission scope cannot be inspected here. If D1 write/edit permission is absent, the workflow should fail safely at its first remote D1 command.
-
-If that happens:
-
-1. do not merge #172;
-2. do not create a broad/global Cloudflare credential;
-3. adjust only the minimum permission needed for D1 administration under the repository's secret/permission rules;
-4. rerun the same immutable migration SHA through GitHub Actions.
-
-## Required D1 verification
-
-The current-main workflow automatically verifies migration 0006 with:
-
-```sql
-PRAGMA table_info(users);
-SELECT name FROM sqlite_master WHERE type='table' AND name='club_invites';
-SELECT club_status, COUNT(*) FROM users GROUP BY club_status;
-SELECT visibility, COUNT(*) FROM leagues GROUP BY visibility;
-```
-
-Confirm:
-
-- `users.club_status` exists;
-- `club_invites` exists;
-- existing admins/master admin and active league members were backfilled consistently with the migration design;
-- grouped status counts are plausible;
-- existing leagues are PRIVATE;
-- logs/evidence contain no secrets or raw invite tokens.
-
-Write the real run ID/link and non-secret output summary to:
+The durable evidence record is:
 
 `docs/operations/evidence/2026-08-22-d1-migration-0006.md`
 
-## After migration succeeds
+Migration 0006 is therefore no longer a release blocker.
 
-1. Update the migration evidence document with actual results.
-2. Re-fetch PR #172 and its current head.
-3. Require fresh green CI on that exact head after the evidence update.
-4. Confirm PR #172 is mergeable and mark ready if still draft.
-5. Merge PR #172 only after remote migration verification is clean.
-6. Verify `main` CI and the existing Cloudflare Worker deploy complete successfully.
-7. Smoke-test production health/auth/privacy behavior without exposing private club data.
-8. Perform rendered mobile acceptance when browser tooling exists. If unavailable, record it as pending.
-9. Update `PROGRESS.md` with migration run, merge SHA, deployment run and acceptance state.
+## Production D1 authority: GitHub Actions
+
+The controller used for migration 0006 came from PR #173 on `main`. PR #172 promotes that same workflow into the durable **Production D1 management** workflow for future production migrations. It remains manual-only, uses an immutable source SHA plus typed confirmation, lists pending migrations before and after apply, runs generic D1 health/schema checks, and never deploys application code.
+
+There is no local production fallback. Authenticated local Wrangler must not be used to bypass the GitHub Actions production D1 path.
+
+## Remaining release sequence
+
+1. Wait for the fresh PR CI triggered by the migration-evidence/handoff documentation commits.
+2. Re-fetch the newest exact PR head and require green CI on that exact SHA.
+3. Confirm PR #172 remains mergeable and mark ready if still draft.
+4. Merge PR #172 using the verified exact head.
+5. Verify `main` CI and the existing Cloudflare Worker deploy complete successfully.
+6. Smoke-test production health/auth/privacy behavior without exposing private club data.
+7. Perform rendered mobile acceptance when browser tooling exists. If unavailable, record it as pending rather than inventing evidence.
+8. Record merge SHA, deploy run and smoke/acceptance state in the durable release record.
 
 ## Guardrails that survive handoff
 
@@ -152,7 +113,6 @@ Write the real run ID/link and non-secret output summary to:
 - Production D1 migration requires explicit approval and GitHub Actions `workflow_dispatch` through `.github/workflows/manual-d1-migration.yml`.
 - Never use local Wrangler as a production migration alternative.
 - Never trigger D1 migration automatically from push, PR, merge, schedule or timer.
-- Do not merge/deploy code reading `club_status` before migration 0006 succeeds remotely.
 - Preserve same-origin protection, admin/master-admin protections, auditability and competition invariants.
 - No club data before Worker-verified `APPROVED` membership.
 - Club approval never implies league participation.
