@@ -75,7 +75,7 @@ describe('club-first Record', () => {
     expect(screen.getByRole('heading', { name: 'What are you recording?' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Thursday Club/ }));
 
-    expect(await screen.findByTestId('record-workspace')).toHaveTextContent('Thursday Club:record');
+    expect((await screen.findByTestId('record-workspace')).textContent).toBe('Thursday Club:record');
   });
 
   it('skips the competition chooser when exactly one open assignment is eligible', async () => {
@@ -84,7 +84,7 @@ describe('club-first Record', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Record' }));
 
     expect(screen.queryByRole('heading', { name: 'What are you recording?' })).toBeNull();
-    expect(await screen.findByTestId('record-workspace')).toHaveTextContent('Tuesday Club:record');
+    expect((await screen.findByTestId('record-workspace')).textContent).toBe('Tuesday Club:record');
   });
 
   it('shows a contextual empty Record state when no open assignment is eligible', () => {
