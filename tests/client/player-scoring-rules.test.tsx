@@ -31,7 +31,7 @@ function installApi() {
     if (path === '/api/public/leagues/l1/results') return new Response(JSON.stringify({ results: [drawResult] }), { status: 200 });
     if (path === '/api/public/leagues/l1') return new Response(JSON.stringify({ league, players: [{ id: 'u1', username: 'Alpha', profileImageUrl: null }, { id: 'u2', username: 'Bravo', profileImageUrl: null }] }), { status: 200 });
     if (path === '/api/me/results') return new Response(JSON.stringify({ results: [] }), { status: 200 });
-    if (path === '/api/admin/competition/leagues/l1/fixtures') return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
+    if (path === '/api/public/leagues/l1/fixtures') return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
     throw new Error(`Unexpected fetch ${path}`);
   });
 }
@@ -55,7 +55,7 @@ describe('player scoring rules', () => {
     renderParticipant();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Premier' })).toBeTruthy());
     await screen.findByRole('rowheader', { name: 'Alpha' });
-    expect(screen.getByText('Best of 6 · Win 3 · Draw 1 · Loss 0')).toBeTruthy();
+    expect(screen.getByText('Best of 6 · First to 4 · Win 3 · Draw 1 · Loss 0 · 1 meeting per pair')).toBeTruthy();
     expect(screen.getByText('Table: Points → Legs won → Head-to-head')).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'W-D-L' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Legs' })).toBeTruthy();

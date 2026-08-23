@@ -41,7 +41,7 @@ function installReadApi({
     if (path.endsWith(`/api/public/leagues/${currentLeague.id}/results`)) return new Response(JSON.stringify({ results }), { status: 200 });
     if (path.endsWith(`/api/public/leagues/${currentLeague.id}`)) return new Response(JSON.stringify({ league: currentLeague, players: leaguePlayers }), { status: 200 });
     if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: myResults }), { status: 200 });
-    if (path.endsWith(`/api/admin/competition/leagues/${currentLeague.id}/fixtures`)) return new Response(JSON.stringify({ fixtures }), { status: 200 });
+    if (path.endsWith(`/api/public/leagues/${currentLeague.id}/fixtures`)) return new Response(JSON.stringify({ fixtures }), { status: 200 });
     throw new Error(`Unexpected fetch: ${path}`);
   });
 }
@@ -80,7 +80,7 @@ describe('mobile league workspaces', () => {
       if (path.endsWith('/api/public/leagues/league-1/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
       if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players }), { status: 200 });
       if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
-      if (path.endsWith('/api/admin/competition/leagues/league-1/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
       if (path.endsWith('/api/leagues/league-1/results') && init?.method === 'POST') return new Response(JSON.stringify(resultPayload), { status: 201 });
       throw new Error(`Unexpected fetch: ${path}`);
     });
@@ -131,7 +131,7 @@ describe('mobile league workspaces', () => {
       if (path.endsWith('/api/public/leagues/league-1/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
       if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players }), { status: 200 });
       if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
-      if (path.endsWith('/api/admin/competition/leagues/league-1/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
       if (path.endsWith('/api/me/profile') && init?.method === 'PATCH') return new Response(JSON.stringify({ profile: { ...user, username: 'Alpha Prime', dartsCounterUrl: 'https://dartcounter.net/alpha', profileImageUrl: null } }), { status: 200 });
       throw new Error(`Unexpected fetch: ${path}`);
     });
@@ -158,9 +158,9 @@ describe('mobile league workspaces', () => {
       const current = path.includes('league-2') ? secondLeague : league;
       if (path.includes('/standings')) return new Response(JSON.stringify({ standings: [] }), { status: 200 });
       if (path.includes('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.includes('/api/public/leagues/') && path.endsWith('/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
       if (path.includes('/api/public/leagues/')) return new Response(JSON.stringify({ league: current, players: [{ id: user.id, username: 'Alpha', profileImageUrl: null }, { id: current.id === 'league-2' ? 'player-c' : 'player-b', username: current.id === 'league-2' ? 'Charlie' : 'Bravo', profileImageUrl: null }] }), { status: 200 });
       if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
-      if (path.includes('/api/admin/competition/leagues/') && path.endsWith('/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
       throw new Error(`Unexpected fetch: ${path}`);
     });
 
@@ -187,7 +187,7 @@ describe('mobile league workspaces', () => {
       if (path.endsWith('/api/public/leagues/league-1/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
       if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players }), { status: 200 });
       if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
-      if (path.endsWith('/api/admin/competition/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
       if (path.endsWith('/api/leagues/league-1/results') && init?.method === 'POST') return new Response(JSON.stringify(resultPayload), { status: 201 });
       throw new Error(`Unexpected fetch: ${path}`);
     });

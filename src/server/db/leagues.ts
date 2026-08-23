@@ -7,6 +7,7 @@ export interface LeagueRecord {
   name: string;
   slug: string;
   season_name: string;
+  season_id?: string | null;
   status: LeagueStatus;
   max_legs: number;
   points_per_win: number;
@@ -19,6 +20,9 @@ export interface LeagueRecord {
   max_players: number;
   matches_per_pair: number;
   visibility: LeagueVisibility;
+  hierarchy_position?: number;
+  promotion_places?: number;
+  relegation_places?: number;
 }
 
 export interface LeagueMemberRecord {
@@ -33,29 +37,36 @@ export interface LeagueMemberRecord {
 
 export async function listClubLeagues(db: D1Database): Promise<LeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
-       FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
+    `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.season_id, leagues.status,
+            leagues.max_legs, leagues.points_per_win, leagues.points_per_draw, leagues.points_per_loss, leagues.target_legs,
+            leagues.created_at, leagues.updated_at, leagues.created_by, leagues.max_players, leagues.matches_per_pair, leagues.visibility,
+            leagues.hierarchy_position, leagues.promotion_places, leagues.relegation_places
+       FROM leagues
+       LEFT JOIN seasons ON seasons.id = leagues.season_id
+      ORDER BY COALESCE(seasons.is_current, 0) DESC, leagues.status = 'OPEN' DESC, leagues.updated_at DESC, leagues.name ASC`,
   ).all<LeagueRecord>();
   return result.results;
 }
 
 export async function listUserLeagues(db: D1Database, userId: string): Promise<LeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.status,
+    `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.season_id, leagues.status,
             leagues.max_legs, leagues.points_per_win, leagues.points_per_draw, leagues.points_per_loss, leagues.target_legs, leagues.created_at, leagues.updated_at,
-            leagues.created_by, leagues.max_players, leagues.matches_per_pair, leagues.visibility
+            leagues.created_by, leagues.max_players, leagues.matches_per_pair, leagues.visibility,
+            leagues.hierarchy_position, leagues.promotion_places, leagues.relegation_places
        FROM leagues JOIN league_players ON league_players.league_id = leagues.id
+       LEFT JOIN seasons ON seasons.id = leagues.season_id
       WHERE league_players.user_id = ? AND league_players.active = 1
-      ORDER BY leagues.status = 'OPEN' DESC, leagues.updated_at DESC, leagues.name ASC`,
+      ORDER BY COALESCE(seasons.is_current, 0) DESC, leagues.status = 'OPEN' DESC, leagues.updated_at DESC, leagues.name ASC`,
   ).bind(userId).all<LeagueRecord>();
   return result.results;
 }
 
 export async function listManagedLeagues(db: D1Database): Promise<LeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility,
+            hierarchy_position, promotion_places, relegation_places
        FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
   ).all<LeagueRecord>();
   return result.results;
@@ -63,16 +74,18 @@ export async function listManagedLeagues(db: D1Database): Promise<LeagueRecord[]
 
 export async function getLeagueByIdOrSlug(db: D1Database, key: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
-    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility,
+            hierarchy_position, promotion_places, relegation_places
        FROM leagues WHERE id = ? OR slug = ?`,
   ).bind(key, key).first<LeagueRecord>()) ?? null;
 }
 
 export async function getLeagueById(db: D1Database, id: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
-    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility,
+            hierarchy_position, promotion_places, relegation_places
        FROM leagues WHERE id = ?`,
   ).bind(id).first<LeagueRecord>()) ?? null;
 }

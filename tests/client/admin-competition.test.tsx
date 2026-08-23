@@ -51,6 +51,8 @@ function installApi(config: FixtureConfig = {}) {
     if (path === '/api/admin/seasons' && method === 'POST') return new Response(JSON.stringify({ season: { ...season2, id: 's3', name: '2028/29' } }), { status: 201 });
     if (path === '/api/admin/seasons/s1' && method === 'PATCH') return new Response(JSON.stringify({ season: { ...sourceSeason, status: 'CLOSED' } }), { status: 200 });
     if (path === '/api/admin/seasons/s1' && method === 'DELETE') return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    if (path === '/api/admin/seasons/s1/health' && method === 'GET') return new Response(JSON.stringify({ health: { unassignedPlayers: 0, outstandingFixtures: 1, pendingConfirmations: 0, disputes: 0 } }), { status: 200 });
+    if (path === '/api/admin/seasons/s2/health' && method === 'GET') return new Response(JSON.stringify({ health: { unassignedPlayers: 2, outstandingFixtures: 0, pendingConfirmations: 0, disputes: 0 } }), { status: 200 });
 
     if (path === '/api/admin/seasons/s1/leagues' && method === 'GET') return new Response(JSON.stringify({ leagues: [l1, l2] }), { status: 200 });
     if (path === '/api/admin/seasons/s2/leagues' && method === 'GET') return new Response(JSON.stringify({ leagues: [n1, n2] }), { status: 200 });
@@ -189,6 +191,7 @@ describe('administrator competition workspace', () => {
     await screen.findByText('Fixtures committed.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/leagues/l1/fixtures' && init?.method === 'POST')).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Void Alpha vs Bravo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     await screen.findByText('Fixture voided.');
   });
 

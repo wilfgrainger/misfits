@@ -113,6 +113,20 @@ export interface FixtureSummary {
   playerAUsername: string | null;
   playerBUsername: string | null;
   resultId: string | null;
+  result?: FixtureResultSummary | null;
+}
+
+export interface FixtureResultSummary {
+  id: string;
+  playerALegs: number;
+  playerBLegs: number;
+  playerAAverage: number;
+  playerBAverage: number;
+  submittedBy: string | null;
+  status: 'PENDING' | 'CONFIRMED' | 'DISPUTED' | null;
+  disputeNote: string | null;
+  createdAt: string | null;
+  confirmedAt: string | null;
 }
 
 export interface FixturePreview {
@@ -171,10 +185,13 @@ export interface PromotionMovement {
   decidedBy?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  fromLeagueName?: string;
+  toLeagueName?: string;
 }
 
 export interface PromotionAmbiguity {
   leagueId: string;
+  leagueName?: string;
   boundary: 'PROMOTION' | 'RELEGATION';
   position: number;
   tiedUserIds: string[];
@@ -330,6 +347,7 @@ function normalizeMember(value: unknown): CompetitionMember {
 
 function normalizeFixture(value: unknown): FixtureSummary {
   const row = asRecord(value);
+  const resultRow = row.result && typeof row.result === 'object' ? row.result as JsonRecord : null;
   return {
     id: stringValue(row, 'id') ?? '',
     seasonId: stringValue(row, 'seasonId', 'season_id') ?? '',
@@ -346,6 +364,18 @@ function normalizeFixture(value: unknown): FixtureSummary {
     playerAUsername: nullableStringValue(row, 'playerAUsername', 'player_a_username') ?? null,
     playerBUsername: nullableStringValue(row, 'playerBUsername', 'player_b_username') ?? null,
     resultId: nullableStringValue(row, 'resultId', 'result_id') ?? null,
+    result: resultRow ? {
+      id: stringValue(resultRow, 'id') ?? '',
+      playerALegs: numberValue(resultRow, 'playerALegs', 'player_a_legs') ?? 0,
+      playerBLegs: numberValue(resultRow, 'playerBLegs', 'player_b_legs') ?? 0,
+      playerAAverage: numberValue(resultRow, 'playerAAverage', 'player_a_average') ?? 0,
+      playerBAverage: numberValue(resultRow, 'playerBAverage', 'player_b_average') ?? 0,
+      submittedBy: nullableStringValue(resultRow, 'submittedBy', 'submitted_by') ?? null,
+      status: (stringValue(resultRow, 'status') as FixtureResultSummary['status']) ?? null,
+      disputeNote: nullableStringValue(resultRow, 'disputeNote', 'dispute_note') ?? null,
+      createdAt: nullableStringValue(resultRow, 'createdAt', 'created_at') ?? null,
+      confirmedAt: nullableStringValue(resultRow, 'confirmedAt', 'confirmed_at') ?? null,
+    } : null,
   };
 }
 
@@ -365,6 +395,8 @@ function normalizeMovement(value: unknown): PromotionMovement {
     decidedBy: nullableStringValue(row, 'decidedBy', 'decided_by'),
     createdAt: stringValue(row, 'createdAt', 'created_at'),
     updatedAt: stringValue(row, 'updatedAt', 'updated_at'),
+    fromLeagueName: stringValue(row, 'fromLeagueName', 'from_league_name'),
+    toLeagueName: stringValue(row, 'toLeagueName', 'to_league_name'),
   };
 }
 
@@ -375,6 +407,7 @@ function normalizePromotionProjection(value: unknown): PromotionProjection {
     const ambiguity = asRecord(value);
     return {
       leagueId: stringValue(ambiguity, 'leagueId', 'league_id') ?? '',
+      leagueName: stringValue(ambiguity, 'leagueName', 'league_name'),
       boundary: (stringValue(ambiguity, 'boundary') ?? 'PROMOTION') as PromotionAmbiguity['boundary'],
       position: numberValue(ambiguity, 'position') ?? 0,
       tiedUserIds: Array.isArray(ambiguity.tiedUserIds) ? ambiguity.tiedUserIds.filter((id): id is string => typeof id === 'string') : [],
@@ -445,6 +478,9 @@ export class ApiClient {
   publicPlayers(key: string) { return this.call<{ players: LeaguePlayer[] }>(`/api/public/leagues/${encodeURIComponent(key)}/players`); }
   standings(leagueId: string) { return this.call<{ standings: StandingRow[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/standings`); }
   results(leagueId: string) { return this.call<{ results: ResultSummary[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/results`); }
+  memberFixtures(leagueId: string) {
+    return this.call<{ fixtures: unknown[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/fixtures`).then(({ fixtures }) => ({ fixtures: fixtures.map(normalizeFixture) }));
+  }
   myResults() { return this.call<{ results: ResultSummary[] }>('/api/me/results'); }
   submitResult(leagueId: string, input: ResultInput) { return this.call<{ result: ResultSummary }>(`/api/leagues/${encodeURIComponent(leagueId)}/results`, { method: 'POST', body: JSON.stringify(input) }); }
   submitFixtureResult(leagueId: string, input: FixtureResultInput) { return this.call<{ result: ResultSummary }>(`/api/leagues/${encodeURIComponent(leagueId)}/results`, { method: 'POST', body: JSON.stringify(input) }); }
@@ -473,6 +509,19 @@ export class ApiClient {
   deleteCompetitionLeague(leagueId: string) { return this.call<{ ok: true }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}`, { method: 'DELETE' }); }
 
   seasonUnassigned(seasonId: string) { return this.call<{ users: UnassignedPlayer[] }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/unassigned`); }
+  adminSeasonHealth(seasonId: string) {
+    return this.call<{ health: unknown }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/health`).then(({ health }) => {
+      const row = asRecord(health);
+      return {
+        health: {
+          unassignedPlayers: numberValue(row, 'unassignedPlayers', 'unassigned_players') ?? 0,
+          outstandingFixtures: numberValue(row, 'outstandingFixtures', 'outstanding_fixtures') ?? 0,
+          pendingConfirmations: numberValue(row, 'pendingConfirmations', 'pending_confirmations') ?? 0,
+          disputes: numberValue(row, 'disputes') ?? 0,
+        } satisfies AdminCompetitionHealth,
+      };
+    });
+  }
   competitionMembers(leagueId: string) {
     return this.call<{ members: unknown[] }>(`/api/admin/competition/leagues/${encodeURIComponent(leagueId)}/members`).then(({ members }) => ({ members: members.map(normalizeMember) }));
   }
@@ -498,6 +547,9 @@ export class ApiClient {
 
   promotionPreview(seasonId: string) {
     return this.call<{ preview: unknown }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/promotion/preview`).then(({ preview }) => ({ preview: normalizePromotionProjection(preview) }));
+  }
+  memberPromotionPreview(seasonId: string) {
+    return this.call<{ preview: unknown }>(`/api/public/seasons/${encodeURIComponent(seasonId)}/promotion`).then(({ preview }) => ({ preview: normalizePromotionProjection(preview) }));
   }
   createPromotionProposal(fromSeasonId: string, toSeasonId: string) {
     return this.call<{ movements: unknown[] }>(`/api/admin/seasons/${encodeURIComponent(fromSeasonId)}/promotion/proposal`, { method: 'POST', body: JSON.stringify({ toSeasonId }) }).then(({ movements }) => ({ movements: movements.map(normalizeMovement) }));

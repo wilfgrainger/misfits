@@ -11,7 +11,15 @@ import { createSeasonMembershipRoutes } from './routes/season-memberships';
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get('/api/health', (c) => c.json({ ok: true }));
+app.get('/api/health', async (c) => {
+  if (!c.env.DB) return c.json({ ok: true });
+  try {
+    await c.env.DB.prepare('SELECT 1').first();
+    return c.json({ ok: true });
+  } catch {
+    return c.json({ ok: false }, 503);
+  }
+});
 app.route('/', createAuthRoutes());
 app.route('/', createAdminRoutes());
 app.route('/', createProfileRoutes());

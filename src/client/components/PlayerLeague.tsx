@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiClient, type FixtureSummary, type LeagueDetail, type LeagueSummary, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
+import { ApiClient, type FixtureSummary, type LeagueDetail, type LeagueSummary, type PromotionProjection, type ResultInput, type ResultSummary, type StandingRow, type UserSummary } from '../api';
 import { effectiveMaxLegs, leagueScoringSummary, legsToWin, matchFormatDescription, resultOutcomeLabel, TABLE_TIE_BREAK_DESCRIPTION } from '../scoring';
 import { AppIcon } from './AppIcons';
 import { ProfilePanel } from './ProfilePanel';
@@ -23,6 +23,23 @@ interface PlayerLeagueProps {
 
 function displayDate(value: string): string {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(value));
+}
+
+function fixtureStatusLabel(status: FixtureSummary['status']): string {
+  if (status === 'PENDING_CONFIRMATION') return 'Awaiting confirmation';
+  if (status === 'CONFIRMED') return 'Completed';
+  if (status === 'DISPUTED') return 'Needs admin review';
+  if (status === 'VOID') return 'Voided';
+  return 'Outstanding';
+}
+
+function fixtureResultLabel(fixture: FixtureSummary, userId: string): string | null {
+  const result = fixture.result;
+  if (!result) return null;
+  if (result.status === 'PENDING') return result.submittedBy === userId ? 'Your result · awaiting opponent' : 'Result submitted · needs your confirmation';
+  if (result.status === 'DISPUTED') return result.disputeNote ? `Disputed: ${result.disputeNote}` : 'Disputed for admin review';
+  if (result.status === 'CONFIRMED') return `Confirmed · ${result.playerALegs}-${result.playerBLegs}`;
+  return null;
 }
 
 function ResultRow({ result, user, onResolve }: { result: ResultSummary; user: UserSummary; onResolve: (result: ResultSummary) => void }) {
@@ -56,6 +73,7 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
   const [results, setResults] = useState<ResultSummary[]>([]);
   const [myResults, setMyResults] = useState<ResultSummary[]>([]);
   const [fixtures, setFixtures] = useState<FixtureSummary[]>([]);
+  const [promotion, setPromotion] = useState<PromotionProjection | null>(null);
   const [detail, setDetail] = useState<LeagueDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -79,20 +97,24 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
     const request = ++loadRequest.current;
     setLoading(true);
     setError('');
+    setPromotion(null);
     try {
       const [standingPayload, resultPayload, detailPayload, mine, fixturePayload] = await Promise.all([
         api.standings(league.id),
         api.results(league.id),
         api.publicLeague(league.id),
         api.myResults(),
-        api.fixtures(league.id).catch(() => ({ fixtures: [] })),
+        api.memberFixtures(league.id),
       ]);
+      const seasonId = detailPayload.league.seasonId ?? league.seasonId;
+      const promotionPayload = seasonId ? await api.memberPromotionPreview(seasonId) : null;
       if (request !== loadRequest.current) return;
       setStandings(standingPayload.standings);
       setResults(resultPayload.results);
       setDetail(detailPayload.league);
       setMyResults(mine.results.filter((result) => result.leagueId === league.id));
       setFixtures(fixturePayload.fixtures ?? []);
+      setPromotion(promotionPayload?.preview ?? null);
       setOpponentId((current) => current || detailPayload.players.find((player) => player.id !== user.id)?.id || '');
     } catch (cause) {
       if (request === loadRequest.current) setError(cause instanceof Error ? cause.message : 'League data could not be loaded.');
@@ -105,10 +127,13 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
 
   const opponents = useMemo(() => detail?.players?.filter((player) => player.id !== user.id) ?? [], [detail?.players, user.id]);
   const pending = myResults.filter((result) => result.status === 'PENDING' && result.submittedBy !== user.id);
+  const submittedPending = myResults.filter((result) => result.status === 'PENDING' && result.submittedBy === user.id);
   const canRecord = league.status === 'OPEN' && isParticipant;
   const availableFixtures = useMemo(() => fixtures.filter((fixture) => fixture.status === 'OUTSTANDING' && (fixture.playerAId === user.id || fixture.playerBId === user.id)), [fixtures, user.id]);
   const selectedFixture = fixtures.find((fixture) => fixture.id === selectedFixtureId) ?? null;
   const leagueUsesFixtures = fixtures.length > 0;
+  const movementAmbiguities = promotion?.ambiguities.filter((ambiguity) => ambiguity.leagueId === league.id) ?? [];
+  const ownMovement = promotion?.movements.find((movement) => movement.userId === user.id) ?? null;
 
   useEffect(() => {
     setView(embeddedView ?? 'table');
@@ -225,7 +250,7 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
           <div><p className="competition-eyebrow">{league.seasonName} season</p><h2 id="league-title">{league.name}</h2></div>
           <button className="refresh-button icon-action" type="button" aria-label="Refresh league" onClick={() => void load()} disabled={loading}><AppIcon name="refresh" /></button>
         </header>
-      ) : <>
+      ) : (
         <section className="league-heading player-league-hero">
           <div className="league-hero-copy">
             <div className="league-title-line"><h2 id="league-title">{league.name}</h2><span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span></div>
@@ -235,16 +260,16 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
           <div className="league-target-mark" aria-hidden="true"><AppIcon name="target" /></div>
           <div className="league-hero-meta"><span><AppIcon name="users" />{detail?.players?.length ?? '—'} Players</span><span><AppIcon name="calendar" />{league.status === 'OPEN' ? 'Season in progress' : 'Season closed'}</span><span><AppIcon name="target" />501 format</span></div>
         </section>
-        <section className="season-rules-stack rules-card" aria-label="League rules"><span className="surface-icon"><AppIcon name="rules" /></span><div><p className="season-rules">{leagueScoringSummary(league)}</p><p className="form-help rules-tiebreak">{TABLE_TIE_BREAK_DESCRIPTION}</p></div></section>
-      </>}
+      )}
+      <section className="season-rules-stack rules-card" aria-label="League rules"><span className="surface-icon"><AppIcon name="rules" /></span><div><p className="season-rules">{leagueScoringSummary(league)}</p><p className="form-help rules-tiebreak">{TABLE_TIE_BREAK_DESCRIPTION}</p></div></section>
 
       {notice && <p className="success-message compact-message" role="status">{notice}</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
       {loading && <p className="loading-message">Loading league data...</p>}
 
-      {!loading && view === 'table' && <section className="standings-card" aria-labelledby="player-standings-title"><div className="experience-section-heading"><div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="results" /></span><h3 id="player-standings-title">Standings</h3></div></div><StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} highlightPlayerId={user.id} />{standings.length === 0 && <div className="experience-empty"><AppIcon name="target" /><strong>No table movement yet</strong><span>Confirmed results will settle the table here.</span></div>}</section>}
+      {!loading && view === 'table' && <section className="standings-card" aria-labelledby="player-standings-title"><div className="experience-section-heading"><div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="results" /></span><h3 id="player-standings-title">Standings</h3></div></div>{((league.promotionPlaces ?? 0) > 0 || (league.relegationPlaces ?? 0) > 0) && <p className="movement-legend">Zones show {league.promotionPlaces ? `${league.promotionPlaces} promotion place${league.promotionPlaces === 1 ? '' : 's'}` : 'no promotion places'}{league.relegationPlaces ? ` and ${league.relegationPlaces} relegation place${league.relegationPlaces === 1 ? '' : 's'}` : ''}.</p>}<StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} highlightPlayerId={user.id} promotionPlaces={league.promotionPlaces} relegationPlaces={league.relegationPlaces} />{promotion && <section className="movement-summary" aria-label="Season movement"><strong>{promotion.provisional ? 'Movement is provisional' : 'Movement is final eligible'}</strong>{promotion.unresolvedCount > 0 && <span>{promotion.unresolvedCount} fixture or result{promotion.unresolvedCount === 1 ? '' : 's'} still need resolution.</span>}{ownMovement && <span>Your projection: {ownMovement.kind === 'PROMOTED' ? 'promotion' : 'relegation'}{ownMovement.toLeagueName ? ` to ${ownMovement.toLeagueName}` : ''}.</span>}{movementAmbiguities.map((ambiguity) => <span key={`${ambiguity.boundary}-${ambiguity.position}`}>{ambiguity.leagueName ?? league.name}: {ambiguity.tiedUserIds.map((id) => detail?.players.find((player) => player.id === id)?.username ?? 'Player').join(', ')} are tied at the {ambiguity.boundary.toLowerCase()} boundary (position {ambiguity.position}); movement stays provisional.</span>)}{promotion.ambiguities.length > movementAmbiguities.length && <span>Other movement boundaries remain tied; final destinations will wait for a resolved table.</span>}</section>}{standings.length === 0 && <div className="experience-empty"><AppIcon name="target" /><strong>No table movement yet</strong><span>Confirmed results will settle the table here.</span></div>}</section>}
 
-      {!loading && view === 'fixtures' && <section className="competition-fixtures" aria-labelledby="competition-fixtures-title"><div className="experience-section-heading"><h3 id="competition-fixtures-title">Fixtures</h3></div>{fixtures.length === 0 ? <div className="experience-empty"><AppIcon name="calendar" /><strong>No fixtures published yet</strong><span>When the schedule is generated, matches will appear here.</span></div> : <ul className="fixture-browser-list">{fixtures.map((fixture) => <li key={fixture.id}><div><strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong><span>Round {fixture.round} · Meeting {fixture.meetingNumber}</span></div><span className={`status-label status-${fixture.status.toLowerCase()}`}>{fixture.status}</span></li>)}</ul>}</section>}
+      {!loading && view === 'fixtures' && <section className="competition-fixtures" aria-labelledby="competition-fixtures-title"><div className="experience-section-heading"><h3 id="competition-fixtures-title">Fixtures</h3></div>{fixtures.length === 0 ? <div className="experience-empty"><AppIcon name="calendar" /><strong>No fixtures published yet</strong><span>This season has no published schedule yet.</span></div> : <ul className="fixture-browser-list">{fixtures.map((fixture) => <li key={fixture.id}><div><strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong><span>Round {fixture.round} · Meeting {fixture.meetingNumber}</span>{fixtureResultLabel(fixture, user.id) && <span className="fixture-result-summary">{fixtureResultLabel(fixture, user.id)}</span>}</div><span className={`status-label status-${fixture.status.toLowerCase()}`}>{fixtureStatusLabel(fixture.status)}</span></li>)}</ul>}</section>}
 
       {!loading && view === 'record' && !isParticipant && <section className="result-form record-browse-only" aria-labelledby="record-browse-title"><div className="form-heading"><h3 id="record-browse-title">Record</h3><p className="form-help">You can browse this league, but you are not currently assigned to it. An admin must place you in the season before you can record results.</p></div></section>}
 
@@ -254,7 +279,7 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
         <div className="form-grid"><label htmlFor="your-legs">Your legs<input id="your-legs" type="number" min="0" max={targetLegs} value={playerALegs} onChange={(event) => setPlayerALegs(event.target.value)} required disabled={!canRecord} /></label><label htmlFor="their-legs">Their legs<input id="their-legs" type="number" min="0" max={targetLegs} value={playerBLegs} onChange={(event) => setPlayerBLegs(event.target.value)} required disabled={!canRecord} /></label><label htmlFor="your-average">Your average<input id="your-average" type="number" min="0" max="200" step="0.01" value={playerAAverage} onChange={(event) => setPlayerAAverage(event.target.value)} required disabled={!canRecord} /></label><label htmlFor="their-average">Their average<input id="their-average" type="number" min="0" max="200" step="0.01" value={playerBAverage} onChange={(event) => setPlayerBAverage(event.target.value)} required disabled={!canRecord} /></label></div>
         <button className="primary-button" type="submit" disabled={!canRecord || busyResult === 'new' || (!selectedFixtureId && opponents.length === 0)} aria-busy={busyResult === 'new'}>{!canRecord ? 'League closed' : busyResult === 'new' ? 'Sending' : 'Send for confirmation'}</button></form>}
 
-      {!loading && view === 'results' && <div className="result-feed"><h3>Confirmed games</h3><ul className="result-list">{results.map((result) => <li key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /></li>)}</ul><h3 className="subsection-title">Your pending games</h3><ul className="result-list">{pending.map((result) => <li className="review-row" key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /><div className="review-actions"><button className="primary-button" type="button" disabled={busyResult === result.id} aria-busy={busyResult === result.id} onClick={() => void confirm(result)}>{busyResult === result.id ? 'Saving' : 'Confirm'}</button><button className="secondary-button" type="button" onClick={(event) => { disputeTriggerRef.current = event.currentTarget; setDisputeId(result.id); }}>Dispute</button></div></li>)}{pending.length === 0 && <li className="empty-message">No pending games.</li>}</ul></div>}
+      {!loading && view === 'results' && <div className="result-feed"><h3>Confirmed games</h3><ul className="result-list">{results.map((result) => <li key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /></li>)}</ul><h3 className="subsection-title">Your pending games</h3><ul className="result-list">{pending.map((result) => <li className="review-row" key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /><div className="review-actions"><button className="primary-button" type="button" disabled={busyResult === result.id} aria-busy={busyResult === result.id} onClick={() => void confirm(result)}>{busyResult === result.id ? 'Saving' : 'Confirm'}</button><button className="secondary-button" type="button" onClick={(event) => { disputeTriggerRef.current = event.currentTarget; setDisputeId(result.id); }}>Dispute</button></div></li>)}{submittedPending.map((result) => <li key={result.id}><ResultRow result={result} user={user} onResolve={confirm} /></li>)}{pending.length === 0 && submittedPending.length === 0 && <li className="empty-message">No pending games.</li>}{submittedPending.length > 0 && <li className="pending-result-note">Your submitted result is awaiting opponent confirmation.</li>}</ul></div>}
 
       {!embedded && !loading && view === 'more' && moreView === 'menu' && <nav className="player-more-actions more-menu" aria-label="More player options"><button type="button" className="player-more-action" onClick={() => showMore('players')}><AppIcon name="players" /><span>Players</span></button><button type="button" className="player-more-action" onClick={() => showMore('profile')}><AppIcon name="profile" /><span>Profile</span></button>{user.role === 'ADMIN' && onOpenAdmin && <button type="button" className="player-more-action" onClick={onOpenAdmin}><AppIcon name="settings" /><span>Admin</span></button>}<button type="button" className="player-more-action" onClick={onSignOut}><AppIcon name="logout" /><span>Sign out</span></button></nav>}
       {!embedded && !loading && view === 'more' && moreView === 'players' && <div className="player-more-panel"><button type="button" className="text-button more-back-button" onClick={() => setMoreView('menu')}>Back to More</button><h3>Players</h3><ul className="club-player-list">{detail?.players?.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul></div>}

@@ -38,6 +38,24 @@ export interface PromotionPreview {
   ambiguities: PromotionAmbiguity[];
 }
 
+export interface MemberPromotionMovement extends Omit<PromotionMovement, 'kind' | 'toLeagueId'> {
+  toSeasonId?: string | null;
+  toLeagueId: string | null;
+  kind: SeasonMovementRecord['kind'];
+  status?: SeasonMovementRecord['status'];
+  fromLeagueName?: string;
+  toLeagueName?: string;
+}
+
+export interface MemberPromotionAmbiguity extends PromotionAmbiguity {
+  leagueName?: string;
+}
+
+export interface MemberPromotionPreview extends Omit<PromotionPreview, 'movements' | 'ambiguities'> {
+  movements: MemberPromotionMovement[];
+  ambiguities: MemberPromotionAmbiguity[];
+}
+
 export interface NextSeasonPlacement {
   userId: string;
   leagueId: string;
@@ -134,6 +152,48 @@ export async function getPromotionPreview(db: D1Database, seasonId: string): Pro
     unresolvedCount,
     movements: projection.movements,
     ambiguities: projection.ambiguities,
+  };
+}
+
+export async function getMemberPromotionPreview(db: D1Database, seasonId: string): Promise<MemberPromotionPreview> {
+  const preview = await getPromotionPreview(db, seasonId);
+  const sourceLeagues = await listSeasonLeagues(db, seasonId);
+  const sourceById = new Map(sourceLeagues.map((league) => [league.id, league]));
+  const saved = await listSeasonMovements(db, seasonId);
+  const targetSeasonIds = [...new Set(saved.map((movement) => movement.to_season_id).filter((id): id is string => Boolean(id)))];
+  const targetLeagues = (await Promise.all(targetSeasonIds.map((id) => listSeasonLeagues(db, id)))).flat();
+  const targetById = new Map(targetLeagues.map((league) => [league.id, league]));
+
+  const movements: MemberPromotionMovement[] = saved.length > 0
+    ? saved.map((movement) => ({
+      id: movement.id,
+      fromSeasonId: movement.from_season_id,
+      toSeasonId: movement.to_season_id,
+      userId: movement.user_id,
+      fromLeagueId: movement.from_league_id,
+      toLeagueId: movement.to_league_id,
+      fromPosition: movement.from_position,
+      kind: movement.kind,
+      status: movement.status,
+      fromLeagueName: sourceById.get(movement.from_league_id)?.name,
+      toLeagueName: (movement.to_league_id ? targetById.get(movement.to_league_id) : undefined)?.name
+        ?? sourceById.get(movement.to_league_id ?? '')?.name,
+    }))
+    : preview.movements.map((movement) => ({
+      ...movement,
+      fromLeagueName: sourceById.get(movement.fromLeagueId)?.name,
+      toLeagueName: sourceById.get(movement.toLeagueId)?.name,
+    }));
+
+  return {
+    seasonId: preview.seasonId,
+    provisional: preview.provisional,
+    unresolvedCount: preview.unresolvedCount,
+    movements,
+    ambiguities: preview.ambiguities.map((ambiguity) => ({
+      ...ambiguity,
+      leagueName: sourceById.get(ambiguity.leagueId)?.name,
+    })),
   };
 }
 

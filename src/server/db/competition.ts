@@ -68,6 +68,15 @@ export interface FixtureRecord {
   player_a_username?: string | null;
   player_b_username?: string | null;
   result_id?: string | null;
+  result_player_a_legs?: number | null;
+  result_player_b_legs?: number | null;
+  result_player_a_average?: number | null;
+  result_player_b_average?: number | null;
+  result_submitted_by?: string | null;
+  result_status?: 'PENDING' | 'CONFIRMED' | 'DISPUTED' | null;
+  result_dispute_note?: string | null;
+  result_created_at?: string | null;
+  result_confirmed_at?: string | null;
 }
 
 export interface FixturePreview {
@@ -224,6 +233,7 @@ export async function listUnassignedUsers(db: D1Database, seasonId: string): Pro
     `SELECT u.id, u.username, u.email, u.status
        FROM users u
       WHERE u.status = 'ACTIVE'
+        AND u.club_status = 'APPROVED'
         AND NOT EXISTS (
           SELECT 1 FROM league_players lp
            WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1
@@ -237,8 +247,8 @@ export async function assignUserToLeague(db: D1Database, actorUserId: string, se
   const league = await getCompetitionLeague(db, leagueId);
   if (!league || league.season_id !== seasonId) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found in this season', 404);
   if (await leagueHasFixturesOrResults(db, leagueId)) throw new AppError('VALIDATION_ERROR', 'League membership is locked after fixtures or results exist', 409);
-  const user = await db.prepare('SELECT id, status FROM users WHERE id = ?').bind(userId).first<{ id: string; status: string }>();
-  if (!user || user.status !== 'ACTIVE') throw new AppError('VALIDATION_ERROR', 'Only an active club account can be assigned', 409);
+  const user = await db.prepare('SELECT id, status, club_status FROM users WHERE id = ?').bind(userId).first<{ id: string; status: string; club_status: string }>();
+  if (!user || user.status !== 'ACTIVE' || user.club_status !== 'APPROVED') throw new AppError('VALIDATION_ERROR', 'Only an approved active club account can be assigned', 409);
   const capacity = await db.prepare('SELECT COUNT(*) AS count FROM league_players WHERE league_id = ? AND active = 1').bind(leagueId).first<{ count: number }>();
   if (Number(capacity?.count ?? 0) >= league.max_players) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
   const existing = await db.prepare('SELECT league_id FROM league_players WHERE season_id = ? AND user_id = ? AND active = 1').bind(seasonId, userId).first<{ league_id: string }>();
@@ -310,6 +320,19 @@ export async function commitLeagueFixtures(db: D1Database, actorUserId: string, 
   const existing = await db.prepare('SELECT COUNT(*) AS count FROM fixtures WHERE league_id = ?').bind(leagueId).first<{ count: number }>();
   if (Number(existing?.count ?? 0) > 0) return listFixtures(db, leagueId);
   const preview = await previewLeagueFixtures(db, leagueId);
+  const unassigned = await db.prepare(
+    `SELECT COUNT(*) AS count
+       FROM users u
+      WHERE u.status = 'ACTIVE'
+        AND u.club_status = 'APPROVED'
+        AND NOT EXISTS (
+          SELECT 1 FROM league_players lp
+           WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1
+        )`,
+  ).bind(preview.seasonId).first<{ count: number }>();
+  if (Number(unassigned?.count ?? 0) > 0) {
+    throw new AppError('VALIDATION_ERROR', 'Assign every active club player to a league before committing fixtures', 409);
+  }
   const at = timestamp(now);
   const statements = preview.fixtures.map((fixture) => db.prepare(
     `INSERT INTO fixtures (id, season_id, league_id, player_a_id, player_b_id, pair_key, round, meeting_number, status, created_at, updated_at)
@@ -328,7 +351,12 @@ export async function listFixtures(db: D1Database, leagueId: string, status?: Fi
     `SELECT f.id, f.season_id, f.league_id, f.player_a_id, f.player_b_id, f.pair_key,
             f.round, f.meeting_number, f.status, f.created_at, f.updated_at, f.voided_at,
             a.username AS player_a_username, b.username AS player_b_username,
-            m.id AS result_id
+            m.id AS result_id,
+            m.player_a_legs AS result_player_a_legs, m.player_b_legs AS result_player_b_legs,
+            m.player_a_average AS result_player_a_average, m.player_b_average AS result_player_b_average,
+            m.submitted_by AS result_submitted_by, m.status AS result_status,
+            m.dispute_note AS result_dispute_note, m.created_at AS result_created_at,
+            m.confirmed_at AS result_confirmed_at
        FROM fixtures f
        JOIN users a ON a.id = f.player_a_id
        JOIN users b ON b.id = f.player_b_id
@@ -344,7 +372,12 @@ export async function getFixture(db: D1Database, fixtureId: string): Promise<Fix
     `SELECT f.id, f.season_id, f.league_id, f.player_a_id, f.player_b_id, f.pair_key,
             f.round, f.meeting_number, f.status, f.created_at, f.updated_at, f.voided_at,
             a.username AS player_a_username, b.username AS player_b_username,
-            m.id AS result_id
+            m.id AS result_id,
+            m.player_a_legs AS result_player_a_legs, m.player_b_legs AS result_player_b_legs,
+            m.player_a_average AS result_player_a_average, m.player_b_average AS result_player_b_average,
+            m.submitted_by AS result_submitted_by, m.status AS result_status,
+            m.dispute_note AS result_dispute_note, m.created_at AS result_created_at,
+            m.confirmed_at AS result_confirmed_at
        FROM fixtures f
        JOIN users a ON a.id = f.player_a_id
        JOIN users b ON b.id = f.player_b_id
@@ -398,7 +431,7 @@ export async function deleteUnplayedFixtures(db: D1Database, actorUserId: string
 export async function seasonHealth(db: D1Database, seasonId: string): Promise<SeasonHealth> {
   const row = await db.prepare(
     `SELECT
-      (SELECT COUNT(*) FROM users u WHERE u.status = 'ACTIVE' AND NOT EXISTS (
+      (SELECT COUNT(*) FROM users u WHERE u.status = 'ACTIVE' AND u.club_status = 'APPROVED' AND NOT EXISTS (
         SELECT 1 FROM league_players lp WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1
       )) AS unassigned_players,
       (SELECT COUNT(*) FROM fixtures WHERE season_id = ? AND status = 'OUTSTANDING') AS outstanding_fixtures,
