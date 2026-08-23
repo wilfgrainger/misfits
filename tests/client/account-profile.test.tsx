@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let user = {
@@ -44,18 +44,18 @@ describe('account profile access', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('keeps the final member navigation and profile available before any league is published', async () => {
+  it('keeps club-first navigation and profile available before any league is published', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: "You're in the club." })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Good to see you, Admin.' })).toBeTruthy();
     expect(screen.getByText('Misfits Darts Club')).toBeTruthy();
     expect(screen.getByAltText('Misfits 501 club seal')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Season admin' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Club table' })).toBeNull();
 
-    for (const label of ['League', 'Record', 'Results', 'More']) {
-      expect(screen.getByRole('button', { name: label })).toBeTruthy();
-    }
+    const nav = screen.getByRole('navigation', { name: 'Member workspace' });
+    expect(within(nav).getAllByRole('button').map((button) => button.textContent?.trim()))
+      .toEqual(['Home', 'Record', 'Leagues', 'More']);
 
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
@@ -63,11 +63,21 @@ describe('account profile access', () => {
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });
 
+  it('opens the member profile directly from the compact header avatar', async () => {
+    render(<App />);
+
+    await screen.findByRole('heading', { name: 'Good to see you, Admin.' });
+    fireEvent.click(screen.getByRole('button', { name: 'Open profile' }));
+
+    expect(await screen.findByRole('heading', { name: 'Player card' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'More' }).getAttribute('aria-current')).toBe('page');
+  });
+
   it('keeps Club access reachable through More for an administrator with no leagues yet', async () => {
     user.isMasterAdmin = false;
     render(<App />);
 
-    await screen.findByRole('heading', { name: "You're in the club." });
+    await screen.findByRole('heading', { name: 'Good to see you, Admin.' });
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Admin' }));
 

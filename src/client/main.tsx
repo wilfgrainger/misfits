@@ -5,6 +5,7 @@ import './styles.css';
 import './mobile-experience.css';
 import './member-experience.css';
 import './private-club.css';
+import './club-app.css';
 
 console.log('Misfits 501 Client Initialized');
 

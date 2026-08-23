@@ -1,9 +1,7 @@
 import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
 import { AppIcon } from './components/AppIcons';
-import { EmptyMemberWorkspace } from './components/EmptyMemberWorkspace';
-import { LeagueTabs } from './components/LeagueTabs';
-import { PlayerLeague } from './components/PlayerLeague';
+import { MemberApp } from './components/MemberApp';
 import { ApiClient, ApiClientError, type AuthPayload, type LeagueSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
 
@@ -23,18 +21,20 @@ function initialClubInvite(): string | null {
   return token ?? null;
 }
 
-function ClubShell({ children, user, onSignOut, wide = false }: {
+function ClubShell({ children, user, onSignOut, onProfile, wide = false }: {
   children: ReactNode;
   user?: UserSummary | null;
   onSignOut?: () => void;
+  onProfile?: () => void;
   wide?: boolean;
 }) {
+  const avatar = user && (user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase());
   return <main className="shell experience-shell private-club-shell">
     <section className={`shell-panel experience-panel ${wide ? 'shell-panel-wide' : ''}`}>
       <header className="brand-header experience-header private-brand-header" id="club-header">
         <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501 club seal" />
         <div className="brand-meta"><p className="brand-name">Misfits Darts Club</p><span className="online-label">Throw together. Stand together.</span></div>
-        {user && <div className="header-user"><div className="avatar">{user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase()}</div>{onSignOut && <button className="header-signout" type="button" onClick={onSignOut}>Sign out</button>}</div>}
+        {user && <div className="header-user">{onProfile ? <button className="avatar header-avatar-button" type="button" aria-label="Open profile" onClick={onProfile}>{avatar}</button> : <div className="avatar">{avatar}</div>}{onSignOut && <button className="header-signout" type="button" onClick={onSignOut}>Sign out</button>}</div>}
       </header>
       {children}
     </section>
@@ -50,33 +50,25 @@ export default function App() {
   const [clubInviteToken, setClubInviteToken] = useState<string | null>(() => initialClubInvite());
   const [clubLeagues, setClubLeagues] = useState<LeagueSummary[]>([]);
   const [myLeagues, setMyLeagues] = useState<LeagueSummary[]>([]);
-  const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [adminSelectedLeagueId, setAdminSelectedLeagueId] = useState<string | null>(null);
   const [adminMode, setAdminMode] = useState(false);
   const [clubLoadError, setClubLoadError] = useState('');
+  const [profileRequestKey, setProfileRequestKey] = useState(0);
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const clearClubData = () => {
     setClubLeagues([]);
     setMyLeagues([]);
-    setSelectedLeagueId(null);
     setAdminSelectedLeagueId(null);
     setClubLoadError('');
   };
 
-  const loadApprovedClub = async (preferredLeagueId?: string | null) => {
+  const loadApprovedClub = async () => {
     setClubLoadError('');
     try {
       const [clubPayload, personalPayload] = await Promise.all([api.leagues(), api.myLeagues()]);
       setClubLeagues(clubPayload.leagues);
       setMyLeagues(personalPayload.leagues);
-      setSelectedLeagueId((current) => {
-        const available = clubPayload.leagues;
-        if (preferredLeagueId && available.some((league) => league.id === preferredLeagueId)) return preferredLeagueId;
-        if (current && available.some((league) => league.id === current)) return current;
-        const personal = personalPayload.leagues.find((league) => available.some((candidate) => candidate.id === league.id));
-        return personal?.id ?? available[0]?.id ?? null;
-      });
     } catch (cause) {
       clearClubData();
       setClubLoadError(messageFor(cause, 'Your private club workspace could not be loaded.'));
@@ -106,7 +98,7 @@ export default function App() {
     }
 
     setView('signed-in');
-    setMessage('Your Misfits 501 club workspace is ready.');
+    setMessage('');
     await loadApprovedClub();
   };
 
@@ -184,6 +176,7 @@ export default function App() {
     setUser(null);
     clearClubData();
     setAdminMode(false);
+    setProfileRequestKey(0);
     setView('signed-out');
     setMessage('Private club access');
   };
@@ -191,15 +184,12 @@ export default function App() {
   const saveUser = (saved: UserSummary) => setUser(saved);
   const handleLeagueCreated = (league: LeagueSummary) => {
     setClubLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : [league, ...current]);
-    setSelectedLeagueId(league.id);
     setAdminSelectedLeagueId(league.id);
   };
   const handleLeagueChanged = (league: LeagueSummary) => {
     setClubLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : current);
     setMyLeagues((current) => current.map((item) => item.id === league.id ? league : item));
   };
-  const selectedLeague = clubLeagues.find((league) => league.id === selectedLeagueId) ?? null;
-  const selectedLeagueIsMine = selectedLeague ? myLeagues.some((league) => league.id === selectedLeague.id) : false;
   const googleSlot = <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />;
 
   if (view === 'loading') {
@@ -230,14 +220,11 @@ export default function App() {
     return <ClubShell user={user} onSignOut={() => void logout()}><form className="onboarding-form private-onboarding-card" onSubmit={submitUsername}><div className="form-heading"><p className="entry-kicker">Membership approved</p><h1>Set your player nickname</h1><p className="form-help">This is how your name will appear to other approved club members on tables and results.</p></div><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. Bullseye Billy" autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Enter Misfits</button>{message && message !== 'Choose the name your club will see.' && <p className="form-help" role="status">{message}</p>}</form></ClubShell>;
   }
 
-  return <ClubShell user={user} wide>
+  return <ClubShell user={user} wide onProfile={() => setProfileRequestKey((current) => current + 1)}>
     {view === 'signed-in' && user && <div className="account-panel signed-in-experience private-member-app">
-      {message && <p className="success-message compact-message" role="status">{message}</p>}
       {clubLoadError && <div className="experience-empty experience-error" role="alert"><strong>{clubLoadError}</strong><button className="secondary-button" type="button" onClick={() => void loadApprovedClub()}>Retry club workspace</button></div>}
       {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><p className="form-help">Club administration</p></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
-      {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area">
-        {clubLeagues.length > 0 ? <>{clubLeagues.length > 1 && <LeagueTabs leagues={clubLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Club leagues" />}{selectedLeague && <PlayerLeague user={user} league={selectedLeague} isParticipant={selectedLeagueIsMine} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}</> : <EmptyMemberWorkspace user={user} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}
-      </div>}
+      {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area"><MemberApp user={user} clubLeagues={clubLeagues} myLeagues={myLeagues} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} profileRequestKey={profileRequestKey} /></div>}
     </div>}
   </ClubShell>;
 }

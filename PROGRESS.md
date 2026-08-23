@@ -1,16 +1,11 @@
 # Misfits 501 Progress
 
 **Updated:** 23 August 2026  
-**Current branch:** `feat/private-club-entry`  
-**PR:** #172 `feat: make Misfits private and invite-approved`  
-**Current focus:** Fresh exact-head CI after recording verified migration 0006 evidence, then ready → merge → deploy → live smoke  
-**Private-club implementation:** Tasks 1–7 COMPLETE  
-**Last fully verified code/ops head:** `b35c08e5a1c4f429405188e03fd860151e1f8019`  
-**Last fully verified CI before migration evidence:** #813 GREEN  
-**Production migration approval:** RECEIVED from user on 23 August 2026  
-**Production migration:** EXECUTED AND VERIFIED via GitHub Actions run `32633942454`  
-**Migration evidence commit:** `5ada69d8c1b528c095046bbf112fffc956b03f25`  
-**PR #172 merged/deployed:** NO
+**Current branch:** `feat/club-first-navigation`  
+**PR:** #174 `feat: make member navigation club-first`  
+**Current focus:** final exact-head CI → Cave Pony/Impeccable release review → merge → verify main deploy → production smoke  
+**Backend/schema/infra change in PR #174:** NONE  
+**Production D1 migration required:** NO
 
 ## Restart here
 
@@ -18,117 +13,179 @@ Read, in order:
 
 1. `AGENTS.md`
 2. this `PROGRESS.md`
-3. `docs/operations/handoffs/2026-08-23-private-club-release-handoff.md`
-4. `docs/operations/evidence/2026-08-22-d1-migration-0006.md`
-5. `docs/superpowers/specs/2026-08-22-private-club-entry-design.md`
-6. `docs/superpowers/plans/2026-08-22-private-club-entry.md`
-7. `DESIGN.md`
+3. `PRODUCT.md`
+4. `VISION.md`
+5. `DESIGN.md`
+6. `docs/superpowers/specs/2026-08-23-club-first-navigation-design.md`
+7. `docs/superpowers/plans/2026-08-23-club-first-navigation.md`
 
-**Execution-state authority:** this file plus the dated handoff. The implementation plan is historical delivery structure; unchecked boxes there do not mean Tasks 1–7 are unfinished.
+This file is the current execution-state authority. The Superpowers plan records delivery structure; CI and the latest PR head are the release evidence.
 
-## What is complete
+## Production baseline already complete
 
-The approved private-club release contract is implemented:
+Private-club PR #172 is merged on `main` at merge commit:
 
-- anonymous users see no league, season, member, player, standings or result data;
-- unknown Google identities require a valid club invite before account creation;
-- invited new users become `PENDING`, never automatic league participants;
-- admins permanently `APPROVE` or `REJECT` club membership;
-- `users.club_status` is permanent club-membership authority;
-- `club_invites` is admission-invite authority;
-- `league_players` remains independent season/league participation authority;
-- approved but unassigned members may browse private club competition data but cannot record results;
-- pending/rejected members remain outside all club-data surfaces;
-- primary member navigation is exactly `League · Record · Results · More`;
-- fixture selection lives inside Record;
-- More contains Players, Profile, Admin for admins, and Sign out;
-- zero-league approved admins can still reach More → Admin and create the first league;
-- normal interaction accent is Misfits red; green is semantic positive state only;
-- legacy player self-enrolment and league-scoped invite runtime paths are retired;
-- dead client `joinInvite()` and retired server invite DB runtime are removed;
-- no additional Cloudflare service, application runtime, router or state framework was introduced.
+`b7a5296665dbbe54eed6572e505ed02404731188`
 
-## Verification evidence
+That release established permanent `PENDING / APPROVED / REJECTED` membership, invite-only admission, Worker-enforced private club data, admin approval/rejection, separation of club membership from season placement, and GitHub Actions as production D1 mutation authority.
 
-Application code checkpoint `ad0e16a45a1fccda466c52285700a2b7317e85f1` passed CI #797 with Wrangler types, both TypeScript projects, Impeccable zero findings, 62/62 test files and 257/257 tests, production Vite build, and PR deploy skipped.
+Production migration `0006_private_club_membership.sql` was already executed and verified before that merge through GitHub Actions run `32633942454`. PR #174 does not alter the database and must not run a migration.
 
-The earlier feature handoff `fd2f2bb0180d03828131bd700e48d5c6582cabff` passed CI #800.
+## Club-first release contract
 
-The durable D1-management update used RED → GREEN TDD:
+PR #174 replaces the old league-framed signed-in experience with the approved club-first information architecture:
 
-- RED commit `13296817e0ef5af3e5345e54de9de0d18369bce2`, CI #812: exactly the new production D1 management contract failed; 62 existing test files / 257 tests remained green; deploy skipped.
-- GREEN commit `b35c08e5a1c4f429405188e03fd860151e1f8019`, CI #813: Wrangler types, both TypeScript projects, Impeccable, **63/63 test files and 258/258 tests**, production build all GREEN; deploy skipped.
+`Home · Record · Leagues · More`
 
-The production migration workflow itself reran the approved immutable migration source `fd2f2bb0180d03828131bd700e48d5c6582cabff` before touching D1 and passed Wrangler types, TypeScript, 62/62 test files / 257/257 tests, production build and `git diff --check`.
+The product rule is:
 
-The documentation-only migration-evidence checkpoint now requires one final exact-head PR CI before merge. Do not claim that gate until it runs on the newest branch head.
+**Club first. Competition second. Task first.**
 
-## Production D1 migration 0006
+### Home
 
-Migration:
+- default signed-in destination;
+- compact personal greeting;
+- `Your competitions` shows the member's assigned competitions;
+- `Needs you` provides a direct task entry point;
+- no giant league hero or permanent post-login success strip.
 
-`migrations/0006_private_club_membership.sql`
+### Record
 
-**Status: EXECUTED AND VERIFIED.**
+- zero eligible open assignments → contextual empty state;
+- exactly one eligible open assignment → enter that competition's result flow directly;
+- more than one eligible open assignment → ask `What are you recording?`;
+- existing fixture/result/confirmation/dispute engine remains authoritative.
 
-GitHub Actions run:
+### Leagues
 
-`https://github.com/wilfgrainger/misfits/actions/runs/32633942454`
+- browses club competitions an approved member may see;
+- opening a competition creates a compact local workspace;
+- local tabs are exactly `Table · Fixtures · Results`;
+- competition data is content inside the club, not the whole application frame.
 
-Verified facts from the actual production run:
+### More
 
-- workflow event was manual `workflow_dispatch` from `main`;
-- approved migration SHA checked out exactly: `fd2f2bb0180d03828131bd700e48d5c6582cabff`;
-- only pending migration before apply was `0006_private_club_membership.sql`;
-- Wrangler applied migration 0006 successfully;
-- `users.club_status` exists as `TEXT NOT NULL` with default `PENDING`;
-- `club_invites` exists;
-- grouped membership state is `APPROVED = 1`, `PENDING = 1`;
-- grouped league visibility is `PRIVATE = 1`;
-- no raw invite token or production credential was recorded in repo evidence.
+- Players;
+- Profile;
+- Admin for admins;
+- Sign out.
 
-Durable non-secret evidence is in:
+The compact header avatar is an explicit Profile shortcut.
 
-`docs/operations/evidence/2026-08-22-d1-migration-0006.md`
+## Implementation shape
 
-## Production D1 authority: GitHub Actions only
+The simplification boundary is deliberate:
 
-The controller used for migration 0006 is already on `main` from ops PR #173. PR #172 upgrades the same workflow into the durable **Production D1 management** job for future production D1 migrations:
+- `App.tsx` continues to own authentication, approved club loading and admin-mode entry;
+- `MemberApp.tsx` owns the four club-wide member destinations;
+- `MemberNavigation.tsx` owns the exact four-item global member navigation;
+- `PlayerLeague.tsx` keeps the proven league/result engine and can render embedded inside Record or the competition workspace;
+- `club-app.css` is imported last as the signed-in club-first visual authority;
+- obsolete outer-frame components `EmptyMemberWorkspace.tsx` and `LeagueTabs.tsx` were deleted;
+- no router, global state library, backend endpoint, D1 migration, dependency or Cloudflare service was added.
 
-- manual `workflow_dispatch` only;
-- immutable source SHA plus typed confirmation;
-- one existing Worker/D1 architecture only;
-- pending migrations listed before and after apply;
-- generic `PRAGMA quick_check` and schema inspection after apply;
-- no arbitrary SQL input;
-- no automatic push/PR/merge/schedule trigger;
-- no Worker deploy command.
+Cloudflare remains the existing free-tier Worker + static assets + D1 architecture only.
 
-There is no local production migration fallback. Authenticated local Wrangler is for development/non-production use only and must not bypass this GitHub Actions path.
+## TDD and CI evidence
 
-## Current release gate
+### Initial club-first RED
 
-Migration 0006 is no longer the blocker. The remaining gate is a **fresh green CI run on the newest exact PR head containing the recorded production evidence**.
+The first acceptance test proved the old shell could not find Home. The run had **258 passing / 1 failing** test, while TypeScript and Impeccable were clean.
 
-After that green run:
+### Functional GREEN
 
-1. Re-fetch PR #172 and confirm mergeability/head SHA.
-2. Mark ready if still draft.
-3. Merge PR #172 using the verified exact head.
-4. Verify the new `main` CI and Cloudflare Worker deployment.
-5. Smoke-test production health/auth/privacy behavior without exposing private club data.
-6. Perform rendered mobile acceptance when browser tooling is available; otherwise record it as pending rather than inventing evidence.
-7. Record merge/deploy/smoke evidence in the durable release handoff.
+GitHub Actions run `32657735092` proved the first complete club-first behavior:
+
+- Wrangler types: GREEN;
+- client + Worker TypeScript: GREEN;
+- Impeccable source detector: `[]`;
+- **259/259 tests GREEN**;
+- production Vite build: GREEN;
+- Worker deploy skipped, correctly, because this was a pull request.
+
+### Header Profile RED → GREEN
+
+The header-avatar shortcut was added test-first.
+
+RED run `32657881004` had **259 passing / 1 failing**, solely because `Open profile` was not yet a button. Types and Impeccable were clean.
+
+The implementation then made the compact avatar a real Profile shortcut without adding routing infrastructure. A subsequent PR run completed tests and build successfully.
+
+### Final accessibility RED
+
+A Cave Pony review found that focused Leagues content lost its accessible region name because `aria-labelledby` referenced a heading no longer mounted in focused state.
+
+RED run `32658361834` proved the defect precisely:
+
+- TypeScript: GREEN;
+- Impeccable: `[]`;
+- **262 tests passing / 1 failing**;
+- only failure: unable to find region `Leagues` after opening a competition.
+
+The fix replaces the unstable reference with a stable `aria-label="Leagues"`. A fresh exact-head GREEN run is still required after this documentation checkpoint.
+
+## Cave Pony release review
+
+Cave Pony's simplicity conclusions so far:
+
+- reusing the existing result/scoring engine is safer and smaller than creating a second record implementation;
+- no new router/store/service/dependency is justified;
+- deleting the obsolete outer league frame is preferable to layering another shell over it;
+- one canonical last-loaded signed-in stylesheet is preferable to spreading the redesign across more competing CSS authorities;
+- the concrete defects found in review were small: missing test-file newline, a 38px avatar target, and the unstable Leagues region label. The newline is resolved, the avatar is now at least 44px, and the Leagues label has been fixed.
+
+A final diff review is still required after the exact-head GREEN run. Do not merge if it finds a blocking defect.
+
+## Impeccable / responsive authority
+
+`DESIGN.md` has been rewritten to match the club-first product rather than the retired league-first frame.
+
+`club-app.css` provides the final signed-in override layer with:
+
+- compact sticky club header;
+- Misfits red for ordinary interaction, green for positive semantic status only;
+- mobile safe-area-aware bottom navigation;
+- deliberate desktop navigation and composition;
+- compact competition rows/workspaces;
+- local competition tabs;
+- 44px+ key touch targets;
+- reduced-motion handling;
+- no oversized signed-in league hero.
+
+The repo-local Impeccable detector has remained clean in all cited runs.
+
+This execution environment does not provide a rendered browser/Playwright surface for manual pixel inspection. Do not claim screenshot-perfect acceptance. CI/static responsive rules are release evidence here; rendered device review remains a post-release visual inspection item if needed.
+
+## Final release gate
+
+Before merge:
+
+1. Trigger CI for the newest exact PR #174 head.
+2. Require Wrangler types GREEN.
+3. Require client + Worker TypeScript GREEN.
+4. Require Impeccable detector `[]`.
+5. Require all tests GREEN, including club-first Record, Profile shortcut and stable Leagues region acceptance.
+6. Require production Vite build GREEN.
+7. Re-fetch PR #174 and confirm the exact head is mergeable.
+8. Run the final Cave Pony diff review and require no blocking finding.
+9. Mark PR #174 ready for review.
+10. Merge using the verified exact head SHA.
+
+After merge:
+
+1. Verify the push-to-`main` CI run.
+2. Verify the Cloudflare Worker deploy step succeeds.
+3. Smoke-test `https://darts.graingers.agency` production health and privacy-safe signed-out behavior without exposing club data.
+4. Record the merge/deploy evidence in the release summary.
 
 ## Guardrails
 
 - Cloudflare free tier only: existing Worker + static assets + D1.
-- No KV, R2, Durable Objects, Queues, scheduled jobs, background polling or additional application runtime.
+- No KV, R2, Durable Objects, Queues, scheduled jobs, background polling or extra application runtime.
 - Do not edit applied migrations.
-- Production D1 mutation requires explicit approval and the GitHub Actions production D1 management workflow.
-- Never use local Wrangler as a production migration alternative.
-- Never trigger remote D1 migration automatically from push, pull request, merge, schedule or timer.
+- No D1 migration is part of PR #174.
+- Production D1 mutation remains manual GitHub Actions only.
 - Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
 - No private club data may be exposed before Worker-verified `APPROVED` membership.
-- Club approval must never imply season/league participation.
+- Club approval never implies season/league participation.
 - Keep all **33 parked functional stories** open until separately revalidated.

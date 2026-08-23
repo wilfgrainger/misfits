@@ -1,5 +1,7 @@
+export type AppIconName = 'share' | 'users' | 'calendar' | 'clock' | 'target' | 'rules' | 'lock' | 'home' | 'league' | 'results' | 'more' | 'record' | 'players' | 'profile' | 'refresh' | 'settings' | 'logout';
+
 interface AppIconProps {
-  name: 'share' | 'users' | 'calendar' | 'clock' | 'target' | 'rules' | 'lock' | 'league' | 'results' | 'more' | 'record' | 'players' | 'profile' | 'refresh' | 'settings' | 'logout';
+  name: AppIconName;
   className?: string;
 }
 
@@ -30,6 +32,8 @@ export function AppIcon({ name, className }: AppIconProps) {
       return <svg {...common}><path d="M6 4h12M6 20h12M8 4c0 5-3 6-3 9h6c0-3-3-4-3-9ZM16 20c0-5-3-6-3-9h6c0 3-3 4-3 9Z"/></svg>;
     case 'lock':
       return <svg {...common}><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>;
+    case 'home':
+      return <svg {...common}><path d="M3.5 10.5 12 3.75l8.5 6.75"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-6h5v6"/></svg>;
     case 'league':
       return <svg {...common}><path d="M4 10.5 12 4l8 6.5"/><path d="M6.5 9.5V20h11V9.5"/><path d="M10 20v-6h4v6"/></svg>;
     case 'results':

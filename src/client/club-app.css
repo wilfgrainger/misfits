@@ -1,0 +1,552 @@
+/* Club-first signed-in experience. Imported last as the member UI authority. */
+
+.private-member-app {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.member-area,
+.club-member-app,
+.club-member-content {
+  min-width: 0;
+}
+
+.club-member-app {
+  display: grid;
+  min-height: calc(100dvh - 4.8rem);
+}
+
+.club-member-content {
+  width: min(100%, 72rem);
+  margin: 0 auto;
+  padding: 1.15rem 1rem calc(6.8rem + env(safe-area-inset-bottom));
+}
+
+.private-brand-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  min-height: 4.5rem;
+  padding: calc(0.65rem + env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0.65rem max(1rem, env(safe-area-inset-left));
+  background: rgba(9, 13, 12, 0.94);
+  border-bottom: 1px solid rgba(42, 54, 48, 0.72);
+  backdrop-filter: blur(16px);
+}
+
+.private-brand-header::after {
+  display: none;
+}
+
+.private-brand-header .brand-mark {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-width: 1px;
+  box-shadow: none;
+}
+
+.private-brand-header .brand-name {
+  font-size: 0.94rem;
+}
+
+.private-brand-header .online-label {
+  color: var(--club-dim);
+  font-size: 0.67rem;
+}
+
+.header-avatar-button {
+  width: 2.75rem;
+  min-width: 44px;
+  height: 2.75rem;
+  min-height: 44px;
+  padding: 0;
+  color: var(--club-text);
+  background: var(--club-card-raised);
+  border: 1px solid var(--club-border);
+  border-radius: 50%;
+}
+
+.header-avatar-button:hover {
+  border-color: var(--club-red-line);
+  box-shadow: 0 0 0 3px var(--club-red-soft);
+}
+
+.club-home,
+.club-record,
+.club-leagues,
+.club-more {
+  display: grid;
+  gap: 1rem;
+}
+
+.club-page-heading {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.2rem 0 0.35rem;
+}
+
+.club-page-heading h1 {
+  max-width: 20ch;
+  font-size: clamp(1.75rem, 8vw, 2.65rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.club-page-kicker,
+.club-section-kicker,
+.competition-eyebrow {
+  margin: 0;
+  color: var(--club-red-strong);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.club-home-section,
+.record-competition-picker,
+.club-more > .player-more-panel,
+.competition-workspace,
+.record-competition-workspace {
+  min-width: 0;
+}
+
+.club-home-section,
+.record-competition-picker,
+.club-more > .player-more-panel {
+  padding: 1rem;
+  background: var(--club-card);
+  border: 1px solid var(--club-border);
+  border-radius: 16px;
+}
+
+.club-section-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.club-section-heading h2,
+.record-competition-picker h2 {
+  margin-top: 0.15rem;
+  font-size: clamp(1.25rem, 5vw, 1.65rem);
+  letter-spacing: -0.035em;
+}
+
+.club-section-heading .text-button,
+.competition-back {
+  min-height: 44px;
+  color: var(--club-muted);
+  white-space: nowrap;
+}
+
+.competition-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.competition-row,
+.attention-row {
+  width: 100%;
+  min-width: 0;
+  min-height: 68px;
+  text-align: left;
+}
+
+.competition-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem;
+  color: var(--club-text);
+  background: #0d1311;
+  border: 1px solid #28332e;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.competition-row:hover {
+  background: #111816;
+  border-color: var(--club-red-line);
+}
+
+.competition-row-main {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.competition-row-main strong {
+  overflow: hidden;
+  font-size: 0.98rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.competition-row-main small {
+  color: var(--club-muted);
+  font-size: 0.76rem;
+}
+
+.competition-row .status-label {
+  flex: 0 0 auto;
+}
+
+.attention-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  color: var(--club-text);
+  background: var(--club-red-soft);
+  border: 1px solid var(--club-red-line);
+  border-radius: 12px;
+}
+
+.attention-row:hover {
+  background: rgba(212, 64, 64, 0.2);
+}
+
+.attention-row > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.attention-row small {
+  color: var(--club-muted);
+  font-size: 0.77rem;
+  line-height: 1.35;
+}
+
+.attention-row > span:last-child {
+  color: var(--club-red-strong);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.attention-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  color: var(--club-red-strong);
+  background: rgba(9, 13, 12, 0.46);
+  border: 1px solid var(--club-red-line);
+  border-radius: 50%;
+}
+
+.attention-icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.club-empty-state {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  color: var(--club-muted);
+  background: #0d1311;
+  border: 1px dashed #33413a;
+  border-radius: 12px;
+  line-height: 1.5;
+}
+
+.club-empty-state strong {
+  color: var(--club-text);
+  font-size: 0.92rem;
+}
+
+.club-empty-quiet {
+  padding: 0.8rem 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.record-competition-picker,
+.record-competition-workspace,
+.competition-workspace {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.competition-back {
+  width: fit-content;
+  padding-inline: 0;
+}
+
+.competition-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--club-border);
+}
+
+.competition-tab {
+  min-height: 46px;
+  color: var(--club-muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.competition-tab:hover {
+  color: var(--club-text);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.competition-tab-active {
+  color: var(--club-text);
+  border-bottom-color: var(--club-red);
+}
+
+.embedded-league-experience {
+  gap: 0.8rem;
+  padding: 0;
+}
+
+.competition-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.85rem 0 0.25rem;
+}
+
+.competition-heading > div {
+  min-width: 0;
+}
+
+.competition-heading h2 {
+  margin-top: 0.12rem;
+  overflow: hidden;
+  font-size: clamp(1.45rem, 6vw, 2rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.embedded-league-experience .standings-card,
+.embedded-league-experience .result-form,
+.embedded-league-experience .result-feed,
+.competition-fixtures {
+  margin: 0;
+  border-radius: 14px;
+}
+
+.competition-fixtures {
+  padding: 1rem;
+  background: var(--club-card);
+  border: 1px solid var(--club-border);
+}
+
+.fixture-browser-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+.fixture-browser-list li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid rgba(42, 54, 48, 0.7);
+}
+
+.fixture-browser-list li > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.fixture-browser-list li strong {
+  overflow-wrap: anywhere;
+}
+
+.fixture-browser-list li span:not(.status-label) {
+  color: var(--club-muted);
+  font-size: 0.75rem;
+}
+
+.club-more-menu {
+  grid-template-columns: 1fr;
+}
+
+.club-more-menu .player-more-action {
+  min-height: 58px;
+  justify-content: flex-start;
+  padding: 0.8rem 1rem;
+  color: var(--club-text);
+  background: var(--club-card);
+  border-color: var(--club-border);
+  border-radius: 12px;
+}
+
+.club-more-menu .player-more-action:hover {
+  background: var(--club-card-raised);
+  border-color: var(--club-red-line);
+}
+
+.club-more .club-player-list {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.club-more .club-player-list li {
+  min-height: 56px;
+  border-bottom: 1px solid var(--club-border);
+  border-radius: 0;
+}
+
+.club-member-nav {
+  border-top-color: rgba(42, 54, 48, 0.9);
+}
+
+.club-member-nav .member-app-nav-item {
+  color: var(--club-dim);
+}
+
+.club-member-nav .member-app-nav-active {
+  color: #fff7f3;
+  background: var(--club-red-soft);
+}
+
+.club-member-nav .member-app-nav-active svg {
+  color: var(--club-red-strong);
+}
+
+@media (max-width: 680px) {
+  .private-brand-header .brand-meta {
+    max-width: min(60vw, 16rem);
+  }
+
+  .private-brand-header .online-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .club-member-nav {
+    padding-top: 0.28rem;
+    background: rgba(9, 13, 12, 0.98);
+    backdrop-filter: blur(18px);
+  }
+
+  .club-member-nav .member-app-nav-item {
+    min-height: 54px;
+    border-radius: 10px;
+  }
+}
+
+@media (min-width: 681px) {
+  .club-member-app {
+    grid-template-rows: auto 1fr;
+  }
+
+  .club-member-nav {
+    position: sticky;
+    top: 4.5rem;
+    z-index: 30;
+    order: -1;
+    width: 100%;
+    max-width: none;
+    padding: 0.7rem max(1.25rem, calc((100vw - 72rem) / 2));
+    background: rgba(9, 13, 12, 0.92);
+    border-bottom: 1px solid var(--club-border);
+    backdrop-filter: blur(16px);
+    grid-template-columns: repeat(4, minmax(7rem, 10rem));
+    justify-content: start;
+  }
+
+  .club-member-nav .member-app-nav-item {
+    min-height: 44px;
+    padding-inline: 0.8rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+  }
+
+  .club-member-nav .member-app-nav-active {
+    color: #fff7f3;
+    background: var(--club-red-soft);
+    border-color: var(--club-red-line);
+  }
+
+  .club-member-content {
+    padding: 1.6rem 1.5rem 3rem;
+  }
+
+  .club-page-heading h1 {
+    font-size: clamp(2rem, 4vw, 2.8rem);
+  }
+
+  .competition-browser {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .club-more-menu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .competition-tabs {
+    width: min(100%, 30rem);
+  }
+}
+
+@media (min-width: 960px) {
+  .club-member-content {
+    padding-top: 2rem;
+  }
+
+  .club-home {
+    grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.75fr);
+    align-items: start;
+    gap: 1.15rem;
+  }
+
+  .club-home > .club-page-heading {
+    grid-column: 1 / -1;
+  }
+
+  .club-home-section {
+    min-height: 12rem;
+    padding: 1.2rem;
+  }
+
+  .club-record,
+  .club-leagues {
+    width: min(100%, 64rem);
+  }
+
+  .club-more {
+    width: min(100%, 50rem);
+  }
+
+  .competition-browser {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .competition-row,
+  .attention-row,
+  .competition-tab,
+  .header-avatar-button {
+    transition: none !important;
+  }
+}
