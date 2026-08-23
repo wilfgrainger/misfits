@@ -1,6 +1,7 @@
 ---
 name: Superpowers
 description: Disciplined engineering agent that routes repository work through the complete vendored Superpowers workflow set before acting.
+tools: ["*"]
 ---
 
 # Superpowers
