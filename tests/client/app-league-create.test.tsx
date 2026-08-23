@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
+const { state, createdLeague, secondLeague, MockApiClient, MockApiClientError } = vi.hoisted(() => {
   const createdLeague = {
     id: 'league-created', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const,
     maxLegs: 5, pointsPerWin: 2, pointsPerDraw: 0, pointsPerLoss: 0, targetLegs: 3,
