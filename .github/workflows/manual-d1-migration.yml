@@ -1,0 +1,91 @@
+name: Manual production D1 migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_sha:
+        description: Exact 40-character commit SHA containing the approved additive migration
+        required: true
+        type: string
+      confirmation:
+        description: Type APPLY-D1 to confirm the production migration
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: misfits-production-d1
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate migration request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate explicit confirmation and immutable SHA
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          MIGRATION_SHA: ${{ inputs.migration_sha }}
+        run: |
+          test "$CONFIRMATION" = "APPLY-D1" || { echo "::error::Confirmation must be APPLY-D1"; exit 1; }
+          [[ "$MIGRATION_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::migration_sha must be an exact lowercase 40-character Git commit SHA"; exit 1; }
+
+  migrate:
+    name: Verify and migrate production D1
+    needs: validate
+    if: ${{ inputs.confirmation == 'APPLY-D1' }}
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.migration_sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Show immutable migration source
+        run: |
+          echo "Requested migration SHA: ${{ inputs.migration_sha }}"
+          echo "Checked out SHA: $(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "${{ inputs.migration_sha }}"
+
+      - run: npm ci
+      - run: npx wrangler types
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: git diff --check
+
+      - name: Check Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }
+
+      - name: List pending production D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler d1 migrations list misfits --remote
+
+      - name: Apply approved production D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npm run db:migrate:remote
+
+      - name: Verify production D1 state
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 execute misfits --remote --command "PRAGMA table_info(users); SELECT name FROM sqlite_master WHERE type='table' AND name='club_invites'; SELECT club_status, COUNT(*) FROM users GROUP BY club_status; SELECT visibility, COUNT(*) FROM leagues GROUP BY visibility;"
