@@ -5,15 +5,16 @@ import { describe, expect, it } from 'vitest';
 const workflowPath = resolve(process.cwd(), '.github/workflows/manual-d1-migration.yml');
 
 describe('manual production D1 migration workflow', () => {
-  it('requires an explicit dispatch confirmation, verifies the selected ref, migrates D1, and never deploys application code', () => {
+  it('requires explicit confirmation and an immutable SHA, verifies it, migrates D1, and never deploys application code', () => {
     const workflow = readFileSync(workflowPath, 'utf8').replace(/\r\n/g, '\n');
 
     expect(workflow).toContain('workflow_dispatch:');
-    expect(workflow).toContain('migration_ref:');
+    expect(workflow).toContain('migration_sha:');
     expect(workflow).toContain('confirmation:');
     expect(workflow).toContain("inputs.confirmation == 'APPLY-D1'");
     expect(workflow).toContain('environment: production');
-    expect(workflow).toContain('ref: ${{ inputs.migration_ref }}');
+    expect(workflow).toContain('ref: ${{ inputs.migration_sha }}');
+    expect(workflow).toContain('^[0-9a-f]{40}$');
 
     for (const command of ['npm ci', 'npx wrangler types', 'npm run typecheck', 'npm test', 'npm run build']) {
       expect(workflow).toContain(command);
@@ -33,5 +34,6 @@ describe('manual production D1 migration workflow', () => {
     expect(workflow).not.toContain('cloudflare/wrangler-action');
     expect(workflow).not.toContain('\n  push:');
     expect(workflow).not.toContain('\n  pull_request:');
+    expect(workflow).not.toContain('\n  schedule:');
   });
 });
