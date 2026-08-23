@@ -1,9 +1,9 @@
 import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
 import { AppIcon } from './components/AppIcons';
+import { EmptyMemberWorkspace } from './components/EmptyMemberWorkspace';
 import { LeagueTabs } from './components/LeagueTabs';
 import { PlayerLeague } from './components/PlayerLeague';
-import { ProfilePanel } from './components/ProfilePanel';
 import { ApiClient, ApiClientError, type AuthPayload, type LeagueSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
 
@@ -189,7 +189,6 @@ export default function App() {
   };
 
   const saveUser = (saved: UserSummary) => setUser(saved);
-  const saveProfile = (profile: Pick<UserSummary, 'username' | 'profileImageUrl' | 'dartsCounterUrl'>) => setUser((current) => current ? { ...current, ...profile } : current);
   const handleLeagueCreated = (league: LeagueSummary) => {
     setClubLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : [league, ...current]);
     setSelectedLeagueId(league.id);
@@ -231,14 +230,13 @@ export default function App() {
     return <ClubShell user={user} onSignOut={() => void logout()}><form className="onboarding-form private-onboarding-card" onSubmit={submitUsername}><div className="form-heading"><p className="entry-kicker">Membership approved</p><h1>Set your player nickname</h1><p className="form-help">This is how your name will appear to other approved club members on tables and results.</p></div><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. Bullseye Billy" autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Enter Misfits</button>{message && message !== 'Choose the name your club will see.' && <p className="form-help" role="status">{message}</p>}</form></ClubShell>;
   }
 
-  const signedInNeedsHeaderSignOut = view === 'signed-in' && user && clubLeagues.length === 0;
-  return <ClubShell user={user} onSignOut={signedInNeedsHeaderSignOut ? () => void logout() : undefined} wide>
+  return <ClubShell user={user} wide>
     {view === 'signed-in' && user && <div className="account-panel signed-in-experience private-member-app">
       {message && <p className="success-message compact-message" role="status">{message}</p>}
       {clubLoadError && <div className="experience-empty experience-error" role="alert"><strong>{clubLoadError}</strong><button className="secondary-button" type="button" onClick={() => void loadApprovedClub()}>Retry club workspace</button></div>}
       {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><p className="form-help">Club administration</p></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
       {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area">
-        {clubLeagues.length > 0 ? <>{clubLeagues.length > 1 && <LeagueTabs leagues={clubLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Club leagues" />}{selectedLeague && <PlayerLeague user={user} league={selectedLeague} isParticipant={selectedLeagueIsMine} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}</> : <><div className="empty-member private-empty-member"><span className="private-entry-icon"><AppIcon name="target" /></span><h2>You're in the club.</h2><p>No league has been published for members yet. Your profile is ready while the competition is set up.</p></div><ProfilePanel user={user} onSaved={saveProfile} /></>}
+        {clubLeagues.length > 0 ? <>{clubLeagues.length > 1 && <LeagueTabs leagues={clubLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Club leagues" />}{selectedLeague && <PlayerLeague user={user} league={selectedLeague} isParticipant={selectedLeagueIsMine} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}</> : <EmptyMemberWorkspace user={user} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}
       </div>}
     </div>}
   </ClubShell>;
