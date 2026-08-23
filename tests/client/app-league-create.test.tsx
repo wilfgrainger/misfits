@@ -117,6 +117,7 @@ describe('club administration visibility', () => {
       .toEqual(['Home', 'Record', 'Leagues', 'More']);
 
     await openLeague();
+    expect(screen.getByRole('region', { name: 'Leagues' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Table' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Fixtures' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Results' })).toBeTruthy();
