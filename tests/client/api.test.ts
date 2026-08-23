@@ -162,4 +162,29 @@ describe('ApiClient admin workspace calls', () => {
       '/api/admin/seasons/s1/promotion/apply',
     ]);
   });
+
+  it('loads user-scoped movement history with destination context', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      movements: [{
+        id: 'm1',
+        fromSeasonId: 's1',
+        toSeasonId: 's2',
+        userId: 'u1',
+        fromLeagueId: 'l2',
+        toLeagueId: 'n1',
+        fromPosition: 1,
+        kind: 'PROMOTED',
+        status: 'APPLIED',
+        fromSeasonName: '2025/26',
+        toSeasonName: '2026/27',
+        fromLeagueName: 'Division Two',
+        toLeagueName: 'Division One',
+      }],
+    }), { status: 200 }));
+
+    await expect(new ApiClient().memberMovementHistory()).resolves.toMatchObject({
+      movements: [{ fromSeasonName: '2025/26', toSeasonName: '2026/27', fromLeagueName: 'Division Two', toLeagueName: 'Division One', status: 'APPLIED' }],
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/me/movements', expect.objectContaining({ credentials: 'include' }));
+  });
 });

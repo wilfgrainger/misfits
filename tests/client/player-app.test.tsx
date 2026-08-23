@@ -213,6 +213,36 @@ describe('mobile league workspaces', () => {
     expect(JSON.parse(String(resultCall?.[1]?.body))).toEqual({ fixtureId: 'f1', playerALegs: 3, playerBLegs: 1, playerAAverage: 60.5, playerBAverage: 52 });
   });
 
+  it('maps a player-B fixture submission into the official player order', async () => {
+    const playerB: UserSummary = { ...user, id: 'player-b', username: 'Bravo' };
+    const fixturePayload = { fixtures: [{ id: 'f1', seasonId: 's1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', pairKey: 'player-a:player-b', round: 1, meetingNumber: 1, status: 'OUTSTANDING', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: 'Bravo', resultId: null }] };
+    const resultPayload = { result: { id: 'r1', fixtureId: 'f1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 3, playerBLegs: 1, playerAAverage: 60.5, playerBAverage: 52.0, submittedBy: 'player-b', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null } };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith('/api/public/leagues/league-1/standings')) return new Response(JSON.stringify({ standings: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players }), { status: 200 });
+      if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
+      if (path.endsWith('/api/leagues/league-1/results') && init?.method === 'POST') return new Response(JSON.stringify(resultPayload), { status: 201 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+
+    render(<PlayerLeague user={playerB} league={league} isParticipant onUserSaved={vi.fn()} onSignOut={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Record this fixture' }));
+    fireEvent.change(screen.getByLabelText('Your legs'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Their legs'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Your average'), { target: { value: '52.0' } });
+    fireEvent.change(screen.getByLabelText('Their average'), { target: { value: '60.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send for confirmation' }));
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Result sent to your opponent.'));
+    const resultCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith('/api/leagues/league-1/results') && init?.method === 'POST');
+    expect(JSON.parse(String(resultCall?.[1]?.body))).toEqual({ fixtureId: 'f1', playerALegs: 3, playerBLegs: 1, playerAAverage: 60.5, playerBAverage: 52 });
+  });
+
   it('makes result entry unavailable when the league is closed', async () => {
     const closedLeague: LeagueSummary = { ...league, status: 'CLOSED' };
     installReadApi({ currentLeague: closedLeague });
