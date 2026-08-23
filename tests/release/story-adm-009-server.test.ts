@@ -9,6 +9,7 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  club_status: 'PENDING' | 'APPROVED' | 'REJECTED';
   is_master_admin: number;
   created_at: string;
   last_login_at: string;
@@ -58,11 +59,11 @@ describe('ADM-009 protected administrator directory contract', () => {
   it('tells the admin UI which account is the protected master administrator', async () => {
     const db = new DirectoryD1();
     db.users.set('master', {
-      id: 'master', google_sub: 'google-master', email: 'master@example.com', username: 'Master', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 1,
+      id: 'master', google_sub: 'google-master', email: 'master@example.com', username: 'Master', role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 1,
       created_at: '2026-08-01T00:00:00.000Z', last_login_at: '2026-08-20T00:00:00.000Z',
     });
     db.users.set('admin', {
-      id: 'admin', google_sub: 'google-admin', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', is_master_admin: 0,
+      id: 'admin', google_sub: 'google-admin', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0,
       created_at: '2026-08-02T00:00:00.000Z', last_login_at: '2026-08-20T00:00:00.000Z',
     });
     const session = await issueSession(db as never, 'admin', new Date('2026-08-21T12:00:00.000Z'));

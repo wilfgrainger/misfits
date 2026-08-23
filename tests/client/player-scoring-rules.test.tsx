@@ -36,11 +36,23 @@ function installApi() {
   });
 }
 
+function renderParticipant() {
+  return render(
+    <PlayerLeague
+      user={user}
+      league={league}
+      isParticipant
+      onUserSaved={vi.fn()}
+      onSignOut={vi.fn()}
+    />,
+  );
+}
+
 describe('player scoring rules', () => {
   beforeEach(() => { cleanup(); vi.restoreAllMocks(); installApi(); });
 
   it('shows the league scoring contract and W-D-L standings while retaining secondary legs data accessibly', async () => {
-    render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
+    renderParticipant();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Premier' })).toBeTruthy());
     await screen.findByRole('rowheader', { name: 'Alpha' });
     expect(screen.getByText('Best of 6 · Win 3 · Draw 1 · Loss 0')).toBeTruthy();
@@ -52,7 +64,7 @@ describe('player scoring rules', () => {
   });
 
   it('labels a confirmed 3-3 as a draw and explains Best of 6 result entry', async () => {
-    render(<PlayerLeague user={user} league={league} onUserSaved={vi.fn()} />);
+    renderParticipant();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Premier' })).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Results' }));
     expect(await screen.findByText('Draw')).toBeTruthy();

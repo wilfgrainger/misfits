@@ -37,8 +37,9 @@ git diff --check
 - Do not add paid Cloudflare services, queues, R2/object storage, Durable Objects, scheduled jobs, background polling, or another runtime service without an explicit product decision.
 - Keep secrets in Cloudflare/Wrangler configuration or `.dev.vars`; never commit or log them.
 - Add only additive D1 migrations. Never edit an applied migration.
-- CI deliberately does not apply remote D1 migrations automatically. After explicit user approval, an additive migration may be applied either from an authenticated local Wrangler session or from `.github/workflows/manual-d1-migration.yml`. That workflow is manual `workflow_dispatch` only, requires an immutable commit SHA plus typed confirmation, verifies the selected code before migration, verifies remote D1 afterwards, and never deploys application code.
-- Apply and verify a remote additive migration before merging code that depends on it.
+- Production D1 mutations are executed only through `.github/workflows/manual-d1-migration.yml`. The workflow is manual `workflow_dispatch` only, requires an immutable commit SHA plus typed confirmation, runs the full selected-code gate before migration, verifies remote D1 afterwards, and never deploys application code.
+- Do not use an authenticated local Wrangler session as an alternative production migration path. Local D1/Wrangler commands are for development and non-production verification only.
+- Apply and verify a remote additive migration through the production D1 management workflow before merging code that depends on it.
 - Before a release that materially affects Cloudflare usage, use `docs/operations/cloudflare-free-tier-runbook.md` and compare dashboard measurements with current official Cloudflare limits.
 
 ## Risk-proportionate delivery
@@ -86,7 +87,7 @@ Examples: new subsystems, schema/data-model changes, authentication/authorizatio
 - **Always:** understand the changed path; preserve semantics, accessibility, authorization and data integrity; test behaviour that can regress; record genuine evidence.
 - **Ask first:** schema/data-model changes; new Cloudflare services or architecture; remote D1 migration; secret creation/rotation; destructive production-data operations; material rewrite of product truth; production deployment when it has not already been explicitly requested or approved as part of the release.
 - **No extra approval needed once in approved scope:** ordinary dependencies, routine CI/test maintenance, non-destructive refactors, bounded UI changes, and the production deployment step of an explicitly approved release after its required gate is green.
-- **Never:** commit secrets; edit applied migrations; apply remote D1 migrations automatically from push, pull request, merge, schedule or timer; add paid Cloudflare services or extra runtimes without approval; weaken authorization; discard existing user work; claim a command passed when it did not run.
+- **Never:** commit secrets; edit applied migrations; bypass the production D1 management workflow with local Wrangler; apply remote D1 migrations automatically from push, pull request, merge, schedule or timer; add paid Cloudflare services or extra runtimes without approval; weaken authorization; discard existing user work; claim a command passed when it did not run.
 
 ## Testing and verification
 

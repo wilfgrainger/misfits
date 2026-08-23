@@ -25,6 +25,20 @@ export const requireUser: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
   return next();
 };
 
+export const requireClubMember: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
+  const user = c.get('user');
+  if (user?.clubStatus === 'PENDING') {
+    return jsonError(c, new AppError('MEMBERSHIP_PENDING', 'Club approval is still pending', 403));
+  }
+  if (user?.clubStatus === 'REJECTED') {
+    return jsonError(c, new AppError('MEMBERSHIP_REJECTED', 'Club membership was not approved', 403));
+  }
+  if (!user || user.clubStatus !== 'APPROVED') {
+    return jsonError(c, new AppError('FORBIDDEN', 'Club membership is required', 403));
+  }
+  return next();
+};
+
 export const requireNamedUser: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
   const user = c.get('user');
   if (!user?.username) return jsonError(c, new AppError('PROFILE_INVALID', 'Choose a nickname before continuing', 400));
@@ -33,7 +47,7 @@ export const requireNamedUser: MiddlewareHandler<AuthAppEnv> = async (c, next) =
 
 export const requireAdmin: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
   const user = c.get('user');
-  if (!user || user.role !== 'ADMIN') {
+  if (!user || user.clubStatus !== 'APPROVED' || user.role !== 'ADMIN') {
     return jsonError(c, new AppError('FORBIDDEN', 'Administrator access is required', 403));
   }
   return next();

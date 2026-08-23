@@ -9,6 +9,7 @@ type User = {
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  club_status: 'PENDING' | 'APPROVED' | 'REJECTED';
   is_master_admin: number;
   created_at: string;
   last_login_at: string;
@@ -45,6 +46,12 @@ class MemoryD1 {
     if (sql.includes('INSERT INTO sessions')) {
       const [tokenHash, userId, createdAt, expiresAt] = values as string[];
       this.sessions.set(tokenHash, { token_hash: tokenHash, user_id: userId, created_at: createdAt, expires_at: expiresAt });
+    } else if (sql.includes('UPDATE users SET role = ?, status = ?, club_status = ?')) {
+      const [role, status, clubStatus, id] = values as ['PLAYER' | 'ADMIN', 'ACTIVE' | 'SUSPENDED', User['club_status'], string];
+      const user = this.users.get(id)!;
+      user.role = role;
+      user.status = status;
+      user.club_status = clubStatus;
     } else if (sql.includes('UPDATE users SET role = ?, status = ?')) {
       const [role, status, id] = values as ['PLAYER' | 'ADMIN', 'ACTIVE' | 'SUSPENDED', string];
       const user = this.users.get(id)!;
@@ -65,7 +72,7 @@ class MemoryD1 {
       return { ...user, ...session } as T;
     }
     if (sql.includes('COUNT(*)') && sql.includes("role = 'ADMIN'") && sql.includes("status = 'ACTIVE'")) {
-      return { count: [...this.users.values()].filter((user) => user.role === 'ADMIN' && user.status === 'ACTIVE').length } as T;
+      return { count: [...this.users.values()].filter((user) => user.role === 'ADMIN' && user.status === 'ACTIVE' && user.club_status === 'APPROVED').length } as T;
     }
     if (sql.includes('FROM users WHERE id')) {
       const user = this.users.get(String(values[0]));
@@ -95,12 +102,12 @@ function setup() {
   const db = new MemoryD1();
   db.users.set('admin-1', {
     id: 'admin-1', google_sub: 'google-admin', email: 'admin@example.com', username: 'Admin',
-    role: 'ADMIN', status: 'ACTIVE', created_at: now.toISOString(), last_login_at: now.toISOString(),
+    role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', created_at: now.toISOString(), last_login_at: now.toISOString(),
     is_master_admin: 1,
   });
   db.users.set('player-1', {
     id: 'player-1', google_sub: 'google-player', email: 'player@example.com', username: 'Player',
-    role: 'PLAYER', status: 'ACTIVE', created_at: now.toISOString(), last_login_at: now.toISOString(),
+    role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', created_at: now.toISOString(), last_login_at: now.toISOString(),
     is_master_admin: 0,
   });
   db.leaguePlayers.add('player-1');
@@ -181,7 +188,7 @@ describe('admin routes', () => {
     const { db, routes, env } = setup();
     db.users.set('admin-2', {
       id: 'admin-2', google_sub: 'google-admin-2', email: 'admin2@example.com', username: 'Admin Two',
-      role: 'ADMIN', status: 'ACTIVE', created_at: now.toISOString(), last_login_at: now.toISOString(), is_master_admin: 0,
+      role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED', created_at: now.toISOString(), last_login_at: now.toISOString(), is_master_admin: 0,
     });
     const cookie = await cookieFor(db, 'admin-1');
     const response = await routes.fetch(new Request('https://misfits.test/api/admin/players/admin-1', {

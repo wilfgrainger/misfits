@@ -2,7 +2,6 @@ import { Hono, type Context } from 'hono';
 import { requireAdmin, requireNamedUser, requireSameOrigin, requireUser, type AuthAppEnv } from '../auth/guards';
 import { validateLeagueInput } from '../domain/league';
 import { AppError, jsonError } from '../errors';
-import { createInvite, getInviteById, listLeagueInvites, revokeInvite } from '../db/invites';
 import { createLeague, getLeagueById, getManagedLeague, listLeagueMembers, listManagedLeagues, setMembershipActive, updateLeague, type LeagueRecord } from '../db/leagues';
 import { createAdminResult, deleteAdminResult, getAdminResults, getResultById, serializeResult, updateAdminResult } from '../db/results';
 import {
@@ -123,49 +122,6 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
       if (error instanceof AppError) return jsonError(c, error);
       if (error instanceof Error && /unique|constraint/i.test(error.message)) return jsonError(c, new AppError('VALIDATION_ERROR', 'That league slug is already in use', 409));
       return jsonError(c, new AppError('VALIDATION_ERROR', 'League could not be updated', 400));
-    }
-  });
-
-  routes.get('/api/admin/leagues/:id/invites', requireUser, async (c) => {
-    const access = await managedLeagueOrResponse(c, c.req.param('id'));
-    if (access instanceof Response) return access;
-    const invites = await listLeagueInvites(c.env.DB, c.req.param('id'));
-    return c.json({ invites: invites.map((invite) => ({
-      id: invite.id,
-      leagueId: invite.league_id,
-      expiresAt: invite.expires_at,
-      uses: invite.uses,
-      revokedAt: invite.revoked_at,
-      createdAt: invite.created_at,
-    })) }, 200, { 'Cache-Control': 'private, no-store' });
-  });
-
-  routes.post('/api/admin/leagues/:id/invites', requireSameOrigin, requireUser, async (c) => {
-    const access = await managedLeagueOrResponse(c, c.req.param('id'));
-    if (access instanceof Response) return access;
-    const body = await c.req.json().catch(() => null) as { expiresAt?: unknown } | null;
-    const expiresAt = body?.expiresAt === undefined || body.expiresAt === null || body.expiresAt === '' ? null : typeof body.expiresAt === 'string' && !Number.isNaN(Date.parse(body.expiresAt)) ? new Date(body.expiresAt).toISOString() : null;
-    if (body?.expiresAt !== undefined && body.expiresAt !== null && body.expiresAt !== '' && !expiresAt) return jsonError(c, new AppError('VALIDATION_ERROR', 'Invite expiry is invalid', 400));
-    try {
-      const result = await createInvite(c.env.DB, c.get('user').id, c.req.param('id'), now(), expiresAt);
-      return c.json({ invite: { id: result.invite.id, leagueId: result.invite.league_id, expiresAt: result.invite.expires_at, url: `${c.env.APP_ORIGIN}/join/${result.token}` } }, 201, { 'Cache-Control': 'private, no-store' });
-    } catch (error) {
-      if (error instanceof AppError) return jsonError(c, error);
-      return jsonError(c, new AppError('VALIDATION_ERROR', 'Invite could not be created', 400));
-    }
-  });
-
-  routes.post('/api/admin/invites/:id/revoke', requireSameOrigin, requireUser, async (c) => {
-    const invite = await getInviteById(c.env.DB, c.req.param('id'));
-    if (!invite) return jsonError(c, new AppError('INVITE_INVALID', 'Invite was not found', 404));
-    const access = await managedLeagueOrResponse(c, invite.league_id);
-    if (access instanceof Response) return access;
-    try {
-      await revokeInvite(c.env.DB, c.get('user').id, c.req.param('id'), now());
-      return c.json({ ok: true }, 200, { 'Cache-Control': 'private, no-store' });
-    } catch (error) {
-      if (error instanceof AppError) return jsonError(c, error);
-      return jsonError(c, new AppError('VALIDATION_ERROR', 'Invite could not be revoked', 400));
     }
   });
 

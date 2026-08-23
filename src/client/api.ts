@@ -1,8 +1,11 @@
+export type ClubStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface UserSummary {
   id: string;
   username: string | null;
   role: 'PLAYER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
+  clubStatus: ClubStatus;
   profileImageUrl: string | null;
   dartsCounterUrl: string | null;
   isMasterAdmin: boolean;
@@ -16,11 +19,13 @@ export interface AuthPayload {
 export interface AdminPlayer extends UserSummary {
   email: string;
   leagueActive: boolean;
+  createdAt: string;
 }
 
 export interface AdminPlayerChanges {
   role?: UserSummary['role'];
   status?: UserSummary['status'];
+  clubStatus?: ClubStatus;
 }
 
 export type SeasonStatus = 'DRAFT' | 'OPEN' | 'CLOSED';
@@ -208,9 +213,9 @@ export interface ProfileUpdate {
   dartsCounterUrl?: string | null;
 }
 
-export interface AdminInvite {
+export interface AdminClubInvite {
   id: string;
-  leagueId: string;
+  createdBy?: string;
   expiresAt: string | null;
   uses: number;
   revokedAt: string | null;
@@ -385,8 +390,13 @@ function normalizePromotionProjection(value: unknown): PromotionProjection {
 }
 
 export class ApiClientError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly code?: string,
+  ) {
     super(message);
+    this.name = 'ApiClientError';
   }
 }
 
@@ -395,13 +405,18 @@ export class ApiClient {
     const headers = new Headers(init.headers);
     if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const response = await fetch(path, { ...init, headers, credentials: 'include' });
-    const payload = await response.json().catch(() => null) as { error?: { message?: string }; [key: string]: unknown } | null;
-    if (!response.ok) throw new ApiClientError(response.status, payload?.error?.message ?? 'Request failed');
+    const payload = await response.json().catch(() => null) as { error?: { code?: string; message?: string }; [key: string]: unknown } | null;
+    if (!response.ok) throw new ApiClientError(response.status, payload?.error?.message ?? 'Request failed', payload?.error?.code);
     return payload as T;
   }
 
   me() { return this.call<{ user: UserSummary; requiresOnboarding: boolean }>('/api/me'); }
-  signIn(credential: string) { return this.call<AuthPayload>('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }); }
+  signIn(credential: string, inviteToken?: string) {
+    return this.call<AuthPayload>('/api/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(inviteToken ? { credential, inviteToken } : { credential }),
+    });
+  }
   setUsername(username: string) { return this.call<AuthPayload>('/api/me/username', { method: 'POST', body: JSON.stringify({ username }) }); }
   logout() { return this.call<{ ok: true }>('/auth/logout', { method: 'POST' }); }
   adminPlayers() { return this.call<{ players: AdminPlayer[] }>('/api/admin/players'); }
@@ -410,6 +425,16 @@ export class ApiClient {
       method: 'PATCH',
       body: JSON.stringify(changes),
     });
+  }
+  adminClubInvites() { return this.call<{ invites: AdminClubInvite[] }>('/api/admin/club-invites'); }
+  createAdminClubInvite(expiresAt?: string | null) {
+    return this.call<{ invite: AdminClubInvite & { url: string } }>('/api/admin/club-invites', {
+      method: 'POST',
+      body: JSON.stringify({ expiresAt: expiresAt ?? null }),
+    });
+  }
+  revokeAdminClubInvite(inviteId: string) {
+    return this.call<{ invite: AdminClubInvite }>(`/api/admin/club-invites/${encodeURIComponent(inviteId)}/revoke`, { method: 'POST' });
   }
 
   profile() { return this.call<{ profile: Pick<UserSummary, 'username' | 'profileImageUrl' | 'dartsCounterUrl'> }>('/api/me/profile'); }
@@ -421,7 +446,6 @@ export class ApiClient {
   standings(leagueId: string) { return this.call<{ standings: StandingRow[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/standings`); }
   results(leagueId: string) { return this.call<{ results: ResultSummary[] }>(`/api/public/leagues/${encodeURIComponent(leagueId)}/results`); }
   myResults() { return this.call<{ results: ResultSummary[] }>('/api/me/results'); }
-  joinInvite(token: string) { return this.call<{ membership: { seasonId?: string; leagueId: string; userId: string; active: boolean } }>(`/api/invites/${encodeURIComponent(token)}/join`, { method: 'POST' }); }
   submitResult(leagueId: string, input: ResultInput) { return this.call<{ result: ResultSummary }>(`/api/leagues/${encodeURIComponent(leagueId)}/results`, { method: 'POST', body: JSON.stringify(input) }); }
   submitFixtureResult(leagueId: string, input: FixtureResultInput) { return this.call<{ result: ResultSummary }>(`/api/leagues/${encodeURIComponent(leagueId)}/results`, { method: 'POST', body: JSON.stringify(input) }); }
   confirmResult(resultId: string) { return this.call<{ result: ResultSummary }>(`/api/results/${encodeURIComponent(resultId)}/confirm`, { method: 'POST' }); }
@@ -488,9 +512,6 @@ export class ApiClient {
   adminLeagues() { return this.call<{ leagues: LeagueSummary[] }>('/api/admin/leagues'); }
   createAdminLeague(input: Partial<LeagueSummary> & { name: string; seasonName: string; maxPlayers: number }) { return this.call<{ league: LeagueSummary }>('/api/admin/leagues', { method: 'POST', body: JSON.stringify(input) }); }
   updateAdminLeague(id: string, input: Partial<LeagueSummary>) { return this.call<{ league: LeagueSummary }>(`/api/admin/leagues/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) }); }
-  createInvite(leagueId: string, expiresAt?: string | null) { return this.call<{ invite: { id: string; leagueId: string; expiresAt: string | null; url: string } }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/invites`, { method: 'POST', body: JSON.stringify({ expiresAt: expiresAt ?? null }) }); }
-  adminInvites(leagueId: string) { return this.call<{ invites: AdminInvite[] }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/invites`); }
-  revokeInvite(inviteId: string) { return this.call<{ ok: true }>(`/api/admin/invites/${encodeURIComponent(inviteId)}/revoke`, { method: 'POST' }); }
   adminMembers(leagueId: string) { return this.call<{ members: Array<{ userId: string; username: string | null; profileImageUrl: string | null; active: boolean; joinedAt: string }> }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/members`); }
   updateMember(leagueId: string, userId: string, active: boolean) { return this.call<{ member: { userId: string; active: boolean } }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/members/${encodeURIComponent(userId)}`, { method: 'PATCH', body: JSON.stringify({ active }) }); }
   adminResults(leagueId: string) { return this.call<{ results: ResultSummary[] }>(`/api/admin/leagues/${encodeURIComponent(leagueId)}/results`); }

@@ -4,15 +4,19 @@
 
 Misfits 501 is a private darts club app: dark, precise, premium and unmistakably club-owned.
 
-The approved **Mobile Experience Reset** mockup from 22 August 2026 is the standing visual target for public/player hierarchy, composition, card rhythm, navigation and quality. The durable implementation contract is `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md`.
+The standing implementation authorities are:
 
-Implementation may adapt the mockup for real data, accessibility and responsive constraints, but must not reinterpret it back into the previous stacked responsive-website composition.
+- `docs/superpowers/specs/2026-08-22-private-club-entry-design.md` for private admission and member navigation;
+- `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md` for responsive composition, hierarchy and table treatment;
+- this document for durable visual and interaction rules.
 
-The league table is the product's shared truth. Club identity, current competition, standings and results take visual priority over authentication and account chrome.
+Implementation may adapt those references for real data, accessibility and responsive constraints, but must not drift back into a generic responsive website or public league portal.
+
+The league table is the product's shared truth after membership approval. Before approval, privacy is the product truth and no club data is rendered.
 
 ## Visual world
 
-The interface is full dark: near-black and charcoal surfaces, warm cream text, restrained emerald accents and subtle authored darts details.
+The interface is full dark: near-black and charcoal surfaces, warm cream text, Misfits red for normal interaction and restrained green only for positive semantic state.
 
 The intended feel is **mobile product, not generic website**:
 
@@ -28,23 +32,41 @@ The intended feel is **mobile product, not generic website**:
 
 | Token | Value | Role |
 |---|---|---|
-| `--bg` | `#0b0f0e` | App background / dark chrome |
-| `--surface` | `#111715` | Primary cards |
-| `--surface-2` | `#18201d` | Elevated/interactive surfaces |
-| `--surface-3` | `#202a26` | Active rows / stronger depth |
-| `--border` | `#28342f` | Hairlines and card outlines |
-| `--border-mid` | `#35443d` | Stronger interactive outlines |
-| `--text` | `#f1eee6` | Primary warm text |
-| `--text-2` | `#b1b7b2` | Secondary text |
-| `--text-3` | `#747d77` | Muted labels/placeholders only |
-| `--green` | `#63c978` | Primary active/club accent |
-| `--green-deep` | `#173321` | Green tonal card depth |
-| `--gold` | `#c4a96c` | Meaningful rank/season distinction |
-| `--red` | `#d44040` | Exceptional/destructive/disputed emphasis |
-| `--success` | `#58b875` | Confirmed/open/positive state |
+| `--club-ink` | `#090d0c` | App background / dark chrome |
+| `--club-card` | `#111715` | Primary cards |
+| `--club-card-raised` | `#17201c` | Elevated surfaces |
+| `--club-border` | `#2a3630` | Hairlines and card outlines |
+| `--club-text` | `#f3f5ef` | Primary warm text |
+| `--club-muted` | `#aab6ae` | Secondary text |
+| `--club-dim` | `#7e8b83` | Muted labels/placeholders only |
+| `--club-red` | `#d44040` | Primary club interaction accent |
+| `--club-red-strong` | `#e35454` | Focus, selected text and stronger interaction |
+| `--club-red-soft` | `rgba(212,64,64,.14)` | Tonal selected/brand surface |
+| `--club-success` | `#63c978` | OPEN, confirmed and positive state only |
 | `--danger` | `#c84a4a` | Errors/destructive/disputed state |
 
-Normal navigation and selected state are **green-led**, not red-led. Red is reserved for danger, dispute, destructive actions and exceptional emphasis.
+### Colour contract
+
+Misfits red owns ordinary interaction:
+
+- primary buttons;
+- selected navigation;
+- active tabs;
+- focus-visible outlines;
+- ordinary action icons;
+- private-entry emphasis;
+- current-player/rank accents where a brand accent is needed.
+
+Green is semantic only:
+
+- OPEN;
+- confirmed;
+- success;
+- winner/positive result state.
+
+Do not use green simply to make an element look active. Destructive actions may also use red, but must remain distinguishable by explicit wording, iconography and context rather than colour alone.
+
+The supplied Misfits artwork is never recoloured.
 
 ## Type
 
@@ -55,48 +77,124 @@ Normal navigation and selected state are **green-led**, not red-led. Red is rese
 - Points remain the strongest standings number.
 - Avoid tiny uppercase labels where sentence case is clearer; compact table labels may remain uppercase.
 
-## Product hierarchy
+## Private entry states
 
-### Public/mobile default
+Anonymous visitors see a privacy-safe Misfits shell only. They must not see league, season, standings, results, player or member data, including during loading.
+
+### Signed out
+
+The signed-out state contains:
+
+1. club identity;
+2. `Private members club` context;
+3. `Welcome to Misfits`, or invitation-specific copy when `/join/:token` is present;
+4. Google sign-in;
+5. a short privacy statement.
+
+Authentication is intentionally important here because no club record is public.
+
+### Invited new member
+
+A valid `/join/:token` carries the invite only into Google admission. After successful admission the raw token is removed from session storage and the URL, and the person enters PENDING state.
+
+### Pending
+
+Pending members see only:
+
+- membership request received;
+- waiting-for-admin explanation;
+- privacy statement;
+- Sign out.
+
+No member navigation or club data is mounted.
+
+### Rejected
+
+Rejected members see only the not-approved state, a direct contact-admin instruction and Sign out. A later invite does not reset rejected membership.
+
+### Approved onboarding
+
+Approved members without a nickname see nickname setup before club data is loaded. Nickname creation does not perform league self-enrolment.
+
+## Approved member hierarchy
 
 ```text
 Club header
+→ League selector when multiple leagues exist
 → League hero
-→ Rules strip
-→ Standings
-→ Sign-in/member action
-→ Latest results
-→ Bottom navigation
+→ Rules
+→ Current view content
+→ Fixed member navigation
 ```
 
-Authentication must never dominate the league record.
+Approved but unassigned club members may browse club leagues, standings, results and players. They receive a clear browse-only Record state because season/league placement remains the participation authority.
 
-### Club header
+## Navigation
 
-- Supplied Misfits artwork anchors identity and is never destructively cropped/recoloured.
-- Brand name and a short club voice line may accompany it where space permits.
-- Share is compact secondary chrome.
-- Subtle dartboard/dart imagery may be used as atmospheric decoration if text contrast is untouched.
+The primary signed-in member navigation is exactly:
 
-### League hero
+`League · Record · Results · More`
+
+This is fixed regardless of whether persisted fixtures exist.
+
+### League
+
+Owns standings and current competition context.
+
+### Record
+
+Owns the entire result-entry journey. If fixtures exist, outstanding fixture selection happens inside Record. `Fixtures` is never a fifth primary member tab.
+
+Unassigned approved members see the browse-only explanation instead of result controls.
+
+### Results
+
+Owns confirmed and member-pending game history.
+
+### More
+
+Contains exactly the secondary member destinations appropriate to the current user:
+
+- Players;
+- Profile;
+- Admin, for admins only;
+- Sign out.
+
+Removed primary destinations must not reappear as duplicate shortcuts elsewhere.
+
+If no league has yet been published, the same four-item member navigation remains available. League, Record and Results show intentional empty states; More still provides Profile, Sign out and Admin for administrators. This ensures an approved administrator can create the first league without a hidden bootstrap route.
+
+## Admin workspace
+
+Admin is entered through `More → Admin`, not through a competing top-level `Season admin / Club table` switcher.
+
+The admin task rail is:
+
+`Season · Leagues · Season members · Fixtures · Results · Promotion · Club access`
+
+`Club access` owns permanent admission and club-wide invitations. Pending requests are visually prioritised before approved/rejected lists and invite administration.
+
+`Season members` owns season/league placement only. It does not create admission invitations.
+
+Admin league selection is independent of the member workspace selection. Returning from Admin restores the member's previously selected league.
+
+## League hero and rules
 
 One hero owns current competition identity: league name, season, state and a small amount of truthful metadata. Do not repeat league/season headings immediately below it.
 
-### Rules
-
 Rules live in a dedicated compact surface, for example:
 
-`Best of 5 · Win 2 · Draw 0 · Loss 0`
+`Best of 6 · Win 3 · Draw 1 · Loss 0`
 
 `Table: Points → Legs won → Head-to-head`
 
-They must remain readable and secondary, never washed-out filler.
+Rules must remain readable and secondary, never washed-out filler.
 
-### Standings
+## Standings
 
 Standings are the primary information card.
 
-On 320–412px screens, show the primary mobile contract:
+On narrow phones, show the primary mobile contract:
 
 `POS | PLAYER | P | W-D-L | PTS`
 
@@ -106,88 +204,92 @@ At wider widths, expose the complete standings set intentionally.
 
 A contextual rank/encouragement panel is optional and must be truthful. Do not celebrate a meaningless one-player 0–0 table.
 
-### Sign-in/member action
-
-For signed-out visitors, use a compact horizontal card after standings. Explain why authentication matters and keep Google as the only sign-in method.
-
-For signed-in players, the same visual slot becomes a useful competition action rather than duplicated account identity.
-
-### Latest results
-
-Latest results follows standings/action and supports data, genuine empty and explicit failure/retry states.
-
-## Navigation
-
-The intended signed-in mobile information architecture is:
-
-`League · Fixtures · Results · More`
-
-- Bottom navigation is app-like and safe-area aware.
-- The active item uses the green club accent.
-- Never expose a destination that the current user cannot actually use.
-- Until permission-safe player/public fixture reads exist, Fixtures must not route a normal user to an admin-only endpoint.
-- Admin navigation remains task-oriented but follows the same visual language and quality bar.
-
 ## Responsive rules
 
 ### Required acceptance widths
 
 - 320px
+- 360px
 - 375px
 - 390px
 - 412px
+- 430px
 - 768px
-- desktop at 960px+
+- desktop at 1024px+
 
-### Mobile 320–680px
+### Mobile
 
 - single product column;
 - 16–20px usable page gutters;
 - zero page-level horizontal overflow;
 - no clipped headings/copy;
-- standings begin early in the experience;
 - 44px minimum interactive targets;
+- safe-area-aware fixed member navigation;
 - bottom navigation never overlays content;
-- cards reflow rather than shrink indiscriminately.
+- cards reflow rather than shrink indiscriminately;
+- Google sign-in never exceeds the usable viewport.
 
-### Tablet 681–959px
+### Tablet
 
 - preserve the mobile hierarchy;
 - allow cards/table details to widen intentionally;
-- use whitespace to separate product units rather than inserting extra headings.
+- use whitespace to separate product units rather than inserting duplicate headings.
 
-### Desktop 960px+
+### Desktop
 
 - the same product hierarchy expands rather than transforming into unrelated SaaS dashboard chrome;
 - complete standings information can be visible;
-- member/admin rails are acceptable where they materially improve navigation;
+- admin task navigation may widen where it materially improves scanning;
 - content uses width intentionally rather than merely stretching the phone layout.
 
 ## Interaction and accessibility
 
-- 44px minimum touch targets.
-- Visible `:focus-visible` treatment using the green accent for normal navigation/actions; danger controls may use red.
+- 44px minimum touch targets for member actions.
+- Visible `:focus-visible` treatment using Misfits red for normal navigation/actions.
 - Buttons and icon-only actions have accessible names.
 - Semantic heading hierarchy and landmarks.
 - WCAG-conscious contrast for all body/rule/status text.
 - Destructive actions remain explicit and protected.
 - Motion is restrained; `prefers-reduced-motion` is respected.
 - Decorative imagery never carries essential meaning.
+- Modal dispute flow retains Escape close, focus entry and keyboard focus containment.
+
+## Loading, empty and error states
+
+Every data-bearing member/admin surface must have deliberate loading, empty and failure behaviour. No state should expose anonymous club data as a loading shortcut.
+
+Important empty states include:
+
+- approved club member before any league is published;
+- approved but unassigned member in Record;
+- no outstanding fixtures;
+- no table movement/results;
+- no pending membership requests;
+- no club invites.
+
+Retry actions remain contextual and do not create duplicate navigation.
 
 ## Card rules
 
 Cards are encouraged when they represent real product units:
 
+- private entry/admission state;
 - current league;
 - rules;
 - standings;
-- contextual player/sign-in action;
-- latest results.
+- record/results workflow;
+- club-access admission workflow.
 
-Cards are rejected when they are generic promotional KPI tiles, duplicate information already visible elsewhere, or decorative containers with no task/information boundary.
+Cards are rejected when they are generic KPI tiles, duplicate information already visible elsewhere, or decorative containers with no task/information boundary.
 
 ## Anti-patterns
 
+- No anonymous league or player data.
+- No legacy self-service league invite/join UI.
+- No `Season admin / Club table` top-level switcher.
+- No `Fixtures` primary member tab.
+- No direct `Players` primary member tab.
+- No green active navigation or ordinary green CTA.
 - No horizontal page overflow at supported mobile widths.
 - No squeezed seven-column desktop table on a phone.
 - No oversized Google sign-in hero.
@@ -203,14 +305,15 @@ Cards are rejected when they are generic promotional KPI tiles, duplicate inform
 
 ## UI acceptance
 
-Material responsive releases are accepted against the rendered product, not automated checks alone.
+Material responsive releases are accepted against both behaviour and rendered product evidence.
 
-For material UI releases include:
+Required release evidence:
 
-- screenshot review at 320, 375/390, 412, 768 and desktop widths;
-- overflow and touch-target checks;
-- focused user-journey regressions where practical;
-- Impeccable review;
-- one clean full repository gate before merge.
+- privacy/no-data-flash tests;
+- member navigation and participation-aware Record tests;
+- overflow/touch-target/static responsive audit at required widths;
+- repo-local Impeccable detector/review;
+- Cave Pony simplicity review;
+- one clean full repository gate before production migration and merge.
 
-A visibly broken mobile layout fails acceptance even if unit tests are green.
+Automated tests can prove privacy, interaction contracts and structural accessibility. Where an interactive browser is unavailable, do not claim manual pixel-perfect screenshot acceptance; record the limitation explicitly and preserve the CSS/static checks for the next rendered review.

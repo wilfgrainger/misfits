@@ -1,257 +1,129 @@
 import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
 import { AppIcon } from './components/AppIcons';
+import { EmptyMemberWorkspace } from './components/EmptyMemberWorkspace';
 import { LeagueTabs } from './components/LeagueTabs';
 import { PlayerLeague } from './components/PlayerLeague';
-import { ProfilePanel } from './components/ProfilePanel';
-import { StandingsTable } from './components/StandingsTable';
-import { ApiClient, ApiClientError, type AuthPayload, type LeagueDetail, type LeagueSummary, type StandingRow, type ResultSummary, type UserSummary } from './api';
+import { ApiClient, ApiClientError, type AuthPayload, type LeagueSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
-import { shareLeague, publicLeagueKey } from './share';
-import { leagueScoringSummary, resultOutcomeLabel, TABLE_TIE_BREAK_DESCRIPTION } from './scoring';
 
-type ViewState = 'loading' | 'signed-out' | 'entering' | 'onboarding' | 'signed-in';
+type ViewState = 'loading' | 'signed-out' | 'pending' | 'rejected' | 'onboarding' | 'signed-in';
+const CLUB_INVITE_KEY = 'misfits_pending_club_invite';
 const api = new ApiClient();
 
 function messageFor(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-function scrollToSurface(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function initialClubInvite(): string | null {
+  if (typeof window === 'undefined') return null;
+  const match = window.location.pathname.match(/^\/join\/([^/]+)/);
+  const token = match?.[1] ? decodeURIComponent(match[1]) : window.sessionStorage.getItem(CLUB_INVITE_KEY);
+  if (token) window.sessionStorage.setItem(CLUB_INVITE_KEY, token);
+  return token ?? null;
 }
 
-function ClubNavigation() {
-  return (
-    <nav className="club-bottom-nav" aria-label="Club navigation">
-      <button className="club-nav-item club-nav-item-active" type="button" aria-current="page" onClick={() => scrollToSurface('league-overview')}>
-        <AppIcon name="league" />
-        <span>League</span>
-      </button>
-      <button className="club-nav-item" type="button" onClick={() => scrollToSurface('latest-results')}>
-        <AppIcon name="results" />
-        <span>Results</span>
-      </button>
-      <button className="club-nav-item" type="button" onClick={() => scrollToSurface('sign-in-action')}>
-        <AppIcon name="lock" />
-        <span>Sign in</span>
-      </button>
-      <button className="club-nav-item" type="button" onClick={() => scrollToSurface('club-header')}>
-        <AppIcon name="more" />
-        <span>More</span>
-      </button>
-    </nav>
-  );
-}
-
-function PublicLeagueView({ league, signInSlot }: { league: LeagueSummary; signInSlot: ReactNode }) {
-  const [detail, setDetail] = useState<LeagueDetail | null>(null);
-  const [standings, setStandings] = useState<StandingRow[]>([]);
-  const [results, setResults] = useState<ResultSummary[]>([]);
-  const [error, setError] = useState('');
-  const [shareMessage, setShareMessage] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
-  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    setError('');
-    Promise.all([api.publicLeague(league.id), api.standings(league.id), api.results(league.id)]).then(([detailPayload, standingPayload, resultPayload]) => {
-      if (!active) return;
-      setDetail(detailPayload.league);
-      setStandings(standingPayload.standings);
-      setResults(resultPayload.results);
-    }).catch((cause: unknown) => { if (active) setError(messageFor(cause, 'League data could not be loaded.')); });
-    return () => {
-      active = false;
-      if (copyTimer.current) clearTimeout(copyTimer.current);
-    };
-  }, [league.id, reloadKey]);
-
-  const share = async () => {
-    setShareMessage('');
-    try {
-      const mode = await shareLeague(navigator, league.name, league.slug, window.location.origin);
-      if (mode === 'copied') {
-        if (copyTimer.current) clearTimeout(copyTimer.current);
-        setCopied(true);
-        copyTimer.current = setTimeout(() => setCopied(false), 2000);
-      }
-      setShareMessage(mode === 'shared' ? 'Share sheet opened.' : 'League link copied.');
-    } catch (cause) {
-      setShareMessage(messageFor(cause, 'League link could not be shared.'));
-    }
-  };
-
-  const playerCount = detail?.players.length;
-
-  return (
-    <section className="league-experience public-league" aria-labelledby="public-league-title">
-      <section className="league-hero-card" id="league-overview">
-        <div className="league-hero-copy">
-          <div className="league-title-line">
-            <h1 id="public-league-title">{league.name}</h1>
-            <span className={`status-label status-${league.status.toLowerCase()}`}>{league.status}</span>
-          </div>
-          <p className="league-season">{league.seasonName} Season</p>
-        </div>
-        <button className="icon-action league-share" type="button" aria-label="Share league" onClick={() => void share()}>
-          <AppIcon name="share" />
-        </button>
-        <div className="league-target-mark" aria-hidden="true"><AppIcon name="target" /></div>
-        <div className="league-hero-meta">
-          {playerCount !== undefined && <span><AppIcon name="users" />{playerCount} {playerCount === 1 ? 'Player' : 'Players'}</span>}
-          <span><AppIcon name="calendar" />{league.status === 'OPEN' ? 'Season in progress' : 'Season closed'}</span>
-          <span><AppIcon name="target" />501 format</span>
-        </div>
-      </section>
-
-      {shareMessage && <p className="success-message compact-message" role="status">{copied ? 'League link copied.' : shareMessage}</p>}
-
-      <section className="rules-card" aria-label="League rules">
-        <span className="surface-icon"><AppIcon name="rules" /></span>
-        <div>
-          <p className="season-rules">{leagueScoringSummary(league)}</p>
-          <p className="rules-tiebreak">{TABLE_TIE_BREAK_DESCRIPTION}</p>
-        </div>
-      </section>
-
-      <section className="standings-card" aria-labelledby="standings-title">
-        <div className="experience-section-heading">
-          <div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="results" /></span><h2 id="standings-title">Standings</h2></div>
-        </div>
-        <StandingsTable standings={standings} label={`${league.name} ${league.seasonName} standings`} />
-        {standings.length === 0 && !error && <div className="experience-empty"><AppIcon name="target" /><strong>No table movement yet</strong><span>Confirmed results will settle the table here.</span></div>}
-      </section>
-
-      <section className="signin-action-card" id="sign-in-action" role="group" aria-label="Sign in with Google">
-        <span className="surface-icon"><AppIcon name="lock" /></span>
-        <div className="signin-action-copy">
-          <strong>Sign in to record or confirm results</strong>
-          <span>Keep the league accurate and up to date.</span>
-        </div>
-        {signInSlot}
-      </section>
-
-      <section className="results-card" id="latest-results" aria-labelledby="latest-results-title">
-        <div className="experience-section-heading">
-          <div className="section-title-with-icon"><span className="surface-icon surface-icon-small"><AppIcon name="target" /></span><h2 id="latest-results-title">Latest results</h2></div>
-        </div>
-        {error ? (
-          <div className="experience-empty experience-error" role="alert">
-            <strong>{error}</strong>
-            <button className="secondary-button" type="button" onClick={() => setReloadKey((value) => value + 1)}>Retry</button>
-          </div>
-        ) : results.length > 0 ? (
-          <ul className="result-list experience-result-list">
-            {results.slice(0, 5).map((result) => (
-              <li className="result-row" key={result.id}>
-                <div className="result-main"><strong>{result.playerAUsername} <span>{result.playerALegs}</span></strong><span className="result-divider">-</span><strong>{result.playerBUsername} <span>{result.playerBLegs}</span></strong></div>
-                <div className="result-meta"><span>{result.playerAAverage.toFixed(2)} / {result.playerBAverage.toFixed(2)} avg</span></div>
-                <span className="result-winner">{resultOutcomeLabel(result.playerALegs, result.playerBLegs, result.playerAUsername, result.playerBUsername)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="experience-empty"><AppIcon name="target" /><strong>No results yet</strong><span>Be the first to throw.</span></div>
-        )}
-      </section>
-
-      <ClubNavigation />
+function ClubShell({ children, user, onSignOut, wide = false }: {
+  children: ReactNode;
+  user?: UserSummary | null;
+  onSignOut?: () => void;
+  wide?: boolean;
+}) {
+  return <main className="shell experience-shell private-club-shell">
+    <section className={`shell-panel experience-panel ${wide ? 'shell-panel-wide' : ''}`}>
+      <header className="brand-header experience-header private-brand-header" id="club-header">
+        <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501 club seal" />
+        <div className="brand-meta"><p className="brand-name">Misfits Darts Club</p><span className="online-label">Throw together. Stand together.</span></div>
+        {user && <div className="header-user"><div className="avatar">{user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase()}</div>{onSignOut && <button className="header-signout" type="button" onClick={onSignOut}>Sign out</button>}</div>}
+      </header>
+      {children}
     </section>
-  );
+  </main>;
 }
 
 export default function App() {
   const [view, setView] = useState<ViewState>('loading');
-  const [message, setMessage] = useState('Checking your Misfits 501 membership...');
+  const [message, setMessage] = useState('Checking your club membership…');
   const [user, setUser] = useState<UserSummary | null>(null);
   const [username, setUsername] = useState('');
   const [signingIn, setSigningIn] = useState(false);
-  const [publicLeagues, setPublicLeagues] = useState<LeagueSummary[]>([]);
-  const [publicLeagueId, setPublicLeagueId] = useState<string | null>(null);
-  const [publicLoaded, setPublicLoaded] = useState(false);
-  const [publicLoadError, setPublicLoadError] = useState('');
+  const [clubInviteToken, setClubInviteToken] = useState<string | null>(() => initialClubInvite());
+  const [clubLeagues, setClubLeagues] = useState<LeagueSummary[]>([]);
   const [myLeagues, setMyLeagues] = useState<LeagueSummary[]>([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [adminSelectedLeagueId, setAdminSelectedLeagueId] = useState<string | null>(null);
-  const [adminMode, setAdminMode] = useState<'admin' | 'player'>('player');
+  const [adminMode, setAdminMode] = useState(false);
+  const [clubLoadError, setClubLoadError] = useState('');
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
-  const loadPublicLeagues = async () => {
-    setPublicLoadError('');
-    try {
-      const result = await api.leagues();
-      setPublicLeagues(result.leagues);
-      const requestedKey = typeof window !== 'undefined' ? publicLeagueKey(window.location.pathname) : null;
-      const requested = requestedKey ? result.leagues.find((league) => league.id === requestedKey || league.slug === requestedKey) : null;
-      setPublicLeagueId((current) => requested?.id || (current && result.leagues.some((league) => league.id === current) ? current : result.leagues[0]?.id || null));
-    } catch {
-      setPublicLeagues([]);
-      setPublicLeagueId(null);
-      setPublicLoadError('The club table could not be loaded.');
-    } finally {
-      setPublicLoaded(true);
-    }
+  const clearClubData = () => {
+    setClubLeagues([]);
+    setMyLeagues([]);
+    setSelectedLeagueId(null);
+    setAdminSelectedLeagueId(null);
+    setClubLoadError('');
   };
 
-  const loadMyLeagues = async (preferredLeagueId?: string | null) => {
+  const loadApprovedClub = async (preferredLeagueId?: string | null) => {
+    setClubLoadError('');
     try {
-      const result = await api.myLeagues();
-      setMyLeagues(result.leagues);
+      const [clubPayload, personalPayload] = await Promise.all([api.leagues(), api.myLeagues()]);
+      setClubLeagues(clubPayload.leagues);
+      setMyLeagues(personalPayload.leagues);
       setSelectedLeagueId((current) => {
-        if (preferredLeagueId && result.leagues.some((league) => league.id === preferredLeagueId)) return preferredLeagueId;
-        return current && result.leagues.some((league) => league.id === current) ? current : result.leagues[0]?.id || null;
+        const available = clubPayload.leagues;
+        if (preferredLeagueId && available.some((league) => league.id === preferredLeagueId)) return preferredLeagueId;
+        if (current && available.some((league) => league.id === current)) return current;
+        const personal = personalPayload.leagues.find((league) => available.some((candidate) => candidate.id === league.id));
+        return personal?.id ?? available[0]?.id ?? null;
       });
-    } catch {
-      setMyLeagues([]);
-    }
-  };
-
-  const joinPendingInvite = async (): Promise<string | null> => {
-    const token = typeof window !== 'undefined' ? (window.sessionStorage.getItem('league_pending_invite') ?? window.sessionStorage.getItem('misfits_pending_invite')) : null;
-    if (!token) return null;
-    try {
-      const result = await api.joinInvite(token);
-      window.sessionStorage.removeItem('league_pending_invite');
-      window.sessionStorage.removeItem('misfits_pending_invite');
-      setMessage('You joined the league.');
-      return result.membership.leagueId;
     } catch (cause) {
-      setMessage(messageFor(cause, 'That invite could not be used.'));
-      return null;
+      clearClubData();
+      setClubLoadError(messageFor(cause, 'Your private club workspace could not be loaded.'));
     }
   };
 
-  const applyAuth = async (payload: AuthPayload) => {
+  const mapAuthenticatedUser = async (payload: AuthPayload) => {
     setSigningIn(false);
     setUser(payload.user);
-    if (payload.requiresOnboarding) {
+    clearClubData();
+    setAdminMode(false);
+
+    if (payload.user.clubStatus === 'PENDING') {
+      setView('pending');
+      setMessage('Waiting for a club admin to approve you');
+      return;
+    }
+    if (payload.user.clubStatus === 'REJECTED') {
+      setView('rejected');
+      setMessage('Your membership request was not approved.');
+      return;
+    }
+    if (payload.user.username === null) {
       setView('onboarding');
       setMessage('Choose the name your club will see.');
       return;
     }
+
     setView('signed-in');
     setMessage('Your Misfits 501 club workspace is ready.');
-    const joinedLeagueId = await joinPendingInvite();
-    await loadMyLeagues(joinedLeagueId);
+    await loadApprovedClub();
   };
 
   useEffect(() => {
-    void loadPublicLeagues();
+    let active = true;
     api.me().then((payload) => {
-      if (!payload || !payload.user) throw new ApiClientError(401, 'Unauthenticated');
-      return applyAuth(payload);
+      if (!active || !payload?.user) return;
+      void mapAuthenticatedUser(payload);
     }).catch((error: unknown) => {
-      if (error instanceof ApiClientError && error.status === 401) {
-        setView('signed-out');
-        setMessage('The league table and match results are coming online.');
-      } else {
-        setView('signed-out');
-        setMessage('The league could not be reached. Try signing in again.');
-      }
+      if (!active) return;
+      setUser(null);
+      clearClubData();
+      setView('signed-out');
+      if (error instanceof ApiClientError && error.status === 401) setMessage('Private club access');
+      else setMessage('Misfits could not be reached. Try signing in again.');
     });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -262,36 +134,44 @@ export default function App() {
     new GoogleAuth(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').mountButton(container, (credential) => {
       if (!active) return;
       setSigningIn(true);
-      setMessage('Signing you in...');
-      api.signIn(credential).then((payload) => { if (active) void applyAuth(payload); }).catch((error: unknown) => {
+      setMessage('Signing you in…');
+      const inviteToken = window.sessionStorage.getItem(CLUB_INVITE_KEY) ?? clubInviteToken ?? undefined;
+      api.signIn(credential, inviteToken || undefined).then((payload) => {
+        if (!active) return;
+        if (inviteToken) {
+          window.sessionStorage.removeItem(CLUB_INVITE_KEY);
+          setClubInviteToken(null);
+          window.history.replaceState({}, '', '/');
+        }
+        void mapAuthenticatedUser(payload);
+      }).catch((error: unknown) => {
         if (!active) return;
         setSigningIn(false);
-        setMessage(messageFor(error, 'Google sign-in could not be completed.'));
+        if (error instanceof ApiClientError && error.code === 'INVITE_REQUIRED') setMessage('A club invitation is required');
+        else setMessage(messageFor(error, 'Google sign-in could not be completed.'));
       });
-    }, () => { if (active) { setSigningIn(true); setMessage('Opening Google sign-in...'); } }).then((cleanup) => {
+    }, () => {
+      if (active) {
+        setSigningIn(true);
+        setMessage('Opening Google sign-in…');
+      }
+    }).then((cleanup) => {
       if (active) dispose = cleanup;
       else cleanup();
-    }).catch((error: unknown) => { if (active) { setSigningIn(false); setMessage(messageFor(error, 'Google sign-in could not be loaded.')); } });
+    }).catch((error: unknown) => {
+      if (active) {
+        setSigningIn(false);
+        setMessage(messageFor(error, 'Google sign-in could not be loaded.'));
+      }
+    });
     return () => { active = false; dispose?.(); };
-  }, [view, publicLoaded, publicLeagueId]);
-
-  useEffect(() => {
-    const match = typeof window !== 'undefined' ? window.location.pathname.match(/^\/join\/([^/]+)/) : null;
-    if (match) window.sessionStorage.setItem('league_pending_invite', match[1]);
-  }, []);
-
-  useEffect(() => {
-    if (myLeagues.length > 0 && selectedLeagueId && !myLeagues.some((league) => league.id === selectedLeagueId)) {
-      setSelectedLeagueId(myLeagues[0].id);
-    }
-  }, [myLeagues, selectedLeagueId]);
+  }, [view, clubInviteToken]);
 
   const submitUsername = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      setView('entering');
-      setMessage('Saving your nickname...');
-      await applyAuth(await api.setUsername(username));
+      setMessage('Saving your nickname…');
+      await mapAuthenticatedUser(await api.setUsername(username));
     } catch (error) {
       setView('onboarding');
       setMessage(messageFor(error, 'That nickname could not be saved.'));
@@ -302,86 +182,62 @@ export default function App() {
     await api.logout().catch(() => undefined);
     setSigningIn(false);
     setUser(null);
-    setMyLeagues([]);
-    setSelectedLeagueId(null);
-    setAdminSelectedLeagueId(null);
+    clearClubData();
+    setAdminMode(false);
     setView('signed-out');
-    setMessage('The league table and match results are coming online.');
+    setMessage('Private club access');
   };
 
   const saveUser = (saved: UserSummary) => setUser(saved);
-  const saveProfile = (profile: Pick<UserSummary, 'username' | 'profileImageUrl' | 'dartsCounterUrl'>) => setUser((current) => current ? { ...current, ...profile } : current);
   const handleLeagueCreated = (league: LeagueSummary) => {
-    setMyLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : [league, ...current]);
+    setClubLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : [league, ...current]);
     setSelectedLeagueId(league.id);
     setAdminSelectedLeagueId(league.id);
   };
   const handleLeagueChanged = (league: LeagueSummary) => {
-    setMyLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : current);
+    setClubLeagues((current) => current.some((item) => item.id === league.id) ? current.map((item) => item.id === league.id ? league : item) : current);
+    setMyLeagues((current) => current.map((item) => item.id === league.id ? league : item));
   };
-  const selectedLeague = myLeagues.find((league) => league.id === selectedLeagueId) ?? null;
-  const selectedPublicLeague = publicLeagues.find((league) => league.id === publicLeagueId) ?? null;
+  const selectedLeague = clubLeagues.find((league) => league.id === selectedLeagueId) ?? null;
+  const selectedLeagueIsMine = selectedLeague ? myLeagues.some((league) => league.id === selectedLeague.id) : false;
   const googleSlot = <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />;
 
-  return (
-    <main className="shell experience-shell" data-state={view}>
-      <section className={`shell-panel experience-panel ${view === 'signed-in' ? 'shell-panel-wide' : ''}`}>
-        <header className="brand-header experience-header" id="club-header">
-          <img className="brand-mark" src="/brand/misfits-501.jpg" alt="Misfits 501 club seal" />
-          <div className="brand-meta"><p className="brand-name">Misfits Darts Club</p><span className="online-label">Throw together. Stand together.</span></div>
-          {user && <div className="header-user"><div className="avatar">{user.profileImageUrl ? <img src={user.profileImageUrl} alt="" /> : (user.username ?? '?').slice(0, 1).toUpperCase()}</div><button className="header-signout" type="button" onClick={() => void logout()}>Sign out</button></div>}
-        </header>
+  if (view === 'loading') {
+    return <ClubShell><section className="private-entry-state private-entry-loading" aria-live="polite"><span className="private-entry-icon"><AppIcon name="lock" /></span><h1>Misfits</h1><p>Private members club</p><div className="private-loading-line" aria-hidden="true" /><small>{message}</small></section></ClubShell>;
+  }
 
-        {view === 'signed-out' && <>
-          {publicLoadError && <section className="public-fallback"><div className="public-load-state"><p className="error-message" role="alert">{publicLoadError}</p><button className="secondary-button" type="button" onClick={() => void loadPublicLeagues()}>Retry</button></div><section className="signin-action-card" role="group" aria-label="Sign in with Google"><span className="surface-icon"><AppIcon name="lock" /></span><div className="signin-action-copy"><strong>Sign in to your club</strong><span>Record and confirm results when the table returns.</span></div>{googleSlot}</section></section>}
-          {!publicLoadError && publicLoaded && publicLeagues.length === 0 && <section className="public-fallback"><div className="experience-empty"><AppIcon name="target" /><strong>No public leagues are published yet</strong><span>Sign in if you are a club member.</span></div><section className="signin-action-card" role="group" aria-label="Sign in with Google"><span className="surface-icon"><AppIcon name="lock" /></span><div className="signin-action-copy"><strong>Sign in to Misfits 501</strong><span>Use your Google account to enter the club.</span></div>{googleSlot}</section></section>}
-          {!publicLoadError && publicLeagues.length > 0 && <section className="public-home">{publicLeagues.length > 1 && <LeagueTabs ariaLabel="Club seasons" leagues={publicLeagues} selectedId={publicLeagueId} onSelect={setPublicLeagueId} />}{selectedPublicLeague && <PublicLeagueView league={selectedPublicLeague} signInSlot={googleSlot} />}</section>}
-        </>}
+  if (view === 'signed-out') {
+    return <ClubShell><section className="private-entry-state private-signin-state">
+      <span className="private-entry-icon"><AppIcon name="lock" /></span>
+      <p className="entry-kicker">Private members club</p>
+      <h1>{clubInviteToken ? "You've been invited to join Misfits" : 'Welcome to Misfits'}</h1>
+      <p className="entry-copy">{clubInviteToken ? 'Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.' : 'Existing members can sign in with Google. New members need a private club invitation.'}</p>
+      <div className="private-google-card" role="group" aria-label="Sign in with Google">{googleSlot}</div>
+      {message && message !== 'Private club access' && <p className={message === 'A club invitation is required' ? 'error-message entry-message' : 'form-help entry-message'} role={message === 'A club invitation is required' ? 'alert' : 'status'}>{message}</p>}
+      <p className="privacy-note"><AppIcon name="lock" /> League tables, results and member details stay private until membership is approved.</p>
+    </section></ClubShell>;
+  }
 
-        {view === 'onboarding' && (
-          <form className="onboarding-form" onSubmit={submitUsername}>
-            <div className="form-heading">
-              <h2>Set your player nickname</h2>
-              <p className="form-help">This is how your name will appear on the club table and match results.</p>
-            </div>
-            <label htmlFor="username">Nickname</label>
-            <input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. Bullseye Billy" autoComplete="nickname" maxLength={24} required />
-            <button className="primary-button" type="submit">Continue</button>
-          </form>
-        )}
+  if (view === 'pending' && user) {
+    return <ClubShell user={user}><section className="private-entry-state membership-state" aria-labelledby="pending-membership-title"><span className="private-entry-icon"><AppIcon name="clock" /></span><p className="entry-kicker">Request received</p><h1 id="pending-membership-title">Membership request sent</h1><p className="entry-copy">Waiting for a club admin to approve you</p><p className="privacy-note"><AppIcon name="lock" /> Your account is signed in, but club data remains locked until approval.</p><button className="secondary-button private-signout-button" type="button" onClick={() => void logout()}>Sign out</button></section></ClubShell>;
+  }
 
-        {view === 'signed-in' && user && (
-          <div className="account-panel signed-in-experience">
-            {user.role === 'ADMIN' && (
-              <nav className="segmented-tabs" aria-label="Admin views">
-                <button className={adminMode === 'admin' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" onClick={() => setAdminMode('admin')}>Season admin</button>
-                <button className={adminMode === 'player' ? 'segmented-tab segmented-tab-active' : 'segmented-tab'} type="button" onClick={() => setAdminMode('player')}>Club table</button>
-              </nav>
-            )}
-            {message && <p className="success-message compact-message" role="status">{message}</p>}
-            {user.role === 'ADMIN' && adminMode === 'admin' && (
-              <div className="admin-workbench"><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => { setAdminSelectedLeagueId(league?.id ?? null); }} /></div>
-            )}
-            {(user.role !== 'ADMIN' || adminMode === 'player') && (
-              <div className="member-workbench member-area">
-                {myLeagues.length > 0 ? (
-                  <>
-                    {myLeagues.length > 1 && <LeagueTabs leagues={myLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Member seasons" />}
-                    {selectedLeague && <PlayerLeague user={user} league={selectedLeague} onUserSaved={saveUser} />}
-                  </>
-                ) : (
-                  <>
-                    <div className="empty-member"><h2>Open your Misfits invite.</h2><p>Use the shared club link, sign in with Google, then join a season when registrations open.</p></div>
-                    <ProfilePanel user={user} onSaved={saveProfile} />
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+  if (view === 'rejected' && user) {
+    return <ClubShell user={user}><section className="private-entry-state membership-state" aria-labelledby="rejected-membership-title"><span className="private-entry-icon"><AppIcon name="lock" /></span><p className="entry-kicker">Private club access</p><h1 id="rejected-membership-title">Membership request not approved</h1><p className="entry-copy">Your account does not currently have access to Misfits club data.</p><p className="form-help">If you think this needs reviewing, contact a club administrator directly.</p><button className="secondary-button private-signout-button" type="button" onClick={() => void logout()}>Sign out</button></section></ClubShell>;
+  }
 
-        {view !== 'signed-in' && view !== 'signed-out' && <small className="shell-stamp">{view === 'loading' ? 'Loading' : 'Secure Google access'}</small>}
-      </section>
-    </main>
-  );
+  if (view === 'onboarding' && user) {
+    return <ClubShell user={user} onSignOut={() => void logout()}><form className="onboarding-form private-onboarding-card" onSubmit={submitUsername}><div className="form-heading"><p className="entry-kicker">Membership approved</p><h1>Set your player nickname</h1><p className="form-help">This is how your name will appear to other approved club members on tables and results.</p></div><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. Bullseye Billy" autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Enter Misfits</button>{message && message !== 'Choose the name your club will see.' && <p className="form-help" role="status">{message}</p>}</form></ClubShell>;
+  }
+
+  return <ClubShell user={user} wide>
+    {view === 'signed-in' && user && <div className="account-panel signed-in-experience private-member-app">
+      {message && <p className="success-message compact-message" role="status">{message}</p>}
+      {clubLoadError && <div className="experience-empty experience-error" role="alert"><strong>{clubLoadError}</strong><button className="secondary-button" type="button" onClick={() => void loadApprovedClub()}>Retry club workspace</button></div>}
+      {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><p className="form-help">Club administration</p></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
+      {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area">
+        {clubLeagues.length > 0 ? <>{clubLeagues.length > 1 && <LeagueTabs leagues={clubLeagues} selectedId={selectedLeagueId} onSelect={setSelectedLeagueId} ariaLabel="Club leagues" />}{selectedLeague && <PlayerLeague user={user} league={selectedLeague} isParticipant={selectedLeagueIsMine} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}</> : <EmptyMemberWorkspace user={user} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} />}
+      </div>}
+    </div>}
+  </ClubShell>;
 }

@@ -1,91 +1,134 @@
 # Misfits 501 Progress
 
-**Updated:** 22 August 2026  
-**Current branch:** `main`  
-**Current focus:** Mobile Experience Reset complete; rendered production screenshot review next  
-**Main:** PR #171 merged as `139231e6ea2df8ec1dba84a2e68991b874d0b31a` plus this documentation-only checkpoint
+**Updated:** 23 August 2026  
+**Current branch:** `feat/private-club-entry`  
+**PR:** #172 `feat: make Misfits private and invite-approved`  
+**Current focus:** Fresh exact-head CI after recording verified migration 0006 evidence, then ready → merge → deploy → live smoke  
+**Private-club implementation:** Tasks 1–7 COMPLETE  
+**Last fully verified code/ops head:** `b35c08e5a1c4f429405188e03fd860151e1f8019`  
+**Last fully verified CI before migration evidence:** #813 GREEN  
+**Production migration approval:** RECEIVED from user on 23 August 2026  
+**Production migration:** EXECUTED AND VERIFIED via GitHub Actions run `32633942454`  
+**Migration evidence commit:** `5ada69d8c1b528c095046bbf112fffc956b03f25`  
+**PR #172 merged/deployed:** NO
 
-## Authority
+## Restart here
 
-- Product: `PRODUCT.md`
-- Vision/platform guardrail: `VISION.md`
-- Standing UI authority: `DESIGN.md`
-- Mobile Experience Reset design: `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md`
-- Mobile experience acceptance stories: `docs/superpowers/specs/2026-08-22-mobile-experience-stories.md`
-- Functional story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`
-- Latest functional story evidence: `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`
-- GitHub issues own operational functional story open/closed state.
-- `AGENTS.md` owns the durable delivery/test/verification policy.
+Read, in order:
 
-## Functional backlog remains parked
+1. `AGENTS.md`
+2. this `PROGRESS.md`
+3. `docs/operations/handoffs/2026-08-23-private-club-release-handoff.md`
+4. `docs/operations/evidence/2026-08-22-d1-migration-0006.md`
+5. `docs/superpowers/specs/2026-08-22-private-club-entry-design.md`
+6. `docs/superpowers/plans/2026-08-22-private-club-entry.md`
+7. `DESIGN.md`
 
-**117/150 functional stories are verified/closed. 33 remain deliberately parked and open: 12 PARTIAL + 21 MISSING.**
+**Execution-state authority:** this file plus the dated handoff. The implementation plan is historical delivery structure; unchecked boxes there do not mean Tasks 1–7 are unfinished.
 
-Open distribution: Admin 6, Player 26, Public 1.
+## What is complete
 
-`MX-001`–`MX-012` are an experience acceptance layer and do not change the 150-story functional denominator.
+The approved private-club release contract is implemented:
 
-## Mobile Experience Reset — COMPLETE
+- anonymous users see no league, season, member, player, standings or result data;
+- unknown Google identities require a valid club invite before account creation;
+- invited new users become `PENDING`, never automatic league participants;
+- admins permanently `APPROVE` or `REJECT` club membership;
+- `users.club_status` is permanent club-membership authority;
+- `club_invites` is admission-invite authority;
+- `league_players` remains independent season/league participation authority;
+- approved but unassigned members may browse private club competition data but cannot record results;
+- pending/rejected members remain outside all club-data surfaces;
+- primary member navigation is exactly `League · Record · Results · More`;
+- fixture selection lives inside Record;
+- More contains Players, Profile, Admin for admins, and Sign out;
+- zero-league approved admins can still reach More → Admin and create the first league;
+- normal interaction accent is Misfits red; green is semantic positive state only;
+- legacy player self-enrolment and league-scoped invite runtime paths are retired;
+- dead client `joinInvite()` and retired server invite DB runtime are removed;
+- no additional Cloudflare service, application runtime, router or state framework was introduced.
 
-PR #171 merged to `main` as `139231e6ea2df8ec1dba84a2e68991b874d0b31a`.
+## Verification evidence
 
-### Delivered
+Application code checkpoint `ad0e16a45a1fccda466c52285700a2b7317e85f1` passed CI #797 with Wrangler types, both TypeScript projects, Impeccable zero findings, 62/62 test files and 257/257 tests, production Vite build, and PR deploy skipped.
 
-- approved mockup is encoded as durable design authority rather than informal inspiration;
-- public experience is league-first: club header → league hero → rules → standings → compact sign-in → latest results → app navigation;
-- repeated season/league headings and the old oversized sign-in-first composition are removed;
-- mobile standings prioritise POS / PLAYER / P / W-D-L / PTS while LEGS / AVG progressively return at wider widths;
-- supplied Misfits artwork is retained and the normal active accent is emerald/club green;
-- public and signed-in player experiences now share the same app-like product language;
-- member navigation is capability-aware: Fixtures is not advertised when the current fixture read is inaccessible; Record remains available through the existing result path;
-- Latest results has explicit data, genuine-empty and retryable-failure states;
-- SVG icon family, 44px controls, mobile safe-area navigation and clean reduced-motion behavior are included;
-- no new framework, dependency, Cloudflare service, schema, migration, auth authority or API authority was introduced.
+The earlier feature handoff `fd2f2bb0180d03828131bd700e48d5c6582cabff` passed CI #800.
 
-### Verification
+The durable D1-management update used RED → GREEN TDD:
 
-RED CI `32596330889` proved the old composition failed exactly the new experience contract: **229 existing tests passed and 2 intended tests failed**.
+- RED commit `13296817e0ef5af3e5345e54de9de0d18369bce2`, CI #812: exactly the new production D1 management contract failed; 62 existing test files / 257 tests remained green; deploy skipped.
+- GREEN commit `b35c08e5a1c4f429405188e03fd860151e1f8019`, CI #813: Wrangler types, both TypeScript projects, Impeccable, **63/63 test files and 258/258 tests**, production build all GREEN; deploy skipped.
 
-Final PR-head CI `32597169815` on `bc6a9b728bb710c71ac3ac025926a7e57941398f` passed:
-- `npm ci`;
-- Wrangler types;
-- both TypeScript projects;
-- full Vitest suite;
-- production build.
+The production migration workflow itself reran the approved immutable migration source `fd2f2bb0180d03828131bd700e48d5c6582cabff` before touching D1 and passed Wrangler types, TypeScript, 62/62 test files / 257/257 tests, production build and `git diff --check`.
 
-Deploy correctly skipped on the pull request.
+The documentation-only migration-evidence checkpoint now requires one final exact-head PR CI before merge. Do not claim that gate until it runs on the newest branch head.
 
-### Review
+## Production D1 migration 0006
 
-Impeccable source review covered hierarchy, responsive composition, contrast, touch targets, semantics, icon consistency, safe areas and reduced motion. Material findings were actioned in the implementation batch.
+Migration:
 
-Cave Pony simplicity review found no justification for new framework/service/state abstractions. The existing React + Worker + D1 boundaries remain intact.
+`migrations/0006_private_club_membership.sql`
 
-### Rendered acceptance limitation
+**Status: EXECUTED AND VERIFIED.**
 
-This tool session does not expose browser/device rendering for the deployed app. The generated mockup is the design target, but an actual production screenshot at phone width has **not** been falsely claimed as verified. The next useful acceptance action is to open `darts.graingers.agency` on a phone after deployment and compare the rendered result with the approved mockup, especially at 320–412px.
+GitHub Actions run:
 
-The connected GitHub workflow helper in this session does not expose push-triggered `main` workflow runs, so do not claim a specific production deploy run ID unless it is independently observed later. Do not add observer infrastructure merely to obtain one.
+`https://github.com/wilfgrainger/misfits/actions/runs/32633942454`
 
-## Next product release
+Verified facts from the actual production run:
 
-**Fixture-First Player Experience** remains next after rendered UI acceptance:
+- workflow event was manual `workflow_dispatch` from `main`;
+- approved migration SHA checked out exactly: `fd2f2bb0180d03828131bd700e48d5c6582cabff`;
+- only pending migration before apply was `0006_private_club_membership.sql`;
+- Wrangler applied migration 0006 successfully;
+- `users.club_status` exists as `TEXT NOT NULL` with default `PENDING`;
+- `club_invites` exists;
+- grouped membership state is `APPROVED = 1`, `PENDING = 1`;
+- grouped league visibility is `PRIVATE = 1`;
+- no raw invite token or production credential was recorded in repo evidence.
 
-- permission-safe player fixture reads without weakening `/api/admin/*`;
-- My Fixtures and League Fixtures;
-- fixture progress/status;
-- fixture-first result entry;
-- correct fixed Player A/B score mapping;
-- own pending result visibility.
+Durable non-secret evidence is in:
 
-Then:
-1. Standings, Movement & Season Context;
-2. Admin Competition Readiness & Safety;
-3. History, Responsive Acceptance & final functional-story revalidation.
+`docs/operations/evidence/2026-08-22-d1-migration-0006.md`
+
+## Production D1 authority: GitHub Actions only
+
+The controller used for migration 0006 is already on `main` from ops PR #173. PR #172 upgrades the same workflow into the durable **Production D1 management** job for future production D1 migrations:
+
+- manual `workflow_dispatch` only;
+- immutable source SHA plus typed confirmation;
+- one existing Worker/D1 architecture only;
+- pending migrations listed before and after apply;
+- generic `PRAGMA quick_check` and schema inspection after apply;
+- no arbitrary SQL input;
+- no automatic push/PR/merge/schedule trigger;
+- no Worker deploy command.
+
+There is no local production migration fallback. Authenticated local Wrangler is for development/non-production use only and must not bypass this GitHub Actions path.
+
+## Current release gate
+
+Migration 0006 is no longer the blocker. The remaining gate is a **fresh green CI run on the newest exact PR head containing the recorded production evidence**.
+
+After that green run:
+
+1. Re-fetch PR #172 and confirm mergeability/head SHA.
+2. Mark ready if still draft.
+3. Merge PR #172 using the verified exact head.
+4. Verify the new `main` CI and Cloudflare Worker deployment.
+5. Smoke-test production health/auth/privacy behavior without exposing private club data.
+6. Perform rendered mobile acceptance when browser tooling is available; otherwise record it as pending rather than inventing evidence.
+7. Record merge/deploy/smoke evidence in the durable release handoff.
 
 ## Guardrails
 
-- Keep all 33 incomplete functional story issues open until separately revalidated.
-- Preserve Worker authorization, same-origin security, competition invariants, auditability and accessibility.
-- No new router, state framework, component library, backend service or Cloudflare product without a real requirement.
-- Use focused proof during development and one fresh full repository gate before merge; do not recreate micro-CI loops.
+- Cloudflare free tier only: existing Worker + static assets + D1.
+- No KV, R2, Durable Objects, Queues, scheduled jobs, background polling or additional application runtime.
+- Do not edit applied migrations.
+- Production D1 mutation requires explicit approval and the GitHub Actions production D1 management workflow.
+- Never use local Wrangler as a production migration alternative.
+- Never trigger remote D1 migration automatically from push, pull request, merge, schedule or timer.
+- Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
+- No private club data may be exposed before Worker-verified `APPROVED` membership.
+- Club approval must never imply season/league participation.
+- Keep all **33 parked functional stories** open until separately revalidated.
