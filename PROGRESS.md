@@ -2,18 +2,18 @@
 
 **Updated:** 23 August 2026  
 **Current branch:** `feat/private-club-entry`  
-**Draft PR:** #172 `feat: make Misfits private and invite-approved`  
-**Current focus:** Execute and verify approved production D1 migration 0006 from an authenticated Cloudflare-capable environment  
-**Verified through:** Tasks 1–7 plus final PR code gate  
-**Last fully verified code SHA:** `ad0e16a45a1fccda466c52285700a2b7317e85f1`  
-**Last fully verified CI:** run #797 — Wrangler types, TypeScript, Impeccable, 62/62 test files / 257/257 tests and production build GREEN; deploy skipped  
+**PR:** #172 `feat: make Misfits private and invite-approved`  
+**Current focus:** Run the approved manual production D1 migration, capture evidence, then merge/deploy PR #172  
+**Private-club implementation:** Tasks 1–7 COMPLETE  
+**Last fully verified feature head before this handoff refresh:** `fd2f2bb0180d03828131bd700e48d5c6582cabff`  
+**Last fully verified feature CI:** #800 GREEN  
 **Production migration approval:** RECEIVED from user on 23 August 2026  
 **Production migration:** NOT YET EXECUTED  
-**PR merged/deployed:** NO  
+**PR #172 merged/deployed:** NO  
 
-## Local-agent restart point
+## Restart here
 
-For a local model with repository + Cloudflare/Wrangler access, start with:
+A local or connected agent taking over should read, in order:
 
 1. `AGENTS.md`
 2. this `PROGRESS.md`
@@ -23,166 +23,119 @@ For a local model with repository + Cloudflare/Wrangler access, start with:
 6. `docs/superpowers/plans/2026-08-22-private-club-entry.md`
 7. `DESIGN.md`
 
-**Execution-state authority:** this file plus the dated handoff above. The implementation plan is the original delivery plan and its historical unchecked task boxes must not be interpreted as evidence that Tasks 1–7 are still unfinished.
+**Execution-state authority:** this file plus the dated handoff. The implementation plan is historical delivery structure; unchecked boxes there do not mean Tasks 1–7 are unfinished.
 
-## Authority
+## What is complete
 
-- Product: `PRODUCT.md`
-- Vision/platform guardrail: `VISION.md`
-- Standing UI authority: `DESIGN.md`
-- Private-club entry design: `docs/superpowers/specs/2026-08-22-private-club-entry-design.md`
-- Private-club implementation plan: `docs/superpowers/plans/2026-08-22-private-club-entry.md`
-- Local release handoff: `docs/operations/handoffs/2026-08-23-private-club-release-handoff.md`
-- Production migration evidence ledger: `docs/operations/evidence/2026-08-22-d1-migration-0006.md`
-- Mobile Experience Reset design: `docs/superpowers/specs/2026-08-22-mobile-experience-reset-design.md`
-- Functional story wording/acceptance: `docs/superpowers/specs/2026-08-21-user-stories.md`
-- Latest functional story evidence: `docs/superpowers/evidence/2026-08-22-full-user-story-validation.md`
-- GitHub issues own operational functional story open/closed state.
-- `AGENTS.md` owns durable delivery/test/verification policy.
+The approved private-club release contract is implemented:
 
-## Functional backlog remains parked
+- anonymous users see no league, season, member, player, standings or result data;
+- unknown Google identities require a valid club invite before account creation;
+- invited new users become `PENDING`, never automatic league participants;
+- admins permanently `APPROVE` or `REJECT` club membership;
+- `users.club_status` is permanent club-membership authority;
+- `club_invites` is admission-invite authority;
+- `league_players` remains independent season/league participation authority;
+- approved but unassigned members may browse private club competition data but cannot record results;
+- pending/rejected members remain outside all club-data surfaces;
+- primary member navigation is exactly `League · Record · Results · More`;
+- fixture selection lives inside Record;
+- More contains Players, Profile, Admin for admins, and Sign out;
+- zero-league approved admins can still reach More → Admin and create the first league;
+- normal interaction accent is Misfits red; green is semantic positive state only;
+- legacy player self-enrolment and league-scoped invite runtime paths are retired;
+- dead client `joinInvite()` and retired server invite DB runtime are removed;
+- no additional Cloudflare service, application runtime, router or state framework was introduced.
 
-**117/150 functional stories are verified/closed. 33 remain deliberately parked and open: 12 PARTIAL + 21 MISSING.**
+## Private-club implementation evidence
 
-The private-club release does not close parked stories merely by changing access/UI.
+The final application-code checkpoint was `ad0e16a45a1fccda466c52285700a2b7317e85f1` with CI #797:
 
-## Private Club Entry — Tasks 1–7 COMPLETE
+- Wrangler types GREEN;
+- client + Worker TypeScript GREEN;
+- Impeccable source detector GREEN with zero findings;
+- Vitest **62/62 files, 257/257 tests** GREEN;
+- Vite production build GREEN;
+- deploy skipped on PR, as intended.
 
-The release contract is implemented on the feature branch:
+The later handoff/documentation head `fd2f2bb0180d03828131bd700e48d5c6582cabff` also passed full CI #800. No application code or migration SQL changed between those checkpoints.
 
-- Misfits is private: anonymous users see no league, season, player, standings or result data.
-- A brand-new person must arrive through a valid club invite before Google sign-in may create a membership request.
-- Normal homepage Google sign-in is only for existing known users.
-- New invited users become `PENDING`; they do not become club members or league players automatically.
-- A club admin must `APPROVE` or `REJECT` each pending request in Club access.
-- Club approval is permanent Misfits membership.
-- Season/league assignment remains separate in `league_players`.
-- Approved but unassigned members may browse private club leagues/standings/results but cannot participate as competitors.
-- Pending and rejected users remain outside all club-data surfaces.
-- Primary app navigation is exactly `League · Record · Results · More`; Admin lives under More for admins.
-- Fixture selection lives inside Record.
-- Normal interaction accent is Misfits red; green is semantic OPEN/success/confirmed/winner state only.
+## CI blocker investigation is closed
 
-### Task 1 — migration and permanent membership model: COMPLETE
+Do not reopen the old red-CI diagnosis without new failing evidence. It was resolved as a combination of:
 
-- Added additive `migrations/0006_private_club_membership.sql`.
-- Added `users.club_status` with `PENDING / APPROVED / REJECTED`.
-- Added hashed `club_invites` table.
-- Existing admins/master admin/active league members backfill to APPROVED; other historical users remain PENDING.
-- Existing leagues harden to PRIVATE.
-- Migration has **not** yet been applied to production.
+- deliberate RED Task 5 tests;
+- stale tests describing the retired public/admin/navigation contract;
+- Vitest 4 unhandled-rejection noise from pre-created rejected Promises;
+- one genuine zero-league admin navigation gap.
 
-### Task 2 — invite-only admission and authentication: COMPLETE
+The stale tests and harness issue were corrected without weakening the product contract. The zero-league admin gap was fixed and covered. Do not weaken membership guards, `isParticipant`, or the four-tab navigation to satisfy historical assumptions.
 
-- Unknown Google identities cannot register from normal sign-in.
-- Valid club invite creates a PENDING user only and consumes club-invite usage.
-- Invalid/expired/revoked invitations are rejected.
-- REJECTED membership cannot be reset by another invite.
-- Suspended accounts cannot authenticate.
-- OAuth callback no longer creates unknown users.
-- Client auth payload carries machine-readable membership state/errors.
+## Production D1 migration 0006
 
-### Task 3 — approved-member privacy boundary: COMPLETE
+Migration:
 
-- Anonymous protected club reads return 401 `UNAUTHENTICATED`.
-- PENDING returns 403 `MEMBERSHIP_PENDING`.
-- REJECTED returns 403 `MEMBERSHIP_REJECTED`.
-- APPROVED members, including unassigned members, may browse club leagues/standings/results.
-- Protected reads use `Cache-Control: private, no-store`.
-- Profile, nickname, personal results and result mutations require APPROVED membership.
-- `requireAdmin` requires both APPROVED membership and ADMIN role.
-- League placement remains participation authority, not read authority.
-- `listClubLeagues` is the club read authority; legacy public-read authority was retired.
+`migrations/0006_private_club_membership.sql`
 
-### Task 4 — admin-controlled club admission: COMPLETE
+It adds:
 
-- Admin user records expose permanent `clubStatus` and `createdAt`.
-- Admins approve/reject pending members without creating league placement.
-- ADMIN role cannot be granted unless membership is APPROVED; master/last-admin protections remain intact.
-- Club-wide invite create/list/revoke uses the permanent `club_invites` authority.
-- Raw invite token is exposed only when created; token hashes are never exposed.
-- Admission and role changes are audited.
-- Legacy league-scoped invite runtime routes and player self-enrolment were retired.
-- Season members own placement only, not club admission.
+- `users.club_status` with `PENDING / APPROVED / REJECTED`;
+- `club_invites` with hashed invite-token authority;
+- deterministic approval backfill for existing admins/master admin/active league players;
+- PRIVATE visibility for existing leagues.
 
-### Task 5 — private entry states: COMPLETE
+The user has explicitly approved this production migration. It is still **NOT EXECUTED**.
 
-- App does not request club leagues before authentication/membership is resolved.
-- Signed-out shell exposes no club data.
-- `/join/:token` carries the invite only through Google admission, then clears session storage and the raw URL.
-- PENDING and REJECTED users remain locked outside the club application.
-- APPROVED users missing a nickname enter onboarding before club data loads.
-- Vitest 4 rejected-Promise setup noise was fixed by making rejection mocks lazy rather than pre-rejected.
+### Preferred execution path: GitHub Actions
 
-### Task 6 — final member navigation: COMPLETE
+An ops-only migration controller was added independently and is now on `main`:
 
-- Primary navigation is exactly `League · Record · Results · More`.
-- Fixture selection lives inside Record, not as a primary tab.
-- More contains Players, Profile, Admin for admins, and Sign out.
-- Approved unassigned members can browse a league but cannot record results.
-- Retired `Season admin / Club table` top-level switcher is gone.
-- Admin league selection remains separate from the player workspace.
-- Zero-league approved users retain the same four-item member navigation.
-- An approved admin with zero leagues can open More → Admin and create the first league.
+- ops PR: #173 `ops: add manual production D1 migration gate`;
+- merged main SHA: `c58718b11cb89e0b04d62c0d11965ede5ba77ee4`;
+- workflow: `.github/workflows/manual-d1-migration.yml`;
+- ops TDD RED: CI #801 failed exactly because the workflow file was absent;
+- ops GREEN: CI #805 passed the full current-main gate after implementation.
 
-### Task 7 — design, Impeccable and simplification: COMPLETE
+The workflow is **manual `workflow_dispatch` only**. It cannot run from push, PR, merge, schedule or timer. It requires:
 
-- `DESIGN.md` is the private-club visual authority and documents admission states, exact navigation, red/green colour semantics, responsive widths and accessibility rules.
-- `member-experience.css` and `private-club.css` implement Misfits red for normal interaction while preserving green for semantic positive state.
-- Safe-area-aware mobile navigation, 44px member targets, focus-visible treatment and reduced-motion behavior are present.
-- Repo-local Impeccable detector is now a named CI gate.
-- CI #794 correctly rejected one stereotyped side-tab stripe in Club access; the stripe was removed rather than suppressing the detector.
-- Impeccable is GREEN in final CI #797.
-- Retired client `joinInvite()` was deleted; retired `src/server/db/invites.ts` is absent.
-- Cave Pony simplicity result: no new runtime/service/framework; one permanent membership authority (`users.club_status`), one admission-invite authority (`club_invites`), one participation authority (`league_players`), one member navigation owner and no legacy self-enrolment runtime path.
-- Rendered/manual pixel screenshot acceptance was not performed in this tool session. Do not claim it passed without browser/screenshot evidence.
+```text
+migration_sha = fd2f2bb0180d03828131bd700e48d5c6582cabff
+confirmation  = APPLY-D1
+```
 
-## CI blocker diagnosis — RESOLVED
+The immutable SHA is intentional. Do not replace it with a branch name for this release.
 
-Do not reopen this investigation unless a new failing run supplies new evidence.
+The workflow then:
 
-The previous red period combined:
+1. validates the confirmation and 40-character SHA;
+2. checks out that exact feature SHA;
+3. runs `npm ci`, Wrangler types, TypeScript, full Vitest, production build and `git diff --check`;
+4. checks the existing Cloudflare GitHub secrets are present;
+5. lists pending remote D1 migrations;
+6. runs `npm run db:migrate:remote`;
+7. verifies the production D1 schema/state;
+8. **does not deploy Worker/application code**.
 
-- deliberate RED Task 5 contract tests;
-- stale tests asserting retired public/admin/navigation behavior;
-- Vitest 4 reporting already-rejected `beforeEach` Promises as unhandled even though the private-entry assertions passed;
-- one genuine product gap where an approved admin with zero leagues had no path to Admin.
+Normal application deployment remains owned by the existing `main` deployment job after PR #172 is merged.
 
-The stale tests were rewritten to the approved contract, Promise rejections are now created lazily when the mocked call is consumed, and the zero-league Admin path is implemented and covered.
+### Cloudflare token caveat
 
-Do **not** weaken private membership guards, `isParticipant`, or the fixed four-tab navigation to satisfy historical tests.
+The existing `CLOUDFLARE_API_TOKEN` is known to support Worker deployment, but its exact permission scope cannot be inspected here. The migration workflow requires D1 administration permission. If the token lacks D1 Edit, the workflow should fail safely at the first remote D1 command. Do not broaden or rotate credentials silently; follow the secret/permission approval rules in `AGENTS.md`.
 
-## Final verified code evidence
+### Local fallback
 
-The last fully verified code checkpoint is:
-
-- SHA `ad0e16a45a1fccda466c52285700a2b7317e85f1`
-- PR CI #797
-- Wrangler generated types: GREEN
-- TypeScript client + Worker: GREEN
-- Impeccable source detector: GREEN with zero findings
-- Vitest: **62/62 files, 257/257 tests**
-- Vite production build: GREEN
-- production deploy job: SKIPPED on PR, as intended
-- PR #172 at that checkpoint: open, draft, mergeable, unmerged
-
-Subsequent commits after `ad0e16a` are documentation-only handoff/evidence updates. They do not alter application code or migration SQL. Their CI should still be allowed to complete before merge.
-
-## PRODUCTION D1 GATE — APPROVED, NOT YET EXECUTED
-
-The user explicitly approved the production migration/merge gate on 23 August 2026.
-
-`migrations/0006_private_club_membership.sql` is still **unapplied remotely** at this checkpoint.
-
-From an authenticated local checkout:
+If GitHub Actions cannot be used, an authenticated local Wrangler session may still execute:
 
 ```bash
 npm ci
 npm run db:migrate:remote
-# -> wrangler d1 migrations apply misfits --remote
 ```
 
-Required post-migration verification:
+The GitHub Actions path is preferred because it gives durable, auditable execution logs and immutable-source verification.
+
+## Required post-migration verification
+
+The migration workflow executes these checks automatically; a local fallback must run the same queries:
 
 ```sql
 PRAGMA table_info(users);
@@ -191,37 +144,45 @@ SELECT club_status, COUNT(*) FROM users GROUP BY club_status;
 SELECT visibility, COUNT(*) FROM leagues GROUP BY visibility;
 ```
 
-Record the actual non-secret results in:
+Verify:
+
+- `users.club_status` exists;
+- `club_invites` exists;
+- the club-status distribution is plausible under the approved backfill;
+- existing leagues are PRIVATE;
+- no secret, credential or raw invite token is recorded.
+
+Capture the actual execution/run details and non-secret output in:
 
 `docs/operations/evidence/2026-08-22-d1-migration-0006.md`
 
-### Current connected-tool constraint
+## Exact next sequence
 
-This chat can operate GitHub but does not expose an installed/authenticated Cloudflare connector or Wrangler shell. The Cloudflare app reports as not installed here. The repository intentionally has no automatic migration workflow.
+1. In GitHub Actions, open **Manual production D1 migration** on `main`.
+2. Run it with exact `migration_sha` `fd2f2bb0180d03828131bd700e48d5c6582cabff` and confirmation `APPLY-D1`.
+3. If it fails before migration because of Cloudflare token permissions, stop and address only the minimum required D1 permission. Do not merge #172.
+4. If it succeeds, capture run ID/link plus the non-secret D1 verification output in the evidence document.
+5. Re-fetch PR #172. If docs/evidence changed its head, require a fresh green PR CI on that exact head.
+6. Resolve any merge-base drift from main without changing the approved application contract.
+7. Mark PR #172 ready if still draft.
+8. Merge PR #172 only after migration evidence is good and exact-head CI is green.
+9. Verify the `main` CI and Cloudflare Worker deploy complete successfully.
+10. Smoke-test production health/auth/privacy behavior without exposing private club data.
+11. Perform rendered mobile acceptance when browser tooling is available; otherwise record it as pending rather than inventing evidence.
+12. Update this file with migration run, merge SHA, deploy run and acceptance result.
 
-Therefore **do not merge PR #172 or trigger the main deployment until migration 0006 has actually succeeded and the remote schema verification above has been captured**. Do not add an automatic migration to CI merely to bypass this gate.
+## Current PR state note
 
-## Exact next action for the local model
-
-1. Checkout `feat/private-club-entry` and read the restart files listed at the top of this document.
-2. Confirm working tree/head and PR #172 state before changing anything.
-3. Authenticate Wrangler/Cloudflare in the local environment if required.
-4. Run `npm run db:migrate:remote`.
-5. Run the four required remote verification queries.
-6. Update `docs/operations/evidence/2026-08-22-d1-migration-0006.md` with real, non-secret evidence.
-7. If migration verification is clean and no code changed, ensure PR CI is green, mark PR ready if still draft, then merge #172 to `main`.
-8. Verify main CI and Cloudflare Worker deployment.
-9. Smoke-test production health/auth/privacy behavior without exposing private club data.
-10. Perform rendered mobile acceptance when browser tooling is available; otherwise record that rendered acceptance remains pending.
-11. Update this file with migration result, merge SHA, deployment run and production acceptance evidence.
+At the start of this handoff refresh, PR #172 was still open, draft and unmerged. GitHub temporarily reported it non-mergeable after `main` moved for ops PR #173. The feature branch is being synchronized at the documentation/guardrail level; do not interpret mergeability as release approval. Migration evidence still comes first.
 
 ## Guardrails
 
 - Cloudflare free tier only: existing Worker + static assets + D1.
-- No KV, R2, Durable Objects, Queues, scheduled jobs or additional runtime.
+- No KV, R2, Durable Objects, Queues, scheduled jobs, background polling or additional application runtime.
 - Do not edit applied migrations.
-- Do not automate remote D1 migration.
+- Remote D1 migration may run only after explicit approval, through the manual workflow or authenticated local Wrangler.
+- Never trigger remote D1 migration automatically from push, pull request, merge, schedule or timer.
 - Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
-- No private club data may be exposed before APPROVED club membership is verified by the Worker.
+- No private club data may be exposed before Worker-verified `APPROVED` membership.
 - Club approval must never imply season/league participation.
-- Keep all 33 parked functional stories open until separately revalidated.
+- Keep all **33 parked functional stories** open until separately revalidated.
