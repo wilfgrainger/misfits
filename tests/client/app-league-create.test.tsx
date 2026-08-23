@@ -5,17 +5,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
   const createdLeague = {
     id: 'league-created', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const,
-    pointsPerWin: 2, targetLegs: 3, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
+    maxLegs: 5, pointsPerWin: 2, pointsPerDraw: 0, pointsPerLoss: 0, targetLegs: 3,
+    maxPlayers: 8, matchesPerPair: 1, visibility: 'PRIVATE' as const, hierarchyPosition: 1, promotionPlaces: 0, relegationPlaces: 0,
   };
   const secondLeague = {
-    id: 'league-second', name: 'Thursday Club', slug: 'thursday-club', seasonName: '2026', status: 'OPEN' as const,
-    pointsPerWin: 2, targetLegs: 5, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
+    ...createdLeague,
+    id: 'league-second', name: 'Thursday Club', slug: 'thursday-club', hierarchyPosition: 2,
   };
   const shared = {
-    user: { id: 'player-a', username: 'Alpha', role: 'PLAYER' as 'PLAYER' | 'ADMIN', status: 'ACTIVE' as const, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false },
+    user: {
+      id: 'player-a', username: 'Alpha', role: 'PLAYER' as 'PLAYER' | 'ADMIN', status: 'ACTIVE' as const,
+      clubStatus: 'APPROVED' as const, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false,
+    },
+    clubLeagues: [] as typeof createdLeague[],
     myLeagues: [] as typeof createdLeague[],
     adminLeagues: [] as typeof createdLeague[],
-    multipleLeagues: false,
     createdLeagueInput: null as Record<string, unknown> | null,
     creationCounter: 0,
   };
@@ -24,52 +28,41 @@ const { state, MockApiClient, MockApiClientError } = vi.hoisted(() => {
   }
   class ApiClient {
     me() { return Promise.resolve({ user: shared.user, requiresOnboarding: false }); }
-    leagues() { return Promise.resolve({ leagues: [] }); }
-    myLeagues() { return Promise.resolve({ leagues: shared.multipleLeagues ? [createdLeague, secondLeague] : shared.myLeagues }); }
-    adminLeagues() { return Promise.resolve({ leagues: shared.multipleLeagues ? [createdLeague, secondLeague] : shared.adminLeagues }); }
+    leagues() { return Promise.resolve({ leagues: shared.clubLeagues }); }
+    myLeagues() { return Promise.resolve({ leagues: shared.myLeagues }); }
     adminSeasons() { return Promise.resolve({ seasons: [{ id: 's1', name: '2026', status: 'OPEN', isCurrent: true, createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z', closedAt: null }] }); }
-    seasonLeagues() { return Promise.resolve({ leagues: shared.multipleLeagues ? [createdLeague, secondLeague] : shared.adminLeagues }); }
-    seasonUnassigned() { return Promise.resolve({ users: [] }); }
-    competitionMembers() { return Promise.resolve({ members: [] }); }
-    fixtures() { return Promise.resolve({ fixtures: [] }); }
-    promotionPreview() { return Promise.resolve({ preview: { seasonId: 's1', provisional: false, unresolvedCount: 0, movements: [], ambiguities: [] } }); }
     adminPlayers() { return Promise.resolve({ players: [] }); }
-    adminMembers() { return Promise.resolve({ members: [] }); }
-    adminInvites() { return Promise.resolve({ invites: [] }); }
-    adminResults() { return Promise.resolve({ results: [] }); }
-    createSeasonLeague(_seasonId: string, input: Record<string, unknown>) { return this.createAdminLeague(input); }
-    createAdminLeague(input: Record<string, unknown>) {
-      shared.creationCounter++;
-      const newLeague = {
-        ...createdLeague,
-        id: `league-created-${shared.creationCounter}`,
-        name: (input.name as string) || createdLeague.name,
-        seasonName: (input.seasonName as string) || createdLeague.seasonName || '2026',
-        maxPlayers: Number(input.maxPlayers) || createdLeague.maxPlayers,
-        matchesPerPair: Number(input.matchesPerPair) || createdLeague.matchesPerPair,
-        targetLegs: Number(input.targetLegs) || createdLeague.targetLegs,
-        pointsPerWin: Number(input.pointsPerWin) || createdLeague.pointsPerWin,
-        visibility: (input.visibility as any) || createdLeague.visibility,
-      };
-      shared.createdLeagueInput = input;
-      shared.myLeagues = [newLeague];
-      shared.adminLeagues = [newLeague];
-      return Promise.resolve({ league: newLeague });
-    }
-    updateCompetitionLeague(leagueId: string, input: Record<string, unknown>) { return this.updateAdminLeague(leagueId, input); }
-    updateAdminLeague(leagueId: string, _input?: Record<string, unknown>) {
-      const league = leagueId === secondLeague.id ? secondLeague : createdLeague;
-      const updatedLeague = { ...league, status: 'CLOSED' as const };
-      shared.adminLeagues = shared.adminLeagues.map((item) => item.id === updatedLeague.id ? updatedLeague : item);
-      return Promise.resolve({ league: updatedLeague });
-    }
+    seasonLeagues() { return Promise.resolve({ leagues: shared.adminLeagues }); }
+    competitionMembers() { return Promise.resolve({ members: [] }); }
     standings() { return Promise.resolve({ standings: [] }); }
     results() { return Promise.resolve({ results: [] }); }
-    publicLeague() { return Promise.resolve({ league: createdLeague, players: [{ id: shared.user.id, username: 'Alpha', profileImageUrl: null }] }); }
+    publicLeague(leagueId: string) {
+      const league = shared.clubLeagues.find((item) => item.id === leagueId) ?? createdLeague;
+      return Promise.resolve({ league, players: [{ id: shared.user.id, username: 'Alpha', profileImageUrl: null }] });
+    }
     myResults() { return Promise.resolve({ results: [] }); }
+    fixtures() { return Promise.resolve({ fixtures: [] }); }
     updateProfile() { return Promise.resolve({ profile: shared.user }); }
+    createSeasonLeague(_seasonId: string, input: Record<string, unknown>) {
+      shared.creationCounter += 1;
+      const league = {
+        ...createdLeague,
+        id: `league-created-${shared.creationCounter}`,
+        name: String(input.name || createdLeague.name),
+        visibility: (input.visibility as 'PUBLIC' | 'PRIVATE') || 'PRIVATE',
+      };
+      shared.createdLeagueInput = input;
+      shared.adminLeagues = [...shared.adminLeagues, league];
+      return Promise.resolve({ league });
+    }
+    updateCompetitionLeague(leagueId: string) {
+      const source = shared.adminLeagues.find((item) => item.id === leagueId) ?? createdLeague;
+      const league = { ...source, status: 'CLOSED' as const };
+      shared.adminLeagues = shared.adminLeagues.map((item) => item.id === league.id ? league : item);
+      return Promise.resolve({ league });
+    }
   }
-  return { state: shared, MockApiClient: ApiClient, MockApiClientError: ApiClientError };
+  return { state: shared, createdLeague, secondLeague, MockApiClient: ApiClient, MockApiClientError: ApiClientError };
 });
 
 vi.mock('../../src/client/api', () => ({ ApiClient: MockApiClient, ApiClientError: MockApiClientError }));
@@ -77,150 +70,101 @@ vi.mock('../../src/client/auth/GoogleAuth', () => ({ GoogleAuth: class {} }));
 
 import App from '../../src/client/App';
 
+async function openAdmin() {
+  fireEvent.click(await screen.findByRole('button', { name: 'More' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Admin' }));
+  await screen.findByRole('region', { name: 'Competition admin' });
+}
+
 describe('club administration visibility', () => {
   beforeEach(() => {
     cleanup();
+    state.clubLeagues = [];
     state.myLeagues = [];
     state.adminLeagues = [];
-    state.multipleLeagues = false;
     state.createdLeagueInput = null;
     state.creationCounter = 0;
     state.user.role = 'PLAYER';
+    window.sessionStorage.clear();
+    window.history.replaceState({}, '', '/');
   });
 
-  it('keeps league administration hidden from ordinary players', async () => {
+  it('keeps administration inside More and hidden from ordinary players', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Open your Misfits invite.' })).toBeTruthy());
-    expect(screen.queryByRole('region', { name: 'Season admin' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Create league' })).toBeNull();
+    await screen.findByRole('heading', { name: "You're in the club." });
+
+    expect(screen.queryByRole('button', { name: 'Season admin' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Club table' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(await screen.findByRole('button', { name: 'Profile' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Admin' })).toBeNull();
   });
 
-  it('takes an authenticated club member straight to their current season', async () => {
-    state.myLeagues = [{
-      id: 'league-created', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const,
-      pointsPerWin: 2, targetLegs: 3, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
-    }];
+  it('takes an approved member to their available club league', async () => {
+    state.clubLeagues = [createdLeague];
+    state.myLeagues = [createdLeague];
     render(<App />);
 
     await screen.findByRole('heading', { name: 'Tuesday Club' });
-    expect(screen.queryByText('Club darts, properly settled.')).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'League' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Record' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Results' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'More' })).toBeTruthy();
   });
 
-  it('keeps the player workspace selection separate from the league desk', async () => {
-    state.multipleLeagues = true;
+  it('keeps admin league selection separate from the player workspace', async () => {
     state.user.role = 'ADMIN';
-    render(<App />);
-    
-    // Switch to player view to verify initial workspace rendering
-    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Tuesday Club' })).toBeTruthy());
-
-    // Switch to admin view to select Thursday Club
-    fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
-    fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
-    const leaguesRegion = screen.getByRole('region', { name: 'Competition admin' });
-    await waitFor(() => expect(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
-    fireEvent.click(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ }));
-
-    await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
-    
-    // Switch back to player view to check that Tuesday Club standings are still displayed
-    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
-    await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
-    expect(screen.queryByRole('table', { name: 'Thursday Club 2026 standings' })).toBeNull();
-  });
-
-  it('keeps admin desk selection separate from player workspace selection', async () => {
-    state.user.role = 'ADMIN';
-    state.myLeagues = [{
-      id: 'league-created', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const,
-      pointsPerWin: 2, targetLegs: 3, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
-    }];
-    state.adminLeagues = [
-      ...state.myLeagues,
-      {
-        id: 'league-second', name: 'Thursday Club', slug: 'thursday-club', seasonName: '2026', status: 'OPEN' as const,
-        pointsPerWin: 2, targetLegs: 5, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
-      },
-    ];
+    state.clubLeagues = [createdLeague, secondLeague];
+    state.myLeagues = [createdLeague];
+    state.adminLeagues = [createdLeague, secondLeague];
     render(<App />);
 
-    // Switch to player view to check initial standings
-    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
-    await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
-    
-    // Switch to admin view and change selected league
-    fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
-    fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
-    const leaguesRegion = screen.getByRole('region', { name: 'Competition admin' });
-    await waitFor(() => expect(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
-    fireEvent.click(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ }));
+    await screen.findByRole('heading', { name: 'Tuesday Club' });
+    await openAdmin();
+    fireEvent.click(screen.getByRole('tab', { name: 'Leagues' }));
+    const admin = screen.getByRole('region', { name: 'Competition admin' });
+    fireEvent.click(await within(admin).findByRole('button', { name: /Thursday Club/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to club' }));
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
-    
-    // Switch back to player view to verify standings did not change
-    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
-    await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
-    expect(screen.queryByRole('table', { name: 'Thursday Club 2026 standings' })).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Tuesday Club' })).toBeTruthy();
   });
 
   it('does not add an admin-only league to the player workspace after saving', async () => {
     state.user.role = 'ADMIN';
-    state.myLeagues = [{
-      id: 'league-created', name: 'Tuesday Club', slug: 'tuesday-club', seasonName: '2026', status: 'OPEN' as const,
-      pointsPerWin: 2, targetLegs: 3, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
-    }];
-    state.adminLeagues = [
-      ...state.myLeagues,
-      {
-        id: 'league-second', name: 'Thursday Club', slug: 'thursday-club', seasonName: '2026', status: 'OPEN' as const,
-        pointsPerWin: 2, targetLegs: 5, maxPlayers: 8, matchesPerPair: 1, visibility: 'PUBLIC' as const,
-      },
-    ];
+    state.clubLeagues = [createdLeague];
+    state.myLeagues = [createdLeague];
+    state.adminLeagues = [createdLeague, secondLeague];
     render(<App />);
 
-    // Switch to player view to verify initial standings
-    fireEvent.click(await screen.findByRole('button', { name: 'Club table' }));
-    await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
-    
-    // Switch to admin view to select and save Thursday Club
-    fireEvent.click(await screen.findByRole('button', { name: 'Season admin' }));
-    fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
-    const leaguesRegion = screen.getByRole('region', { name: 'Competition admin' });
-    await waitFor(() => expect(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ })).toBeTruthy());
-    fireEvent.click(within(leaguesRegion).getByRole('button', { name: /Thursday Club/ }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: /Thursday Club/ })).toBeTruthy());
+    await screen.findByRole('heading', { name: 'Tuesday Club' });
+    await openAdmin();
+    fireEvent.click(screen.getByRole('tab', { name: 'Leagues' }));
+    const admin = screen.getByRole('region', { name: 'Competition admin' });
+    fireEvent.click(await within(admin).findByRole('button', { name: /Thursday Club/ }));
+    fireEvent.click(await within(admin).findByRole('button', { name: 'Save league' }));
+    await screen.findByText('League settings saved.');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to club' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save league' }));
-
-    await waitFor(() => expect(screen.getByText('League settings saved.')).toBeTruthy());
-    
-    // Switch to player view to confirm Thursday Club was not added
-    fireEvent.click(screen.getByRole('button', { name: 'Club table' }));
-    await waitFor(() => expect(screen.getByRole('table', { name: 'Tuesday Club 2026 standings' })).toBeTruthy());
-    expect(screen.queryByRole('table', { name: 'Thursday Club 2026 standings' })).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Tuesday Club' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Thursday Club' })).toBeNull();
   });
 
-  it('submits new league creation private by default', async () => {
+  it('lets an administrator create the first league from More and keeps PRIVATE as the default', async () => {
     state.user.role = 'ADMIN';
+    state.adminLeagues = [];
     render(<App />);
 
-    const adminTabButton = await screen.findByRole('button', { name: 'Season admin' });
-    fireEvent.click(adminTabButton);
+    await screen.findByRole('heading', { name: "You're in the club." });
+    await openAdmin();
+    fireEvent.click(screen.getByRole('tab', { name: 'Leagues' }));
+    const admin = screen.getByRole('region', { name: 'Competition admin' });
 
-    fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
-    const createForm = screen.getByRole('region', { name: 'Competition admin' });
-
-    expect((within(createForm).getByLabelText('New visibility') as HTMLSelectElement).value).toBe('PRIVATE');
-    fireEvent.change(within(createForm).getByLabelText('New visibility'), { target: { value: 'PUBLIC' } });
-    fireEvent.change(within(createForm).getByLabelText('New league name'), { target: { value: 'Friday Club' } });
-    fireEvent.click(within(createForm).getByRole('button', { name: 'Create league' }));
-
+    expect((within(admin).getByLabelText('New visibility') as HTMLSelectElement).value).toBe('PRIVATE');
+    fireEvent.change(within(admin).getByLabelText('New visibility'), { target: { value: 'PUBLIC' } });
+    fireEvent.change(within(admin).getByLabelText('New league name'), { target: { value: 'Friday Club' } });
+    fireEvent.click(within(admin).getByRole('button', { name: 'Create league' }));
     await waitFor(() => expect(state.createdLeagueInput).toMatchObject({ name: 'Friday Club', visibility: 'PUBLIC' }));
-    expect((within(createForm).getByLabelText('New visibility') as HTMLSelectElement).value).toBe('PRIVATE');
-    fireEvent.change(within(createForm).getByLabelText('New league name'), { target: { value: 'Saturday Club' } });
-    fireEvent.click(within(createForm).getByRole('button', { name: 'Create league' }));
-    await waitFor(() => expect(state.createdLeagueInput).toMatchObject({ name: 'Saturday Club', visibility: 'PRIVATE' }));
+
+    expect((within(admin).getByLabelText('New visibility') as HTMLSelectElement).value).toBe('PRIVATE');
   });
 });
