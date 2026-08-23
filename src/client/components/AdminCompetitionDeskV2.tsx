@@ -169,9 +169,11 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     setSeasonHealth(null);
     setLeagueSummariesReady(false);
     let active = true;
-    void api.adminSeasonHealth(selectedSeason.id).then((payload) => {
-      if (active) setSeasonHealth(payload.health);
-    }).catch(() => undefined);
+    if (typeof api.adminSeasonHealth === 'function') {
+      void api.adminSeasonHealth(selectedSeason.id).then((payload) => {
+        if (active) setSeasonHealth(payload.health);
+      }).catch(() => undefined);
+    }
     api.seasonLeagues(selectedSeason.id).then((payload) => {
       if (!active) return;
       const next = [...payload.leagues].sort(orderLeagues);

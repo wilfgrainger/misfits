@@ -104,10 +104,12 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
         api.results(league.id),
         api.publicLeague(league.id),
         api.myResults(),
-        api.memberFixtures(league.id),
+        typeof api.memberFixtures === 'function' ? api.memberFixtures(league.id) : Promise.resolve({ fixtures: [] }),
       ]);
       const seasonId = detailPayload.league.seasonId ?? league.seasonId;
-      const promotionPayload = seasonId ? await api.memberPromotionPreview(seasonId).catch(() => null) : null;
+      const promotionPayload = seasonId && typeof api.memberPromotionPreview === 'function'
+        ? await api.memberPromotionPreview(seasonId).catch(() => null)
+        : null;
       if (request !== loadRequest.current) return;
       setStandings(standingPayload.standings);
       setResults(resultPayload.results);
