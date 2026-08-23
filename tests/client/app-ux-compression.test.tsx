@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 
 const { MockApiClient, MockApiClientError } = vi.hoisted(() => {
@@ -9,7 +9,7 @@ const { MockApiClient, MockApiClientError } = vi.hoisted(() => {
     maxPlayers: 16, matchesPerPair: 1, visibility: 'PUBLIC' as const,
   };
   const user = {
-    id: 'player-a', username: 'Alpha', role: 'PLAYER' as const, status: 'ACTIVE' as const,
+    id: 'player-a', username: 'Alpha', role: 'PLAYER' as const, status: 'ACTIVE' as const, clubStatus: 'APPROVED' as const,
     profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false,
   };
   class ApiClientError extends Error {
@@ -35,14 +35,23 @@ import App from '../../src/client/App';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-it('keeps meaningful league context in one player hero without repeating account chrome', async () => {
+it('keeps competition detail inside Leagues instead of making it the whole app frame', async () => {
   render(<App />);
 
-  await screen.findByRole('heading', { name: 'Premier' });
-  expect(screen.getByText('2026 Season')).toBeTruthy();
-  expect(screen.getByText('OPEN')).toBeTruthy();
-  expect(screen.queryByText(/Current season:/)).toBeNull();
-  expect(screen.queryByText('1 season')).toBeNull();
+  await screen.findByRole('heading', { name: 'Good to see you, Alpha.' });
+  expect(screen.getByText('Your competitions')).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Premier' })).toBeNull();
+  expect(document.querySelector('.player-league-hero')).toBeNull();
   expect(document.querySelector('.account-status')).toBeNull();
   expect(document.querySelector('.account-heading')).toBeNull();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Leagues' }));
+  fireEvent.click(await screen.findByRole('button', { name: /Premier/ }));
+
+  expect(await screen.findByRole('heading', { name: 'Premier' })).toBeTruthy();
+  expect(screen.getByText('2026 season')).toBeTruthy();
+  expect(screen.getByRole('tab', { name: 'Table' })).toBeTruthy();
+  expect(screen.getByRole('tab', { name: 'Fixtures' })).toBeTruthy();
+  expect(screen.getByRole('tab', { name: 'Results' })).toBeTruthy();
+  expect(document.querySelector('.player-league-hero')).toBeNull();
 });
