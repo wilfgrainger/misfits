@@ -3,6 +3,7 @@ import {
   hashSessionToken,
   issueSession,
   resolveSession,
+  resolveRequestSession,
   revokeSession,
 } from '../../src/server/auth/session';
 
@@ -14,6 +15,7 @@ function fakeDatabase() {
 
   return {
     sessions,
+    users,
     prepare(sql: string) {
       return {
         bind(...values: unknown[]) {
@@ -64,5 +66,17 @@ describe('opaque sessions', () => {
 
     await revokeSession(db, issued.token);
     expect(await resolveSession(db, issued.token, now)).toBeNull();
+  });
+
+  it('keeps suspended request sessions distinguishable while direct resolution stays fail-closed', async () => {
+    const db = fakeDatabase();
+    const now = new Date('2026-08-20T12:00:00.000Z');
+    const issued = await issueSession(db, 'user-1', now);
+    db.users.get('user-1')!.status = 'SUSPENDED';
+
+    expect(await resolveSession(db, issued.token, now)).toBeNull();
+    await expect(resolveRequestSession(db, new Request('https://misfits.test/api/me', {
+      headers: { Cookie: `league_board_session=${issued.token}` },
+    }), now)).resolves.toMatchObject({ id: 'user-1', status: 'SUSPENDED' });
   });
 });

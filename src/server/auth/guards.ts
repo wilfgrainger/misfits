@@ -21,6 +21,7 @@ export const requireSameOrigin: MiddlewareHandler<AuthAppEnv> = async (c, next) 
 export const requireUser: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
   const user = await resolveRequestSession(c.env.DB, c.req.raw);
   if (!user) return jsonError(c, new AppError('UNAUTHENTICATED', 'Sign-in is required', 401));
+  if (user.status !== 'ACTIVE') return jsonError(c, new AppError('FORBIDDEN', 'This account is suspended', 403));
   c.set('user', user);
   return next();
 };

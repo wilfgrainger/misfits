@@ -111,6 +111,11 @@ export default function App() {
       if (!active) return;
       setUser(null);
       clearClubData();
+      if (error instanceof ApiClientError && error.status === 403 && /suspended/i.test(error.message)) {
+        setView('suspended');
+        setMessage('This account is suspended');
+        return;
+      }
       setView('signed-out');
       if (error instanceof ApiClientError && error.status === 401) setMessage('Private club access');
       else setMessage('Misfits could not be reached. Try signing in again.');

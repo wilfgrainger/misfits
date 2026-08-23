@@ -152,6 +152,16 @@ describe('private club entry', () => {
     expect(calls.myLeagues).toBe(0);
   });
 
+  it('explains when an existing session has been suspended', async () => {
+    meResult = () => Promise.reject(new ApiClientError(403, 'This account is suspended', 'FORBIDDEN'));
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Account suspended' })).toBeTruthy();
+    expect(screen.getByText(/cannot sign in to Misfits while it is suspended/i)).toBeTruthy();
+    expect(calls.leagues).toBe(0);
+    expect(calls.myLeagues).toBe(0);
+  });
+
   it('uses approved membership plus missing nickname to enter onboarding', async () => {
     meResult = () => Promise.resolve({ user: { ...approvedUser, username: null }, requiresOnboarding: false });
     render(<App />);

@@ -63,6 +63,15 @@ export async function resolveSession(
   rawToken: string | null | undefined,
   now = new Date(),
 ): Promise<AuthUser | null> {
+  const user = await resolveSessionUser(db, rawToken, now);
+  return user?.status === 'ACTIVE' ? user : null;
+}
+
+async function resolveSessionUser(
+  db: D1Database,
+  rawToken: string | null | undefined,
+  now: Date,
+): Promise<AuthUser | null> {
   if (!rawToken) return null;
   const tokenHash = await hashSessionToken(rawToken);
   const row = await db.prepare(
@@ -72,7 +81,7 @@ export async function resolveSession(
       WHERE sessions.token_hash = ? AND sessions.expires_at > ?`,
   ).bind(tokenHash, now.toISOString()).first<SessionRow>();
 
-  if (!row || row.status !== 'ACTIVE') return null;
+  if (!row) return null;
   return {
     id: row.id,
     username: row.username,
@@ -109,7 +118,7 @@ export function readSessionTokens(request: Request): string[] {
 
 export async function resolveRequestSession(db: D1Database, request: Request, now = new Date()): Promise<AuthUser | null> {
   for (const token of readSessionTokens(request)) {
-    const user = await resolveSession(db, token, now);
+    const user = await resolveSessionUser(db, token, now);
     if (user) return user;
   }
   return null;
