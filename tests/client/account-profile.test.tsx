@@ -63,6 +63,16 @@ describe('account profile access', () => {
     expect(screen.getByLabelText('Nickname')).toBeTruthy();
   });
 
+  it('opens the member profile directly from the compact header avatar', async () => {
+    render(<App />);
+
+    await screen.findByRole('heading', { name: 'Good to see you, Admin.' });
+    fireEvent.click(screen.getByRole('button', { name: 'Open profile' }));
+
+    expect(await screen.findByRole('heading', { name: 'Player card' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'More' }).getAttribute('aria-current')).toBe('page');
+  });
+
   it('keeps Club access reachable through More for an administrator with no leagues yet', async () => {
     user.isMasterAdmin = false;
     render(<App />);
