@@ -188,6 +188,7 @@ describe('administrator competition workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview fixtures' }));
     await screen.findByText('1 fixture expected');
     fireEvent.click(screen.getByRole('button', { name: 'Commit fixtures' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm' }));
     await screen.findByText('Fixtures committed.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/leagues/l1/fixtures' && init?.method === 'POST')).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Void Alpha vs Bravo' }));
@@ -208,6 +209,7 @@ describe('administrator competition workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save override for Alpha' }));
     await screen.findByText('Movement override saved.');
     fireEvent.click(screen.getByRole('button', { name: 'Apply to next season' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm' }));
     await screen.findByText('Next-season placements applied.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/seasons/s1/promotion/apply' && init?.method === 'POST')).toBe(true);
   });
@@ -221,6 +223,7 @@ describe('administrator competition workspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Club access' }));
     expect(await screen.findByText(/delta@example\.com/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Make Delta admin' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm' }));
     await screen.findByText('Club access updated.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/players/u4' && init?.method === 'PATCH')).toBe(true);
   });

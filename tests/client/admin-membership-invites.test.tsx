@@ -81,6 +81,7 @@ describe('admin membership, placement and club-admission controls', () => {
     expect(screen.getAllByText('Bravo').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'Deactivate Alpha' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/leagues/l1/members/u1' && init?.method === 'PATCH' && JSON.parse(String(init.body)).active === false)).toBe(true));
 
     fireEvent.click(screen.getByRole('button', { name: 'Reactivate Bravo' }));
