@@ -8,18 +8,18 @@ const calls = {
   myLeagues: 0,
 };
 
-let meResult: Promise<unknown>;
-let signInResult: Promise<unknown>;
+let meResult: () => Promise<unknown>;
+let signInResult: () => Promise<unknown>;
 
 vi.mock('../../src/client/api', () => {
   class MockApiClientError extends Error {
     constructor(public readonly status: number, message: string, public readonly code?: string) { super(message); }
   }
   class MockApiClient {
-    me() { return meResult; }
+    me() { return meResult(); }
     signIn(credential: string, inviteToken?: string) {
       calls.signIn.push([credential, inviteToken]);
-      return signInResult;
+      return signInResult();
     }
     leagues() { calls.leagues += 1; return Promise.resolve({ leagues: [] }); }
     myLeagues() { calls.myLeagues += 1; return Promise.resolve({ leagues: [] }); }
@@ -70,8 +70,8 @@ describe('private club entry', () => {
     calls.myLeagues = 0;
     window.sessionStorage.clear();
     window.history.replaceState({}, '', '/');
-    meResult = unauthenticated();
-    signInResult = Promise.resolve({ user: approvedUser, requiresOnboarding: false });
+    meResult = () => unauthenticated();
+    signInResult = () => Promise.resolve({ user: approvedUser, requiresOnboarding: false });
   });
 
   afterEach(() => {
@@ -83,7 +83,7 @@ describe('private club entry', () => {
 
   it('reveals no club data and loads no leagues before membership approval resolves', async () => {
     const auth = deferred<{ user: typeof approvedUser; requiresOnboarding: boolean }>();
-    meResult = auth.promise;
+    meResult = () => auth.promise;
     render(<App />);
 
     expect(screen.getByAltText('Misfits 501 club seal')).toBeTruthy();
@@ -97,8 +97,8 @@ describe('private club entry', () => {
   });
 
   it('shows a privacy-safe signed-out splash and keeps INVITE_REQUIRED outside the club', async () => {
-    meResult = unauthenticated();
-    signInResult = unauthenticated('INVITE_REQUIRED', 'A club invitation is required');
+    meResult = () => unauthenticated();
+    signInResult = () => unauthenticated('INVITE_REQUIRED', 'A club invitation is required');
     render(<App />);
 
     expect(await screen.findByRole('button', { name: 'Google test sign-in' })).toBeTruthy();
@@ -114,8 +114,8 @@ describe('private club entry', () => {
 
   it('carries a club invitation only into Google admission and removes the raw token after sign-in', async () => {
     window.history.replaceState({}, '', '/join/club-secret-token');
-    meResult = unauthenticated();
-    signInResult = Promise.resolve({ user: pendingUser, requiresOnboarding: true });
+    meResult = () => unauthenticated();
+    signInResult = () => Promise.resolve({ user: pendingUser, requiresOnboarding: true });
     render(<App />);
 
     expect(await screen.findByText("You've been invited to join Misfits")).toBeTruthy();
@@ -130,7 +130,7 @@ describe('private club entry', () => {
   });
 
   it('renders pending membership as a locked waiting state with sign out only', async () => {
-    meResult = Promise.resolve({ user: pendingUser, requiresOnboarding: true });
+    meResult = () => Promise.resolve({ user: pendingUser, requiresOnboarding: true });
     render(<App />);
 
     expect(await screen.findByText('Membership request sent')).toBeTruthy();
@@ -142,7 +142,7 @@ describe('private club entry', () => {
   });
 
   it('renders rejected membership without loading the club application', async () => {
-    meResult = Promise.resolve({ user: rejectedUser, requiresOnboarding: true });
+    meResult = () => Promise.resolve({ user: rejectedUser, requiresOnboarding: true });
     render(<App />);
 
     expect(await screen.findByText('Membership request not approved')).toBeTruthy();
@@ -153,7 +153,7 @@ describe('private club entry', () => {
   });
 
   it('uses approved membership plus missing nickname to enter onboarding', async () => {
-    meResult = Promise.resolve({ user: { ...approvedUser, username: null }, requiresOnboarding: false });
+    meResult = () => Promise.resolve({ user: { ...approvedUser, username: null }, requiresOnboarding: false });
     render(<App />);
 
     expect(await screen.findByRole('heading', { name: 'Set your player nickname' })).toBeTruthy();
