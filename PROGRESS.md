@@ -2,8 +2,8 @@
 
 **Updated:** 24 August 2026
 **Current branch:** `wilfgrainger-issue-and-release-review`
-**PR:** Pending - issue and release status review
-**Current focus:** final diff review and one pull request for the bounded issue/release repair set
+**PR:** #177 `fix: resolve issue and release gaps`
+**Current focus:** PR #177 review and merge, then main deployment and production privacy/auth smoke
 **Backend/schema/infra change:** Admin-only season-health read; no schema or Cloudflare architecture change
 **Production D1 migration required:** NO
 
