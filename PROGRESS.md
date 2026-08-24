@@ -2,7 +2,7 @@
 
 **Updated:** 24 August 2026
 **Current branch:** `codex/fix-open-issues`
-**Implementation commit:** `6ea0c8757bfcfd756357acd79bc1704087d92602`
+**Implementation commit:** `99ac8f71e8f37ae0a33081fd1f59102fc3facbda`
 **PR:** Pending creation from the isolated worktree
 **Current focus:** Complete the approved 26-issue backlog, then hand off the exact branch SHA for reviewed merge
 **Backend/schema/infra change:** Server-owned season readiness, member/public fixture reads, suspension response, movement/history reads, and desktop admin composition; no schema or Cloudflare architecture change

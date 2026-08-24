@@ -3,7 +3,7 @@
 ## Scope and evidence
 
 - The approved execution branch is `codex/fix-open-issues`, isolated from the unrelated dirty `main` checkout and based on `origin/main` at `5f1d182febcdaad59bf1e978a23e6b63c2374da3`.
-- The implementation is committed at `6ea0c8757bfcfd756357acd79bc1704087d92602`.
+- The implementation is committed at `99ac8f71e8f37ae0a33081fd1f59102fc3facbda`; the current ledger commit records this handoff reference.
 - The branch implements the 26 issues that were open in the reviewed catalogue: season-placement integrity, desktop administration, suspension UX, rules visibility, fixture-first member workflows, movement/history, and public fixtures.
 - No D1 schema migration, production mutation, deployment, or authenticated live-browser acceptance is claimed by this branch. The existing production baseline remains a separate proof boundary.
 - Fresh local verification is currently: **67 test files / 289 tests**, client and Worker TypeScript, production Vite build, Wrangler 4.124.0 type freshness, Impeccable detector (`[]`), and `git diff --check` all pass.
