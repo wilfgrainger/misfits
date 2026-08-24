@@ -3,10 +3,12 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const workflowPath = resolve(process.cwd(), '.github/workflows/manual-d1-migration.yml');
+const packagePath = resolve(process.cwd(), 'package.json');
 
 describe('production D1 management workflow', () => {
   it('requires explicit confirmation and an immutable SHA, verifies it, migrates D1, and never deploys application code', () => {
     const workflow = readFileSync(workflowPath, 'utf8').replace(/\r\n/g, '\n');
+    const packageJson = JSON.parse(readFileSync(packagePath, 'utf8')) as { scripts?: Record<string, string> };
 
     expect(workflow).toContain('name: Production D1 management');
     expect(workflow).toContain('workflow_dispatch:');
@@ -17,11 +19,13 @@ describe('production D1 management workflow', () => {
     expect(workflow).toContain('ref: ${{ inputs.migration_sha }}');
     expect(workflow).toContain('^[0-9a-f]{40}$');
 
-    for (const command of ['npm ci', 'npx wrangler types', 'npm run typecheck', 'npm test', 'npm run build', 'git diff --check']) {
+    for (const command of ['npm ci', 'npx wrangler types', 'npm run typecheck', 'npm test', 'npm run build']) {
       expect(workflow).toContain(command);
     }
 
-    expect(workflow).toContain('npm run db:migrate:remote');
+    expect(workflow).toContain('npx wrangler d1 migrations apply misfits --remote');
+    expect(workflow).not.toContain('git diff --check');
+    expect(workflow).not.toContain('npm run db:migrate:remote');
     expect(workflow.match(/npx wrangler d1 migrations list misfits --remote/g)?.length).toBe(2);
     expect(workflow).toContain("PRAGMA quick_check");
     expect(workflow).toContain("SELECT name, type, sql FROM sqlite_schema");
@@ -38,5 +42,7 @@ describe('production D1 management workflow', () => {
     expect(workflow).not.toContain('\n  push:');
     expect(workflow).not.toContain('\n  pull_request:');
     expect(workflow).not.toContain('\n  schedule:');
+    expect(packageJson.scripts?.deploy).toBeUndefined();
+    expect(packageJson.scripts?.['db:migrate:remote']).toBeUndefined();
   });
 });
