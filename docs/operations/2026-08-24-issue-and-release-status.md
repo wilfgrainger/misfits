@@ -23,7 +23,8 @@ The closed catalogue is historical evidence, not a reason to reopen current priv
 | Disposition | Issues | Outcome |
 | --- | --- | --- |
 | Fixed in this PR | #92, #100, #101, #104, #145 | Promotion ambiguity visibility, season health, destructive fixture confirmation/focus return, 44px admin controls, and submitter-owned pending results. |
-| Requires integrity or authorization design | #98, #114, #131-144 | Do not merge casually: #98 changes season readiness enforcement; #114 changes authentication-facing suspension behaviour; #131-144 need a member-scoped fixture read instead of the current admin-only endpoint. |
+| Requires integrity or authorization design | #98, #114 | Do not merge casually: #98 changes season readiness enforcement and #114 changes authentication-facing suspension behaviour. |
+| Fixture-first scope, separately approved | #131-144 | Keep parked until the separately approved player-facing fixture-first scope is activated; then build one Worker-enforced member-scoped fixture read instead of weakening the current admin-only endpoint. |
 | Intentionally parked scope | #127-129, #157-160 | Movement/placement policy remains parked by `PROGRESS.md`. |
 | Obsolete after club-first navigation | #117, #119 | Home is now the default and Leagues already browses allowed club competitions. |
 | Requires product revalidation | #121, #155, #165 | Rules wall, historical archive, and public fixtures conflict with the current product/visibility authority. |

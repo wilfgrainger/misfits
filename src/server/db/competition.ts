@@ -90,6 +90,8 @@ function timestamp(now = new Date()): string {
   return now.toISOString();
 }
 
+const ACTIVE_APPROVED_USER_SQL = "u.status = 'ACTIVE' AND u.club_status = 'APPROVED'";
+
 export async function listSeasons(db: D1Database): Promise<SeasonRecord[]> {
   const result = await db.prepare(
     `SELECT id, name, status, is_current, created_at, updated_at, closed_at
@@ -223,7 +225,7 @@ export async function listUnassignedUsers(db: D1Database, seasonId: string): Pro
   const result = await db.prepare(
     `SELECT u.id, u.username, u.email, u.status
        FROM users u
-      WHERE u.status = 'ACTIVE'
+      WHERE ${ACTIVE_APPROVED_USER_SQL}
         AND NOT EXISTS (
           SELECT 1 FROM league_players lp
            WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1
@@ -237,8 +239,8 @@ export async function assignUserToLeague(db: D1Database, actorUserId: string, se
   const league = await getCompetitionLeague(db, leagueId);
   if (!league || league.season_id !== seasonId) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found in this season', 404);
   if (await leagueHasFixturesOrResults(db, leagueId)) throw new AppError('VALIDATION_ERROR', 'League membership is locked after fixtures or results exist', 409);
-  const user = await db.prepare('SELECT id, status FROM users WHERE id = ?').bind(userId).first<{ id: string; status: string }>();
-  if (!user || user.status !== 'ACTIVE') throw new AppError('VALIDATION_ERROR', 'Only an active club account can be assigned', 409);
+  const user = await db.prepare(`SELECT u.id FROM users u WHERE u.id = ? AND ${ACTIVE_APPROVED_USER_SQL}`).bind(userId).first<{ id: string }>();
+  if (!user) throw new AppError('VALIDATION_ERROR', 'Only an active, approved club member can be assigned', 409);
   const capacity = await db.prepare('SELECT COUNT(*) AS count FROM league_players WHERE league_id = ? AND active = 1').bind(leagueId).first<{ count: number }>();
   if (Number(capacity?.count ?? 0) >= league.max_players) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
   const existing = await db.prepare('SELECT league_id FROM league_players WHERE season_id = ? AND user_id = ? AND active = 1').bind(seasonId, userId).first<{ league_id: string }>();
@@ -398,7 +400,7 @@ export async function deleteUnplayedFixtures(db: D1Database, actorUserId: string
 export async function seasonHealth(db: D1Database, seasonId: string): Promise<SeasonHealth> {
   const row = await db.prepare(
     `SELECT
-      (SELECT COUNT(*) FROM users u WHERE u.status = 'ACTIVE' AND NOT EXISTS (
+      (SELECT COUNT(*) FROM users u WHERE ${ACTIVE_APPROVED_USER_SQL} AND NOT EXISTS (
         SELECT 1 FROM league_players lp WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1
       )) AS unassigned_players,
       (SELECT COUNT(*) FROM fixtures WHERE season_id = ? AND status = 'OUTSTANDING') AS outstanding_fixtures,

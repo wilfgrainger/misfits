@@ -193,7 +193,10 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       setSeasons(seasonPayload.seasons);
       setPlayers(playerPayload.players);
       const current = seasonPayload.seasons.find((season) => season.isCurrent) ?? seasonPayload.seasons[0] ?? null;
-      setSelectedSeasonId((value) => value && seasonPayload.seasons.some((season) => season.id === value) ? value : current?.id ?? '');
+      const retainedSeasonId = selectedSeasonIdRef.current;
+      const nextSeasonId = retainedSeasonId && seasonPayload.seasons.some((season) => season.id === retainedSeasonId) ? retainedSeasonId : current?.id ?? '';
+      setSelectedSeasonId(nextSeasonId);
+      if (retainedSeasonId === nextSeasonId) void loadHealth(nextSeasonId);
       const draft = seasonPayload.seasons.find((season) => season.status === 'DRAFT' && season.id !== current?.id);
       setTargetSeasonId((value) => value || draft?.id || '');
       setBaselineSeasonId((value) => value || draft?.id || '');

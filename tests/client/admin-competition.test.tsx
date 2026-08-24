@@ -182,6 +182,24 @@ describe('administrator competition workspace', () => {
     expect(within(health).queryByText('1')).toBeNull();
   });
 
+  it('reloads season health when Refresh keeps the same season selected', async () => {
+    let healthCalls = 0;
+    const { fetchMock } = renderDesk({
+      onHealthRequest: async () => {
+        healthCalls += 1;
+        const offset = healthCalls === 1 ? 0 : 10;
+        return new Response(JSON.stringify({ health: { unassignedPlayers: 1 + offset, outstandingFixtures: 2 + offset, pendingConfirmations: 3 + offset, disputes: 4 + offset } }), { status: 200 });
+      },
+    });
+    const health = await screen.findByRole('region', { name: 'Season health' });
+    await waitFor(() => expect(within(health).getByText('1')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/admin/seasons/s1/health')).toHaveLength(2));
+    await waitFor(() => expect(within(health).getByText('11')).toBeTruthy());
+  });
+
   it('shows ordered league structure and saves hierarchy, rules and movement places', async () => {
     const { fetchMock } = renderDesk();
     fireEvent.click(await screen.findByRole('tab', { name: 'Leagues' }));
