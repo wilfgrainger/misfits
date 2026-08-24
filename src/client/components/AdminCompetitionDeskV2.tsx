@@ -1,7 +1,8 @@
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ApiClient,
   type AdminClubInvite,
+  type AdminCompetitionHealth,
   type AdminPlayer,
   type AdminPlayerChanges,
   type CompetitionMember,
@@ -80,6 +81,33 @@ function describeMatchFormat(maxLegs: number) {
   return `Best of ${maxLegs}: first to ${legsToWin} wins; no draw.`;
 }
 
+function PromotionAmbiguityList({
+  ambiguities,
+  leagueName,
+  memberName,
+}: {
+  ambiguities: PromotionProjection['ambiguities'];
+  leagueName: (leagueId: string) => string;
+  memberName: (userId: string) => string;
+}) {
+  if (ambiguities.length === 0) return null;
+
+  return <section className="admin-block promotion-ambiguities" aria-labelledby="promotion-ambiguities-title">
+    <div className="section-heading"><h3 id="promotion-ambiguities-title">Movement needs review</h3></div>
+    <ul className="admin-list">
+      {ambiguities.map((ambiguity) => {
+        const names = ambiguity.tiedUserIds.map(memberName);
+        const tiedMembers = names.length > 2 ? `${names.slice(0, -1).join(', ')}, and ${names.at(-1)}` : names.join(' and ');
+        const verb = names.length === 1 ? 'is' : 'are';
+        const boundary = ambiguity.boundary === 'PROMOTION' ? 'Promotion' : 'Relegation';
+
+        return <li key={`${ambiguity.leagueId}:${ambiguity.boundary}:${ambiguity.position}`}><div><strong>{boundary} boundary in {leagueName(ambiguity.leagueId)} is tied</strong><small>Position {ambiguity.position}: {tiedMembers} {verb} tied.</small></div></li>;
+      })}
+    </ul>
+    <p className="form-help">Resolve tied boundaries before applying a promotion proposal.</p>
+  </section>;
+}
+
 export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected, onLeagueCreated, onLeagueChanged }: Props) {
   const [task, setTask] = useState<AdminTask>('season');
   const [seasons, setSeasons] = useState<SeasonSummary[]>([]);
@@ -96,6 +124,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const [fixturePreview, setFixturePreview] = useState<FixturePreview | null>(null);
   const [fixtureFilter, setFixtureFilter] = useState<'ALL' | FixtureStatus>('ALL');
   const [players, setPlayers] = useState<AdminPlayer[]>([]);
+  const [health, setHealth] = useState<{ seasonId: string; data: AdminCompetitionHealth } | null>(null);
   const [promotion, setPromotion] = useState<PromotionProjection | null>(null);
   const [proposal, setProposal] = useState<PromotionMovement[]>([]);
   const [targetSeasonId, setTargetSeasonId] = useState('');
@@ -106,6 +135,10 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const confirmDialogRef = useRef<HTMLDivElement | null>(null);
+  const confirmTriggerRef = useRef<HTMLElement | null>(null);
+  const healthRequestRef = useRef(0);
+  const selectedSeasonIdRef = useRef('');
 
   const [newSeasonName, setNewSeasonName] = useState('');
   const [cloneName, setCloneName] = useState('');
@@ -122,6 +155,8 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
 
   const orderedLeagues = useMemo(() => [...leagues].sort(orderLeagues), [leagues]);
   const selectedSeason = seasons.find((season) => season.id === selectedSeasonId) ?? null;
+  selectedSeasonIdRef.current = selectedSeason?.id ?? '';
+  const selectedHealth = health && health.seasonId === selectedSeason?.id ? health.data : null;
   const effectiveLeagueId = selectedLeagueId && leagues.some((league) => league.id === selectedLeagueId) ? selectedLeagueId : selectedId;
   const selectedLeague = leagues.find((league) => league.id === effectiveLeagueId) ?? null;
   const memberLeague = selectedLeague ?? orderedLeagues[0] ?? null;
@@ -131,6 +166,19 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const rejectedPlayers = useMemo(() => players.filter((player) => player.clubStatus === 'REJECTED'), [players]);
 
   const clear = () => { setMessage(''); setError(''); };
+
+  const loadHealth = async (seasonId = selectedSeason?.id) => {
+    if (!seasonId || seasonId !== selectedSeasonIdRef.current) return;
+    const request = ++healthRequestRef.current;
+    try {
+      const payload = await api.seasonHealth(seasonId);
+      if (request !== healthRequestRef.current || seasonId !== selectedSeasonIdRef.current) return;
+      setHealth({ seasonId, data: payload.health });
+    } catch (cause) {
+      if (request !== healthRequestRef.current || seasonId !== selectedSeasonIdRef.current) return;
+      setError(describeError(cause, 'Season health could not be loaded.'));
+    }
+  };
 
   const selectLeague = (league: LeagueSummary | null) => {
     setSelectedId(league?.id ?? '');
@@ -174,6 +222,48 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     }).catch((cause) => active && setError(describeError(cause, 'League structure could not be loaded.')));
     return () => { active = false; };
   }, [selectedSeason?.id]);
+
+  useEffect(() => {
+    if (!selectedSeason) {
+      healthRequestRef.current += 1;
+      setHealth(null);
+      return;
+    }
+    void loadHealth(selectedSeason.id);
+  }, [selectedSeason?.id]);
+
+  useEffect(() => {
+    if (!confirm) return;
+    confirmTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = confirmDialogRef.current;
+    const focusable = dialog?.querySelectorAll<HTMLElement>('button:not([disabled])');
+    focusable?.[0]?.focus();
+
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setConfirm(null);
+        return;
+      }
+      if (event.key !== 'Tab' || !focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    const trigger = confirmTriggerRef.current;
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (trigger?.isConnected) trigger.focus();
+    };
+  }, [confirm]);
 
   useEffect(() => {
     if (!selectedLeagueId) return;
@@ -329,7 +419,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
 
   const assignPlayer = async (player: UnassignedPlayer) => {
     if (!selectedSeason) return; const leagueId = assignmentTargets[player.id]; if (!leagueId) return; clear();
-    try { await api.assignSeasonMember(selectedSeason.id, player.id, leagueId); await loadRoster(); setMessage('Player assigned.'); }
+    try { await api.assignSeasonMember(selectedSeason.id, player.id, leagueId); await loadRoster(); void loadHealth(); setMessage('Player assigned.'); }
     catch (cause) { setError(describeError(cause, 'Player could not be assigned.')); }
   };
 
@@ -344,6 +434,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     try {
       await api.updateMember(member.leagueId, member.userId, active);
       setMembersByLeague((current) => ({ ...current, [member.leagueId]: (current[member.leagueId] ?? []).map((row) => row.userId === member.userId ? { ...row, active } : row) }));
+      void loadHealth();
       setMessage(active ? 'League membership reactivated.' : 'League membership deactivated.');
     } catch (cause) { setError(describeError(cause, 'League membership could not be updated.')); }
   };
@@ -401,16 +492,27 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   };
   const commitFixtures = async () => {
     if (!selectedLeague) return; clear();
-    try { setFixtures((await api.commitFixtures(selectedLeague.id)).fixtures); setMessage('Fixtures committed.'); }
+    try { setFixtures((await api.commitFixtures(selectedLeague.id)).fixtures); void loadHealth(); setMessage('Fixtures committed.'); }
     catch (cause) { setError(describeError(cause, 'Fixtures could not be committed.')); }
   };
-  const voidFixture = async (fixture: FixtureSummary) => {
+  const updateFixtureStatus = async (fixture: FixtureSummary) => {
     clear();
     try {
       const payload = await api.setFixtureStatus(fixture.id, fixture.status === 'VOID' ? 'OUTSTANDING' : 'VOID');
       setFixtures((current) => current.map((row) => row.id === fixture.id ? payload.fixture : row));
+      void loadHealth();
       setMessage(fixture.status === 'VOID' ? 'Fixture restored.' : 'Fixture voided.');
     } catch (cause) { setError(describeError(cause, 'Fixture could not be updated.')); }
+  };
+  const voidFixture = (fixture: FixtureSummary) => {
+    const restoring = fixture.status === 'VOID';
+    setConfirm({
+      title: restoring ? 'Restore fixture?' : 'Void fixture?',
+      message: restoring
+        ? 'This returns the fixture to the outstanding schedule.'
+        : 'This removes the fixture from the active schedule until an administrator restores it.',
+      action: () => updateFixtureStatus(fixture),
+    });
   };
 
   const createProposal = async () => {
@@ -465,6 +567,16 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       </div></details>
     </div>
 
+    {task === 'season' && selectedSeason && selectedHealth && <section className="admin-block season-health" aria-labelledby="season-health-title">
+      <div className="section-heading"><h3 id="season-health-title">Season health</h3></div>
+      <dl className="season-health-grid">
+        <div><dt>Unassigned players</dt><dd>{selectedHealth.unassignedPlayers}</dd></div>
+        <div><dt>Outstanding fixtures</dt><dd>{selectedHealth.outstandingFixtures}</dd></div>
+        <div><dt>Pending confirmations</dt><dd>{selectedHealth.pendingConfirmations}</dd></div>
+        <div><dt>Disputes</dt><dd>{selectedHealth.disputes}</dd></div>
+      </dl>
+    </section>}
+
     <div role="tabpanel" hidden={task !== 'leagues'}>
       <div className="admin-block"><div className="section-heading"><h3>League structure</h3><span className="count-label">{orderedLeagues.length}</span></div>{leagueSummaryComplete ? <ul className="competition-league-list" aria-label="Ordered league structure">{orderedLeagues.map((league) => {
         const activeCount = (membersByLeague[league.id] ?? []).filter((member) => member.active).length;
@@ -489,6 +601,8 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
 
     <div role="tabpanel" hidden={task !== 'promotion'}><div className="admin-block"><div className="section-heading"><h3>Promotion & relegation</h3>{promotion && <span className="status-label">{promotion.provisional ? 'Provisional' : 'Final eligible'}</span>}</div><ul className="admin-list">{promotion?.movements.map((movement) => <li key={movement.userId}><div><strong>{memberName(movement.userId)}</strong><small>{leagueName(movement.fromLeagueId)} → {leagueName(movement.toLeagueId)} · {movement.kind.toLowerCase()}</small></div></li>)}</ul></div><div className="admin-block stack-form"><label>Next season<select value={targetSeasonId} onChange={(e) => setTargetSeasonId(e.target.value)}><option value="">Choose draft season</option>{seasons.filter((season) => season.id !== selectedSeasonId && season.status === 'DRAFT').map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}</select></label><button className="primary-button" type="button" disabled={!targetSeasonId || promotion?.provisional === true} onClick={() => void createProposal()}>Create promotion proposal</button></div>{proposal.length > 0 && <div className="admin-block"><ul className="admin-list">{proposal.map((movement) => <li key={movement.userId}><div><strong>{memberName(movement.userId)}</strong><small>{leagueName(movement.fromLeagueId)} → {leagueName(movement.toLeagueId)}</small></div><div className="proposal-controls"><label>Override destination for {memberName(movement.userId)}<select value={overrideTargets[movement.userId] ?? movement.toLeagueId ?? ''} onChange={(e) => setOverrideTargets((current) => ({ ...current, [movement.userId]: e.target.value }))}>{targetLeagues.map((league) => <option key={league.id} value={league.id}>{league.name}</option>)}</select></label><label>Override reason for {memberName(movement.userId)}<input value={overrideReasons[movement.userId] ?? ''} onChange={(e) => setOverrideReasons((current) => ({ ...current, [movement.userId]: e.target.value }))} /></label><button className="action-button" type="button" onClick={() => void saveOverride(movement)}>Save override for {memberName(movement.userId)}</button></div></li>)}</ul><button className="primary-button" type="button" onClick={() => void applyProposal()}>Apply to next season</button></div>}</div>
 
+    {task === 'promotion' && <PromotionAmbiguityList ambiguities={promotion?.ambiguities ?? []} leagueName={leagueName} memberName={memberName} />}
+
     <div role="tabpanel" hidden={task !== 'access'} className="club-access-panel">
       <section className="admin-block club-access-priority" aria-label="Pending membership requests">
         <div className="section-heading"><div><h3>Pending requests</h3><p className="form-help">Approval grants permanent club access. League placement remains a separate season action.</p></div><span className="count-label">{pendingPlayers.length}</span></div>
@@ -510,6 +624,19 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       </section>
     </div>
 
-    {confirm && <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-labelledby="competition-confirm-title" className="confirm-dialog"><h3 id="competition-confirm-title">{confirm.title}</h3><p>{confirm.message}</p><div className="inline-actions"><button className="secondary-button" type="button" onClick={() => setConfirm(null)}>Cancel</button><button className="primary-button" type="button" onClick={() => { const current = confirm; setConfirm(null); void current.action().catch((cause) => setError(describeError(cause, 'Action could not be completed.'))); }}>Confirm</button></div></div></div>}
+    {confirm && <div className="dialog-backdrop">
+      <div ref={confirmDialogRef} role="dialog" aria-modal="true" aria-labelledby="competition-confirm-title" aria-describedby="competition-confirm-message" className="confirm-dialog">
+        <h3 id="competition-confirm-title">{confirm.title}</h3>
+        <p id="competition-confirm-message">{confirm.message}</p>
+        <div className="inline-actions">
+          <button className="secondary-button" type="button" onClick={() => setConfirm(null)}>Cancel</button>
+          <button className="primary-button" type="button" onClick={() => {
+            const current = confirm;
+            setConfirm(null);
+            void current.action().catch((cause) => setError(describeError(cause, 'Action could not be completed.')));
+          }}>Confirm</button>
+        </div>
+      </div>
+    </div>}
   </section>;
 }

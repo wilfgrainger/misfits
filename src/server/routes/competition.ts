@@ -17,6 +17,7 @@ import {
   listUnassignedUsers,
   moveUserBetweenLeagues,
   previewLeagueFixtures,
+  seasonHealth,
   setFixtureStatus,
 } from '../db/competition';
 import { createSeasonLeague, deleteEmptySeasonLeague, updateSeasonLeague } from '../db/competition-leagues';
@@ -89,6 +90,12 @@ export function createCompetitionRoutes(dependencies: CompetitionRouteDependenci
     const season = await getSeason(c.env.DB, c.req.param('seasonId'));
     if (!season) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'Season was not found', 404));
     return c.json({ leagues: await listSeasonLeagues(c.env.DB, season.id) }, 200, { 'Cache-Control': 'private, no-store' });
+  });
+
+  routes.get('/api/admin/seasons/:seasonId/health', async (c) => {
+    const season = await getSeason(c.env.DB, c.req.param('seasonId'));
+    if (!season) return jsonError(c, new AppError('LEAGUE_NOT_FOUND', 'Season was not found', 404));
+    return c.json({ health: await seasonHealth(c.env.DB, season.id) }, 200, { 'Cache-Control': 'private, no-store' });
   });
 
   routes.post('/api/admin/seasons/:seasonId/leagues', requireSameOrigin, async (c) => {

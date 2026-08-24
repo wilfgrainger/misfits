@@ -42,13 +42,7 @@ MASTER_ADMIN_EMAIL=...
 
 ## Production and Cloudflare
 
-The production Worker is configured in `wrangler.jsonc`. Apply D1 migrations before deploying code that depends on them:
-
-```bash
-npm run db:migrate:remote
-npm run build
-npx wrangler deploy --keep-vars
-```
+The production Worker is configured in `wrangler.jsonc`. Do not deploy application code or mutate production D1 from an authenticated local shell. For a schema-dependent change, commit the additive migration, dispatch **Production D1 management** with its immutable commit SHA and `APPLY-D1`, then merge only after that workflow has verified the database.
 
 ### Automatic deployment after merge
 
@@ -59,7 +53,7 @@ Add these repository Actions secrets before merging a deployable change:
 - `CLOUDFLARE_API_TOKEN` — a narrowly scoped Cloudflare API token that can deploy Workers for this account.
 - `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare account containing the `darts-501` Worker and `misfits` D1 database.
 
-The workflow does not apply remote D1 migrations automatically. For a schema-dependent change, apply and verify its additive migration first, then merge the code so the main-branch deployment remains safe and repeatable. See the [Cloudflare free-tier runbook](docs/operations/cloudflare-free-tier-runbook.md) for the release boundary.
+The deployment workflow does not apply remote D1 migrations automatically. The separately dispatched **Production D1 management** workflow owns that mutation; after it verifies an additive migration, merge the dependent code so the main-branch deployment remains safe and repeatable. See the [Cloudflare free-tier runbook](docs/operations/cloudflare-free-tier-runbook.md) for the release boundary.
 
 Configure production values with Wrangler secrets. `MASTER_ADMIN_EMAIL` identifies the first master administrator; `BOOTSTRAP_ADMIN_EMAIL` is retained as a compatibility fallback. Administrators may then enable other administrators from the People controls. Keep administrator email configuration private.
 

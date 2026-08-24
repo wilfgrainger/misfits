@@ -49,6 +49,7 @@ function installApi() {
       { id: 'admin-1', email: 'admin@example.com', username: 'Admin', role: 'ADMIN', status: 'ACTIVE', leagueActive: true, profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: true },
     ] }), { status: 200 });
     if (path === '/api/admin/seasons/s1/leagues') return new Response(JSON.stringify({ leagues: [league] }), { status: 200 });
+    if (path === '/api/admin/seasons/s1/health') return new Response(JSON.stringify({ health: { unassignedPlayers: 0, outstandingFixtures: 1, pendingConfirmations: 1, disputes: 1 } }), { status: 200 });
     if (path === '/api/admin/competition/leagues/l1/members') return new Response(JSON.stringify({ members }), { status: 200 });
     if (path === '/api/admin/competition/leagues/l1/fixtures' && method === 'GET') return new Response(JSON.stringify({ fixtures }), { status: 200 });
     if (path === '/api/admin/leagues/l1/results' && method === 'GET') return new Response(JSON.stringify({ results: [pending, disputed] }), { status: 200 });
