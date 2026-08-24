@@ -123,6 +123,21 @@ describe('mobile league workspaces', () => {
     expect(document.activeElement).toBe(dispute);
   });
 
+  it('shows a submitted pending result without offering self-confirmation', async () => {
+    const pendingResult = { id: 'result-1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 3, playerBLegs: 1, playerAAverage: 51.24, playerBAverage: 47.1, submittedBy: 'player-a', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null };
+    installReadApi({ myResults: [pendingResult] });
+    renderParticipant();
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Results' }));
+
+    expect(await screen.findByText('Alpha')).toBeTruthy();
+    expect(screen.getByText('Bravo')).toBeTruthy();
+    expect(screen.getByText('PENDING')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Dispute' })).toBeNull();
+  });
+
   it('saves the signed-in player profile through the More panel', async () => {
     const onUserSaved = vi.fn();
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {

@@ -93,6 +93,12 @@ class MemoryD1 {
     }
     if (sql.includes('FROM seasons WHERE id')) return (this.seasons.get(String(values[0])) ?? null) as T;
     if (sql.includes('FROM leagues WHERE id')) return (this.leagues.get(String(values[0])) ?? null) as T;
+    if (sql.includes('AS unassigned_players')) return {
+      unassigned_players: 1,
+      outstanding_fixtures: 2,
+      pending_confirmations: 3,
+      disputes: 4,
+    } as T;
     if (sql.includes('COUNT(*)') && sql.includes('FROM league_players lp') && sql.includes('JOIN users u')) {
       const leagueId = String(values[0]);
       const seasonId = String(values[1]);
@@ -164,6 +170,22 @@ describe('competition administration routes', () => {
     const response = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', mutation(await cookieFor(db, 'admin'), { name: '2026/27', status: 'OPEN', isCurrent: true })), env, {} as never);
     expect(response.status).toBe(409);
     expect(db.seasons.size).toBe(0);
+  });
+
+  it('returns concise season health to an administrator', async () => {
+    const { db, env, routes } = setup();
+    const cookie = await cookieFor(db, 'admin');
+    const seasonResponse = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', mutation(cookie, { name: '2026/27', status: 'DRAFT', isCurrent: false })), env, {} as never);
+    const season = (await seasonResponse.json() as { season: Season }).season;
+
+    const response = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}/health`, { headers: { Cookie: cookie } }), env, {} as never);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await response.json()).toEqual({ health: { unassignedPlayers: 1, outstandingFixtures: 2, pendingConfirmations: 3, disputes: 4 } });
+
+    const playerResponse = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}/health`, { headers: { Cookie: await cookieFor(db, 'player') } }), env, {} as never);
+    expect(playerResponse.status).toBe(403);
   });
 
   it('creates ordered leagues inside a season and persists promotion/relegation settings', async () => {

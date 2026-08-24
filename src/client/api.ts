@@ -464,6 +464,9 @@ export class ApiClient {
   seasonLeagues(seasonId: string) {
     return this.call<{ leagues: unknown[] }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/leagues`).then(({ leagues }) => ({ leagues: leagues.map(normalizeLeague) }));
   }
+  seasonHealth(seasonId: string) {
+    return this.call<{ health: AdminCompetitionHealth }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/health`);
+  }
   createSeasonLeague(seasonId: string, input: Partial<LeagueSummary> & { name: string; maxPlayers: number }) {
     return this.call<{ league: unknown }>(`/api/admin/seasons/${encodeURIComponent(seasonId)}/leagues`, { method: 'POST', body: JSON.stringify(input) }).then(({ league }) => ({ league: normalizeLeague(league) }));
   }

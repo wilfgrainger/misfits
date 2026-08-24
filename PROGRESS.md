@@ -1,13 +1,13 @@
 # Misfits 501 Progress
 
-**Updated:** 23 August 2026  
-**Current branch:** `feat/club-first-navigation`  
-**PR:** #174 `feat: make member navigation club-first`  
-**Current focus:** final exact-head CI → Cave Pony/Impeccable release review → merge → verify main deploy → production smoke  
-**Backend/schema/infra change in PR #174:** NONE  
+**Updated:** 24 August 2026
+**Current branch:** `wilfgrainger-issue-and-release-review`
+**PR:** Pending - issue and release status review
+**Current focus:** final diff review and one pull request for the bounded issue/release repair set
+**Backend/schema/infra change:** Admin-only season-health read; no schema or Cloudflare architecture change
 **Production D1 migration required:** NO
 
-## Restart here
+## Current review
 
 Read, in order:
 
@@ -16,10 +16,12 @@ Read, in order:
 3. `PRODUCT.md`
 4. `VISION.md`
 5. `DESIGN.md`
-6. `docs/superpowers/specs/2026-08-23-club-first-navigation-design.md`
-7. `docs/superpowers/plans/2026-08-23-club-first-navigation.md`
+6. `docs/operations/2026-08-24-issue-and-release-status.md`
+7. affected code, tests and release workflow
 
-This file is the current execution-state authority. The Superpowers plan records delivery structure; CI and the latest PR head are the release evidence.
+The current bounded repair set resolves #92, #100, #101, #104 and #145, and removes competing local production deploy/migration shortcuts. The 24 August full repository gate passed: Wrangler types, both TypeScript projects, 65 test files / 269 tests, production build, Impeccable detector and `git diff --check`. The remaining 28 open issues are classified in the status report rather than silently widened into this release.
+
+PR #174 merged into `main` at `11e692e` on 23 August 2026. Its club-first design and plan remain historical implementation evidence.
 
 ## Production baseline already complete
 
@@ -31,7 +33,7 @@ That release established permanent `PENDING / APPROVED / REJECTED` membership, i
 
 Production migration `0006_private_club_membership.sql` was already executed and verified before that merge through GitHub Actions run `32633942454`. PR #174 does not alter the database and must not run a migration.
 
-## Club-first release contract
+## Historical club-first release contract
 
 PR #174 replaces the old league-framed signed-in experience with the approved club-first information architecture:
 
@@ -156,7 +158,7 @@ The repo-local Impeccable detector has remained clean in all cited runs.
 
 This execution environment does not provide a rendered browser/Playwright surface for manual pixel inspection. Do not claim screenshot-perfect acceptance. CI/static responsive rules are release evidence here; rendered device review remains a post-release visual inspection item if needed.
 
-## Final release gate
+## Historical club-first final release gate
 
 Before merge:
 
