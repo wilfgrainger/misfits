@@ -2,10 +2,10 @@
 
 ## Scope and evidence
 
-- Reviewed every GitHub issue in `wilfgrainger/misfits`: **33 open, 118 closed**. Pull requests were reviewed separately.
+- Reviewed every GitHub issue in `wilfgrainger/misfits`: **26 open, 125 closed**. Pull requests were reviewed separately.
 - Checked `https://darts.graingers.agency`: HTTPS returned `200`, `/api/health` returned `{"ok":true}`, and the public shell carried the expected privacy/security headers. The deployed bundle contains the club-first member-shell markers.
 - Reviewed the supplied signed-in and signed-out captures. No Google-authenticated live journey was performed because no member credentials were used.
-- Fresh repository gate: Wrangler types, both TypeScript projects, **65 test files / 269 tests**, production Vite build, Impeccable detector (`[]`) and `git diff --check` all passed.
+- Fresh repository gate: Wrangler types, both TypeScript projects, **66 test files / 273 tests**, production Vite build, Impeccable detector (`[]`) and `git diff --check` all passed.
 
 ## Closed issue history
 
@@ -15,6 +15,7 @@
 | Canonical player stories | #106-113, #115-116, #118, #120, #122-126, #130, #146-154, #156, #159 | 29 issues closed by the same audit. |
 | Canonical public stories | #161-164, #166-167 | 6 historical closures. They no longer prove current public-data behaviour because private-club authority superseded it. |
 | Production launch | #2 | Deployment occurred, but the original signed-in Google end-to-end acceptance was not independently observed. |
+| Superseded private-club stories | #117, #119 | Closed as not planned on 24 August after the club-first navigation and private-club visibility contract replaced the old requirements. |
 
 The closed catalogue is historical evidence, not a reason to reopen current private-club decisions.
 
@@ -22,11 +23,10 @@ The closed catalogue is historical evidence, not a reason to reopen current priv
 
 | Disposition | Issues | Outcome |
 | --- | --- | --- |
-| Fixed in this PR | #92, #100, #101, #104, #145 | Promotion ambiguity visibility, season health, destructive fixture confirmation/focus return, 44px admin controls, and submitter-owned pending results. |
+| Fixed in #177/#178 | #92, #100, #101, #104, #145 | Promotion ambiguity visibility, season health, approved-member season placement, destructive fixture confirmation/focus return, 44px admin controls, and submitter-owned pending results. |
 | Requires integrity or authorization design | #98, #114 | Do not merge casually: #98 changes season readiness enforcement and #114 changes authentication-facing suspension behaviour. |
 | Fixture-first scope, separately approved | #131-144 | Keep parked until the separately approved player-facing fixture-first scope is activated; then build one Worker-enforced member-scoped fixture read instead of weakening the current admin-only endpoint. |
 | Intentionally parked scope | #127-129, #157-160 | Movement/placement policy remains parked by `PROGRESS.md`. |
-| Obsolete after club-first navigation | #117, #119 | Home is now the default and Leagues already browses allowed club competitions. |
 | Requires product revalidation | #121, #155, #165 | Rules wall, historical archive, and public fixtures conflict with the current product/visibility authority. |
 | UI follow-up | #105 | Desktop administration needs a separate rendered design pass, not an opportunistic layout patch. |
 
