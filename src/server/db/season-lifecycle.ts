@@ -17,7 +17,9 @@ export async function assertSeasonReadyToOpen(db: D1Database, seasonId: string):
         WHERE lp.league_id = ?
           AND lp.season_id = ?
           AND lp.active = 1
-          AND u.status = 'ACTIVE'`,
+          AND u.status = 'ACTIVE'
+          AND u.club_status = 'APPROVED'
+          AND u.role = 'PLAYER'`,
     ).bind(league.id, seasonId).first<{ count: number }>();
     if (Number(roster?.count ?? 0) < 2) {
       throw new AppError('VALIDATION_ERROR', `${league.name} needs at least two active players before the season can open`, 409);

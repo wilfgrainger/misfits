@@ -162,4 +162,24 @@ describe('ApiClient admin workspace calls', () => {
       '/api/admin/seasons/s1/promotion/apply',
     ]);
   });
+
+  it('loads public fixture metadata and private season movement contracts', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ league: { id: 'l1', name: 'Premier', slug: 'premier', season_name: '2026/27', status: 'OPEN', max_legs: 6, target_legs: 4, points_per_win: 3, points_per_draw: 1, points_per_loss: 0, max_players: 10, matches_per_pair: 2, visibility: 'PUBLIC', season_id: 's1', hierarchy_position: 1, promotion_places: 1, relegation_places: 0 }, players: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ fixtures: [{ round: 1, meeting_number: 1, status: 'CONFIRMED', player_a_username: 'Alpha', player_b_username: 'Bravo', result: { player_a_legs: 3, player_b_legs: 1, player_a_average: 61.2, player_b_average: 52.4, confirmed_at: '2026-08-20T12:00:00.000Z' } }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ seasons: [{ season: { id: 's1', name: '2026/27', status: 'CLOSED', isCurrent: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', closedAt: '2026-08-20T00:00:00.000Z' }, leagues: [], placedLeagueIds: [] }], movements: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ seasonId: 's1', state: 'PROVISIONAL', provisional: true, unresolvedCount: 1, movement: { userId: 'u1', fromLeagueId: 'l2', toLeagueId: 'l1', fromPosition: 1, kind: 'PROMOTED', fromLeagueName: 'Division One', toLeagueName: 'Premier' }, ambiguity: null }), { status: 200 }));
+
+    const client = new ApiClient();
+    await expect(client.publicOpenLeague('premier')).resolves.toMatchObject({ league: { seasonId: 's1', promotionPlaces: 1 } });
+    await expect(client.publicFixtures('premier')).resolves.toMatchObject({ fixtures: [{ status: 'CONFIRMED', result: { playerALegs: 3, playerBAverage: 52.4 } }] });
+    await expect(client.seasonHistory()).resolves.toMatchObject({ seasons: [{ season: { id: 's1' } }] });
+    await expect(client.playerMovement('s1')).resolves.toMatchObject({ state: 'PROVISIONAL', movement: { toLeagueName: 'Premier' } });
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/public/open-leagues/premier',
+      '/api/public/leagues/premier/fixtures',
+      '/api/me/seasons',
+      '/api/me/seasons/s1/movement',
+    ]);
+  });
 });

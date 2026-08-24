@@ -49,7 +49,9 @@ export interface CompetitionMembershipRecord {
   username: string | null;
   profile_image_url: string | null;
   email?: string;
+  role?: 'PLAYER' | 'ADMIN';
   status?: 'ACTIVE' | 'SUSPENDED';
+  club_status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export interface FixtureRecord {
@@ -68,6 +70,14 @@ export interface FixtureRecord {
   player_a_username?: string | null;
   player_b_username?: string | null;
   result_id?: string | null;
+  result_status?: 'PENDING' | 'CONFIRMED' | 'DISPUTED' | null;
+  player_a_legs?: number | null;
+  player_b_legs?: number | null;
+  player_a_average?: number | null;
+  player_b_average?: number | null;
+  submitted_by?: string | null;
+  dispute_note?: string | null;
+  confirmed_at?: string | null;
 }
 
 export interface FixturePreview {
@@ -81,9 +91,27 @@ export interface FixturePreview {
 
 export interface SeasonHealth {
   unassignedPlayers: number;
+  invalidPlayers: number;
+  duplicatePlacements: number;
+  readyForFixtures: boolean;
   outstandingFixtures: number;
   pendingConfirmations: number;
   disputes: number;
+}
+
+export interface SeasonReadiness {
+  unassignedPlayers: number;
+  invalidPlayers: number;
+  duplicatePlacements: number;
+  outstandingFixtures: number;
+  pendingConfirmations: number;
+  disputes: number;
+  readyForFixtures: boolean;
+}
+
+export interface UserSeasonHistory {
+  season: SeasonRecord;
+  leagues: Array<CompetitionLeagueRecord & { membership_active: number }>;
 }
 
 function timestamp(now = new Date()): string {
@@ -91,6 +119,7 @@ function timestamp(now = new Date()): string {
 }
 
 const ACTIVE_APPROVED_USER_SQL = "u.status = 'ACTIVE' AND u.club_status = 'APPROVED'";
+const ACTIVE_APPROVED_PLAYER_SQL = `${ACTIVE_APPROVED_USER_SQL} AND u.role = 'PLAYER'`;
 
 export async function listSeasons(db: D1Database): Promise<SeasonRecord[]> {
   const result = await db.prepare(
@@ -191,6 +220,28 @@ export async function listSeasonLeagues(db: D1Database, seasonId: string): Promi
   return result.results;
 }
 
+export async function listUserSeasonHistory(db: D1Database, userId: string): Promise<UserSeasonHistory[]> {
+  const seasons = await listSeasons(db);
+  const memberships = await db.prepare(
+    `SELECT season_id, league_id, active
+       FROM league_players
+      WHERE user_id = ?
+      ORDER BY season_id, league_id`,
+  ).bind(userId).all<{ season_id: string | null; league_id: string; active: number }>();
+  const membershipByLeague = new Map(memberships.results.map((row) => [row.league_id, row.active]));
+  const placedSeasonIds = new Set(memberships.results.map((row) => row.season_id).filter((id): id is string => Boolean(id)));
+  const relevantSeasons = seasons.filter((season) => season.is_current === 1 || season.status === 'CLOSED' || placedSeasonIds.has(season.id));
+  const history: UserSeasonHistory[] = [];
+  for (const season of relevantSeasons) {
+    const leagues = (await listSeasonLeagues(db, season.id)).map((league) => ({
+      ...league,
+      membership_active: membershipByLeague.get(league.id) ?? 0,
+    }));
+    history.push({ season, leagues });
+  }
+  return history;
+}
+
 export async function getCompetitionLeague(db: D1Database, leagueId: string): Promise<CompetitionLeagueRecord | null> {
   return (await db.prepare(
     `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
@@ -212,7 +263,7 @@ export async function leagueHasFixturesOrResults(db: D1Database, leagueId: strin
 export async function listCompetitionMemberships(db: D1Database, leagueId: string): Promise<CompetitionMembershipRecord[]> {
   const result = await db.prepare(
     `SELECT lp.league_id, lp.season_id, lp.user_id, lp.active, lp.joined_at,
-            u.username, u.profile_image_url, u.email, u.status
+            u.username, u.profile_image_url, u.email, u.role, u.status, u.club_status
        FROM league_players lp
        JOIN users u ON u.id = lp.user_id
       WHERE lp.league_id = ?
@@ -225,13 +276,14 @@ export async function listUnassignedUsers(db: D1Database, seasonId: string): Pro
   const result = await db.prepare(
     `SELECT u.id, u.username, u.email, u.status
        FROM users u
-      WHERE ${ACTIVE_APPROVED_USER_SQL}
+      WHERE ${ACTIVE_APPROVED_PLAYER_SQL}
         AND NOT EXISTS (
           SELECT 1 FROM league_players lp
-           WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1
+           JOIN leagues l ON l.id = lp.league_id
+           WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1 AND l.season_id = ?
         )
       ORDER BY u.username COLLATE NOCASE ASC, u.email COLLATE NOCASE ASC`,
-  ).bind(seasonId).all<{ id: string; username: string | null; email: string; status: string }>();
+  ).bind(seasonId, seasonId).all<{ id: string; username: string | null; email: string; status: string }>();
   return result.results;
 }
 
@@ -239,8 +291,8 @@ export async function assignUserToLeague(db: D1Database, actorUserId: string, se
   const league = await getCompetitionLeague(db, leagueId);
   if (!league || league.season_id !== seasonId) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found in this season', 404);
   if (await leagueHasFixturesOrResults(db, leagueId)) throw new AppError('VALIDATION_ERROR', 'League membership is locked after fixtures or results exist', 409);
-  const user = await db.prepare(`SELECT u.id FROM users u WHERE u.id = ? AND ${ACTIVE_APPROVED_USER_SQL}`).bind(userId).first<{ id: string }>();
-  if (!user) throw new AppError('VALIDATION_ERROR', 'Only an active, approved club member can be assigned', 409);
+  const user = await db.prepare(`SELECT u.id FROM users u WHERE u.id = ? AND ${ACTIVE_APPROVED_PLAYER_SQL}`).bind(userId).first<{ id: string }>();
+  if (!user) throw new AppError('VALIDATION_ERROR', 'Only an active, approved player can be assigned', 409);
   const capacity = await db.prepare('SELECT COUNT(*) AS count FROM league_players WHERE league_id = ? AND active = 1').bind(leagueId).first<{ count: number }>();
   if (Number(capacity?.count ?? 0) >= league.max_players) throw new AppError('LEAGUE_FULL', 'This league has reached its player limit', 409);
   const existing = await db.prepare('SELECT league_id FROM league_players WHERE season_id = ? AND user_id = ? AND active = 1').bind(seasonId, userId).first<{ league_id: string }>();
@@ -266,6 +318,8 @@ export async function moveUserBetweenLeagues(db: D1Database, actorUserId: string
   }
   const toLeague = await getCompetitionLeague(db, toLeagueId);
   if (!toLeague || toLeague.season_id !== seasonId) throw new AppError('LEAGUE_NOT_FOUND', 'Target league was not found in this season', 404);
+  const user = await db.prepare(`SELECT u.id FROM users u WHERE u.id = ? AND ${ACTIVE_APPROVED_PLAYER_SQL}`).bind(userId).first<{ id: string }>();
+  if (!user) throw new AppError('VALIDATION_ERROR', 'Only an active, approved player can be placed', 409);
   const existing = await db.prepare('SELECT active FROM league_players WHERE league_id = ? AND user_id = ? AND season_id = ?').bind(fromLeagueId, userId, seasonId).first<{ active: number }>();
   if (!existing?.active) throw new AppError('VALIDATION_ERROR', 'Source league membership was not found', 404);
   const count = await db.prepare('SELECT COUNT(*) AS count FROM league_players WHERE league_id = ? AND active = 1').bind(toLeagueId).first<{ count: number }>();
@@ -285,17 +339,83 @@ export async function moveUserBetweenLeagues(db: D1Database, actorUserId: string
   ]);
 }
 
+export async function seasonReadiness(db: D1Database, seasonId: string): Promise<SeasonReadiness> {
+  const row = await db.prepare(
+    `SELECT
+       (SELECT COUNT(*)
+          FROM users u
+        WHERE ${ACTIVE_APPROVED_PLAYER_SQL}
+           AND NOT EXISTS (
+             SELECT 1 FROM league_players lp
+              JOIN leagues l ON l.id = lp.league_id
+             WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1 AND l.season_id = ?
+           )) AS unassigned_players,
+       (SELECT COUNT(*)
+          FROM league_players lp
+          LEFT JOIN users u ON u.id = lp.user_id
+          LEFT JOIN leagues l ON l.id = lp.league_id
+         WHERE lp.season_id = ? AND lp.active = 1
+           AND (u.id IS NULL OR u.status <> 'ACTIVE' OR u.club_status <> 'APPROVED' OR u.role <> 'PLAYER' OR l.id IS NULL OR l.season_id <> ?)
+       ) AS invalid_players,
+       (SELECT COUNT(*) FROM (
+          SELECT lp.user_id
+            FROM league_players lp
+            JOIN leagues l ON l.id = lp.league_id
+           WHERE lp.season_id = ? AND lp.active = 1 AND l.season_id = ?
+           GROUP BY lp.user_id
+          HAVING COUNT(*) > 1
+       )) AS duplicate_placements,
+       (SELECT COUNT(*) FROM fixtures WHERE season_id = ? AND status = 'OUTSTANDING') AS outstanding_fixtures,
+       (SELECT COUNT(*) FROM fixtures WHERE season_id = ? AND status = 'PENDING_CONFIRMATION') AS pending_confirmations,
+       (SELECT COUNT(*) FROM fixtures WHERE season_id = ? AND status = 'DISPUTED') AS disputes`,
+  ).bind(seasonId, seasonId, seasonId, seasonId, seasonId, seasonId, seasonId, seasonId, seasonId).first<{
+    unassigned_players: number;
+    invalid_players: number;
+    duplicate_placements: number;
+    outstanding_fixtures: number;
+    pending_confirmations: number;
+    disputes: number;
+  }>();
+  const unassignedPlayers = Number(row?.unassigned_players ?? 0);
+  const invalidPlayers = Number(row?.invalid_players ?? 0);
+  const duplicatePlacements = Number(row?.duplicate_placements ?? 0);
+  return {
+    unassignedPlayers,
+    invalidPlayers,
+    duplicatePlacements,
+    outstandingFixtures: Number(row?.outstanding_fixtures ?? 0),
+    pendingConfirmations: Number(row?.pending_confirmations ?? 0),
+    disputes: Number(row?.disputes ?? 0),
+    readyForFixtures: unassignedPlayers === 0 && invalidPlayers === 0 && duplicatePlacements === 0,
+  };
+}
+
+export function assertSeasonReadyForFixtures(readiness: SeasonReadiness): void {
+  if (readiness.readyForFixtures) return;
+  const blockers: string[] = [];
+  if (readiness.unassignedPlayers > 0) blockers.push(`${readiness.unassignedPlayers} unassigned competitor${readiness.unassignedPlayers === 1 ? '' : 's'}`);
+  if (readiness.invalidPlayers > 0) blockers.push(`${readiness.invalidPlayers} invalid placement${readiness.invalidPlayers === 1 ? '' : 's'}`);
+  if (readiness.duplicatePlacements > 0) blockers.push(`${readiness.duplicatePlacements} duplicate placement${readiness.duplicatePlacements === 1 ? '' : 's'}`);
+  throw new AppError('VALIDATION_ERROR', `Resolve season placement blockers before generating fixtures: ${blockers.join(', ')}`, 409);
+}
+
 export async function previewLeagueFixtures(db: D1Database, leagueId: string): Promise<FixturePreview> {
   const league = await getCompetitionLeague(db, leagueId);
   if (!league?.season_id) throw new AppError('VALIDATION_ERROR', 'League is not attached to a season', 409);
+  assertSeasonReadyForFixtures(await seasonReadiness(db, league.season_id));
   const members = await db.prepare(
     `SELECT lp.user_id
        FROM league_players lp JOIN users u ON u.id = lp.user_id
-      WHERE lp.league_id = ? AND lp.season_id = ? AND lp.active = 1 AND u.status = 'ACTIVE'
+      WHERE lp.league_id = ? AND lp.season_id = ? AND lp.active = 1 AND ${ACTIVE_APPROVED_PLAYER_SQL}
       ORDER BY lp.user_id ASC`,
   ).bind(leagueId, league.season_id).all<{ user_id: string }>();
   if (members.results.length < 2) throw new AppError('VALIDATION_ERROR', 'At least two active league members are required', 409);
-  const allActive = await db.prepare('SELECT COUNT(*) AS count FROM league_players WHERE league_id = ? AND active = 1').bind(leagueId).first<{ count: number }>();
+  const allActive = await db.prepare(
+    `SELECT COUNT(*) AS count
+       FROM league_players lp
+       JOIN users u ON u.id = lp.user_id
+      WHERE lp.league_id = ? AND lp.season_id = ? AND lp.active = 1`,
+  ).bind(leagueId, league.season_id).first<{ count: number }>();
   if (Number(allActive?.count ?? 0) !== members.results.length) throw new AppError('VALIDATION_ERROR', 'Resolve suspended or invalid league members before generating fixtures', 409);
   const fixtures = generateRoundRobinFixtures(members.results.map((row) => row.user_id), league.matches_per_pair);
   return {
@@ -325,19 +445,22 @@ export async function commitLeagueFixtures(db: D1Database, actorUserId: string, 
   return listFixtures(db, leagueId);
 }
 
-export async function listFixtures(db: D1Database, leagueId: string, status?: FixtureStatus): Promise<FixtureRecord[]> {
+export async function listFixtures(db: D1Database, leagueId: string, status?: FixtureStatus, playerId?: string): Promise<FixtureRecord[]> {
   const result = await db.prepare(
     `SELECT f.id, f.season_id, f.league_id, f.player_a_id, f.player_b_id, f.pair_key,
             f.round, f.meeting_number, f.status, f.created_at, f.updated_at, f.voided_at,
             a.username AS player_a_username, b.username AS player_b_username,
-            m.id AS result_id
+            m.id AS result_id, m.status AS result_status,
+            m.player_a_legs, m.player_b_legs, m.player_a_average, m.player_b_average,
+            m.submitted_by, m.dispute_note, m.confirmed_at
        FROM fixtures f
        JOIN users a ON a.id = f.player_a_id
        JOIN users b ON b.id = f.player_b_id
        LEFT JOIN matches m ON m.fixture_id = f.id AND m.deleted_at IS NULL
       WHERE f.league_id = ? AND (? IS NULL OR f.status = ?)
+        AND (? IS NULL OR f.player_a_id = ? OR f.player_b_id = ?)
       ORDER BY f.round ASC, f.meeting_number ASC, a.username COLLATE NOCASE ASC, b.username COLLATE NOCASE ASC`,
-  ).bind(leagueId, status ?? null, status ?? null).all<FixtureRecord>();
+  ).bind(leagueId, status ?? null, status ?? null, playerId ?? null, playerId ?? null, playerId ?? null).all<FixtureRecord>();
   return result.results;
 }
 
@@ -346,7 +469,9 @@ export async function getFixture(db: D1Database, fixtureId: string): Promise<Fix
     `SELECT f.id, f.season_id, f.league_id, f.player_a_id, f.player_b_id, f.pair_key,
             f.round, f.meeting_number, f.status, f.created_at, f.updated_at, f.voided_at,
             a.username AS player_a_username, b.username AS player_b_username,
-            m.id AS result_id
+            m.id AS result_id, m.status AS result_status,
+            m.player_a_legs, m.player_b_legs, m.player_a_average, m.player_b_average,
+            m.submitted_by, m.dispute_note, m.confirmed_at
        FROM fixtures f
        JOIN users a ON a.id = f.player_a_id
        JOIN users b ON b.id = f.player_b_id
@@ -398,24 +523,5 @@ export async function deleteUnplayedFixtures(db: D1Database, actorUserId: string
 }
 
 export async function seasonHealth(db: D1Database, seasonId: string): Promise<SeasonHealth> {
-  const row = await db.prepare(
-    `SELECT
-      (SELECT COUNT(*) FROM users u WHERE ${ACTIVE_APPROVED_USER_SQL} AND NOT EXISTS (
-        SELECT 1 FROM league_players lp WHERE lp.user_id = u.id AND lp.season_id = ? AND lp.active = 1
-      )) AS unassigned_players,
-      (SELECT COUNT(*) FROM fixtures WHERE season_id = ? AND status = 'OUTSTANDING') AS outstanding_fixtures,
-      (SELECT COUNT(*) FROM fixtures WHERE season_id = ? AND status = 'PENDING_CONFIRMATION') AS pending_confirmations,
-      (SELECT COUNT(*) FROM fixtures WHERE season_id = ? AND status = 'DISPUTED') AS disputes`,
-  ).bind(seasonId, seasonId, seasonId, seasonId).first<{
-    unassigned_players: number;
-    outstanding_fixtures: number;
-    pending_confirmations: number;
-    disputes: number;
-  }>();
-  return {
-    unassignedPlayers: Number(row?.unassigned_players ?? 0),
-    outstandingFixtures: Number(row?.outstanding_fixtures ?? 0),
-    pendingConfirmations: Number(row?.pending_confirmations ?? 0),
-    disputes: Number(row?.disputes ?? 0),
-  };
+  return seasonReadiness(db, seasonId);
 }

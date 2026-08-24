@@ -272,6 +272,15 @@ describe('Google auth routes', () => {
     expect(await response.json()).toMatchObject({ error: { code: 'FORBIDDEN' } });
   });
 
+  it('explains a suspended session at the bootstrap boundary without returning club data', async () => {
+    const { routes, env, db } = setup();
+    db.users.set('suspended-user', user({ id: 'suspended-user', google_sub: 'google-suspended', status: 'SUSPENDED' }));
+    const issued = await issueSession(db as never, 'suspended-user', new Date('2026-08-20T12:00:00.000Z'));
+    const response = await routes.fetch(new Request('https://misfits.test/api/me', { headers: { Cookie: `misfits_session=${issued.token}` } }), env, {} as never);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: { code: 'ACCOUNT_SUSPENDED', message: 'This account is suspended. Contact a club administrator.' } });
+  });
+
   it('revokes both generic and legacy sessions when both cookies are present', async () => {
     const { routes, env, db } = setup();
     const signedIn = await routes.fetch(gis(), env, {} as never);

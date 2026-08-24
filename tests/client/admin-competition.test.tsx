@@ -42,6 +42,7 @@ const result = {
 interface FixtureConfig {
   closed?: boolean;
   ambiguity?: boolean;
+  readyForFixtures?: boolean;
   onHealthRequest?: (seasonId: string) => Promise<Response>;
 }
 
@@ -61,7 +62,8 @@ function installApi(config: FixtureConfig = {}) {
     if ((path === '/api/admin/seasons/s1/health' || path === '/api/admin/seasons/s2/health') && method === 'GET') {
       const seasonId = path.split('/')[4];
       if (config.onHealthRequest) return config.onHealthRequest(seasonId);
-      return new Response(JSON.stringify({ health: seasonId === 's1' ? { unassignedPlayers: 1, outstandingFixtures: 2, pendingConfirmations: 3, disputes: 4 } : { unassignedPlayers: 5, outstandingFixtures: 6, pendingConfirmations: 7, disputes: 8 } }), { status: 200 });
+      const health = seasonId === 's1' ? { unassignedPlayers: config.readyForFixtures ? 0 : 1, outstandingFixtures: 2, pendingConfirmations: 3, disputes: 4 } : { unassignedPlayers: 5, outstandingFixtures: 6, pendingConfirmations: 7, disputes: 8 };
+      return new Response(JSON.stringify({ health: config.readyForFixtures ? { ...health, readyForFixtures: true } : { ...health, invalidPlayers: 0, duplicatePlacements: 0, readyForFixtures: false } }), { status: 200 });
     }
     if (path === '/api/admin/seasons/s1/leagues' && method === 'POST') {
       const body = JSON.parse(String(init?.body));
@@ -134,6 +136,9 @@ describe('administrator competition workspace', () => {
   it('presents seven accessible admin tasks and creates a new durable season', async () => {
     const { fetchMock } = renderDesk();
     const tabs = await screen.findByRole('tablist', { name: 'Competition administration tasks' });
+    const desk = document.querySelector('[data-admin-layout="control-room"]');
+    expect(desk).toBeTruthy();
+    expect(desk?.querySelector('[data-layout-region="rail"]')).toBe(tabs);
     expect(within(tabs).getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
       'Season', 'Leagues', 'Season members', 'Fixtures', 'Results', 'Promotion', 'Club access',
     ]);
@@ -240,7 +245,7 @@ describe('administrator competition workspace', () => {
   });
 
   it('previews, commits, filters and confirms fixture voiding before mutation', async () => {
-    const { fetchMock } = renderDesk();
+    const { fetchMock } = renderDesk({ readyForFixtures: true });
     fireEvent.click(await screen.findByRole('tab', { name: 'Fixtures' }));
     await screen.findByText('Outstanding 1');
     expect(screen.getByText('Pending 0')).toBeTruthy();
@@ -271,6 +276,17 @@ describe('administrator competition workspace', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
     await screen.findByText('Fixture voided.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/fixtures/f1' && init?.method === 'PATCH')).toBe(true);
+  });
+
+  it('blocks fixture generation in the desktop control room until the whole season is ready', async () => {
+    const { fetchMock } = renderDesk();
+    fireEvent.click(await screen.findByRole('tab', { name: 'Fixtures' }));
+
+    expect(await screen.findByRole('alert', { name: 'Fixture readiness' })).toBeTruthy();
+    expect(screen.getByText(/Fixture generation is blocked until season placement is resolved/)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Preview fixtures' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Commit fixtures' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(fetchMock.mock.calls.some(([input, init]) => String(input).includes('/fixtures/preview') && init?.method !== 'GET')).toBe(false);
   });
 
   it('reviews final movements, records an explicit override, then applies the next-season plan', async () => {

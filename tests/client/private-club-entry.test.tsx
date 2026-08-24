@@ -152,6 +152,17 @@ describe('private club entry', () => {
     expect(calls.myLeagues).toBe(0);
   });
 
+  it('renders a clear suspended-account state without loading club data', async () => {
+    meResult = () => Promise.reject(new ApiClientError(403, 'This account is suspended. Contact a club administrator.', 'ACCOUNT_SUSPENDED'));
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Account suspended' })).toBeTruthy();
+    expect(screen.getByText('Contact a club administrator if you think this is a mistake.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy();
+    expect(calls.leagues).toBe(0);
+    expect(calls.myLeagues).toBe(0);
+  });
+
   it('uses approved membership plus missing nickname to enter onboarding', async () => {
     meResult = () => Promise.resolve({ user: { ...approvedUser, username: null }, requiresOnboarding: false });
     render(<App />);

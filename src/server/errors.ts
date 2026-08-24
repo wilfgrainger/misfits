@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 
 export type ApiErrorCode =
   | 'UNAUTHENTICATED'
+  | 'ACCOUNT_SUSPENDED'
   | 'FORBIDDEN'
   | 'USERNAME_UNAVAILABLE'
   | 'INVALID_RESULT'
