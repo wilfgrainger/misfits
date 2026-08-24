@@ -57,4 +57,4 @@ One operational decision remains outside the code change: repository owners shou
 
 ## Handoff
 
-The next controlled action is to commit this isolated branch, push it, and open a PR against `main` with the issue references and this evidence. The local gate is not a deployment claim. Post-merge CI, the exact deployed Worker SHA, production `/api/health`, privacy-safe signed-out behavior, and a separately authorized signed-in Google journey must be recorded before calling the release live-accepted.
+PR #180 is open against `main` with the issue references and this evidence. The local gate is not a deployment claim. Post-merge CI, the exact deployed Worker SHA, production `/api/health`, privacy-safe signed-out behavior, and a separately authorized signed-in Google journey must be recorded before calling the release live-accepted.
