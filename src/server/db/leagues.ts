@@ -19,6 +19,10 @@ export interface LeagueRecord {
   max_players: number;
   matches_per_pair: number;
   visibility: LeagueVisibility;
+  season_id: string | null;
+  hierarchy_position: number;
+  promotion_places: number;
+  relegation_places: number;
 }
 
 export interface LeagueMemberRecord {
@@ -29,12 +33,15 @@ export interface LeagueMemberRecord {
   joined_at: string;
   username: string | null;
   profile_image_url: string | null;
+  role?: 'PLAYER' | 'ADMIN';
+  status?: 'ACTIVE' | 'SUSPENDED';
+  club_status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export async function listClubLeagues(db: D1Database): Promise<LeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility, hierarchy_position, promotion_places, relegation_places
        FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
   ).all<LeagueRecord>();
   return result.results;
@@ -42,11 +49,15 @@ export async function listClubLeagues(db: D1Database): Promise<LeagueRecord[]> {
 
 export async function listUserLeagues(db: D1Database, userId: string): Promise<LeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.status,
+    `SELECT leagues.id, leagues.name, leagues.slug, leagues.season_name, leagues.season_id, leagues.status,
             leagues.max_legs, leagues.points_per_win, leagues.points_per_draw, leagues.points_per_loss, leagues.target_legs, leagues.created_at, leagues.updated_at,
-            leagues.created_by, leagues.max_players, leagues.matches_per_pair, leagues.visibility
-       FROM leagues JOIN league_players ON league_players.league_id = leagues.id
+            leagues.created_by, leagues.max_players, leagues.matches_per_pair, leagues.visibility, leagues.hierarchy_position, leagues.promotion_places, leagues.relegation_places
+      FROM leagues JOIN league_players ON league_players.league_id = leagues.id
       WHERE league_players.user_id = ? AND league_players.active = 1
+        AND (
+          leagues.season_id IS NULL
+          OR leagues.season_id IN (SELECT id FROM seasons WHERE is_current = 1)
+        )
       ORDER BY leagues.status = 'OPEN' DESC, leagues.updated_at DESC, leagues.name ASC`,
   ).bind(userId).all<LeagueRecord>();
   return result.results;
@@ -54,8 +65,8 @@ export async function listUserLeagues(db: D1Database, userId: string): Promise<L
 
 export async function listManagedLeagues(db: D1Database): Promise<LeagueRecord[]> {
   const result = await db.prepare(
-    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility, hierarchy_position, promotion_places, relegation_places
        FROM leagues ORDER BY status = 'OPEN' DESC, updated_at DESC, name ASC`,
   ).all<LeagueRecord>();
   return result.results;
@@ -63,16 +74,16 @@ export async function listManagedLeagues(db: D1Database): Promise<LeagueRecord[]
 
 export async function getLeagueByIdOrSlug(db: D1Database, key: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
-    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility, hierarchy_position, promotion_places, relegation_places
        FROM leagues WHERE id = ? OR slug = ?`,
   ).bind(key, key).first<LeagueRecord>()) ?? null;
 }
 
 export async function getLeagueById(db: D1Database, id: string): Promise<LeagueRecord | null> {
   return (await db.prepare(
-    `SELECT id, name, slug, season_name, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
-            created_at, updated_at, created_by, max_players, matches_per_pair, visibility
+    `SELECT id, name, slug, season_name, season_id, status, max_legs, points_per_win, points_per_draw, points_per_loss, target_legs,
+            created_at, updated_at, created_by, max_players, matches_per_pair, visibility, hierarchy_position, promotion_places, relegation_places
        FROM leagues WHERE id = ?`,
   ).bind(id).first<LeagueRecord>()) ?? null;
 }
@@ -80,7 +91,7 @@ export async function getLeagueById(db: D1Database, id: string): Promise<LeagueR
 export async function getMembership(db: D1Database, leagueId: string, userId: string): Promise<LeagueMemberRecord | null> {
   return (await db.prepare(
     `SELECT league_players.league_id, league_players.season_id, league_players.user_id, league_players.active,
-            league_players.joined_at, users.username, users.profile_image_url
+            league_players.joined_at, users.username, users.profile_image_url, users.role, users.status, users.club_status
        FROM league_players JOIN users ON users.id = league_players.user_id
       WHERE league_players.league_id = ? AND league_players.user_id = ?`,
   ).bind(leagueId, userId).first<LeagueMemberRecord>()) ?? null;
@@ -89,7 +100,7 @@ export async function getMembership(db: D1Database, leagueId: string, userId: st
 export async function listLeagueMembers(db: D1Database, leagueId: string): Promise<LeagueMemberRecord[]> {
   const result = await db.prepare(
     `SELECT league_players.league_id, league_players.season_id, league_players.user_id, league_players.active,
-            league_players.joined_at, users.username, users.profile_image_url
+            league_players.joined_at, users.username, users.profile_image_url, users.role, users.status, users.club_status
        FROM league_players JOIN users ON users.id = league_players.user_id
       WHERE league_players.league_id = ? ORDER BY users.username COLLATE NOCASE ASC`,
   ).bind(leagueId).all<LeagueMemberRecord>();
@@ -176,6 +187,10 @@ export async function setMembershipActive(db: D1Database, actorUserId: string, l
   const before = await getMembership(db, leagueId, userId);
   if (!before) throw new AppError('VALIDATION_ERROR', 'League member was not found', 404);
   if (active && before.active !== 1) {
+    const eligible = await db.prepare(
+      `SELECT id FROM users WHERE id = ? AND status = 'ACTIVE' AND club_status = 'APPROVED' AND role = 'PLAYER'`,
+    ).bind(userId).first<{ id: string }>();
+    if (!eligible) throw new AppError('VALIDATION_ERROR', 'Only an active, approved club member can be reactivated', 409);
     const league = await getLeagueById(db, leagueId);
     if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
     if (before.season_id) {

@@ -28,7 +28,8 @@ function mockLeagueLoad(withFixture = true) {
     if (path.endsWith(`/api/public/leagues/${league.id}/results`)) return new Response(JSON.stringify({ results: [] }), { status: 200 });
     if (path.endsWith(`/api/public/leagues/${league.id}`)) return new Response(JSON.stringify({ league, players: [{ id: player.id, username: 'Alpha', profileImageUrl: null }, { id: 'player-b', username: 'Bravo', profileImageUrl: null }] }), { status: 200 });
     if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
-    if (path.includes(`/api/admin/competition/leagues/${league.id}/fixtures`)) return new Response(JSON.stringify({ fixtures: withFixture ? [fixture] : [] }), { status: 200 });
+    if (path.endsWith(`/api/leagues/${league.id}/fixtures`)) return new Response(JSON.stringify({ fixtures: withFixture ? [fixture] : [] }), { status: 200 });
+    if (path.endsWith(`/api/me/leagues/${league.id}/fixtures`)) return new Response(JSON.stringify({ fixtures: withFixture ? [fixture] : [] }), { status: 200 });
     throw new Error(`Unexpected fetch: ${path}`);
   });
 }

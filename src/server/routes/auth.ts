@@ -13,6 +13,8 @@ import {
   OAUTH_STATE_COOKIE,
   oauthStateCookie,
   readOAuthState,
+  resolveRequestSession,
+  resolveRequestSessionStatus,
   readSessionTokens,
   revokeSession,
   sessionCookie,
@@ -62,7 +64,7 @@ async function existingOrConfiguredUser(
 }
 
 function ensureActive(user: UserRecord): void {
-  if (user.status !== 'ACTIVE') throw new AppError('FORBIDDEN', 'This account is suspended', 403);
+  if (user.status !== 'ACTIVE') throw new AppError('ACCOUNT_SUSPENDED', 'This account is suspended. Contact a club administrator.', 403);
 }
 
 function authPayload(user: UserRecord) {
@@ -173,8 +175,12 @@ export function createAuthRoutes(dependencies: AuthRouteDependencies = {}) {
     }
   });
 
-  routes.get('/api/me', requireUser, async (c) => {
-    const user = await getUserById(c.env.DB, c.get('user').id);
+  routes.get('/api/me', async (c) => {
+    const status = await resolveRequestSessionStatus(c.env.DB, c.req.raw);
+    if (status === 'SUSPENDED') return jsonError(c, new AppError('ACCOUNT_SUSPENDED', 'This account is suspended. Contact a club administrator.', 403));
+    const session = await resolveRequestSession(c.env.DB, c.req.raw);
+    if (!session) return jsonError(c, new AppError('UNAUTHENTICATED', 'Sign-in is required', 401));
+    const user = await getUserById(c.env.DB, session.id);
     if (!user) return jsonError(c, new AppError('UNAUTHENTICATED', 'Sign-in is required', 401));
     return c.json(authPayload(user), 200, { 'Cache-Control': 'private, no-store' });
   });

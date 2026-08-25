@@ -221,6 +221,33 @@
   border-color: var(--club-red-strong);
 }
 
+.public-league-view {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.25rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem) 2rem;
+}
+
+.public-league-heading {
+  display: grid;
+  gap: .35rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.public-league-heading h1 { margin: 0; color: var(--text); font-size: clamp(2rem, 5vw, 3.8rem); letter-spacing: -.04em; }
+.public-league-heading p:last-child { margin: 0; color: var(--text-3); }
+.public-league-rules { display: grid; gap: .35rem; padding: 1rem; background: var(--surface-2); border: 1px solid var(--border-mid); border-radius: 8px; }
+.public-league-rules span { color: var(--text-2); font-size: .88rem; }
+.public-fixture-section { display: grid; gap: .75rem; }
+.public-fixture-section .section-heading { align-items: center; }
+.public-fixture-section h2 { margin: 0; }
+.public-fixture-list { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
+.public-fixture-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; }
+.public-fixture-list li > div { display: grid; gap: .25rem; min-width: 0; }
+.public-fixture-list strong { color: var(--text); }
+.public-fixture-list small, .public-fixture-list li > div > span { color: var(--text-3); font-size: .78rem; }
+.public-fixture-list .status-label { flex: 0 0 auto; }
+
 .private-club-shell .league-tab-active {
   color: var(--club-text);
   background: rgba(212, 64, 64, 0.12);
@@ -329,7 +356,7 @@
 }
 
 .compact-button {
-  min-height: 42px;
+  min-height: 44px;
   padding-inline: 0.85rem;
 }
 

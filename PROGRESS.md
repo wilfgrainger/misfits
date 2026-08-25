@@ -1,13 +1,13 @@
 # Misfits 501 Progress
 
-**Updated:** 23 August 2026  
-**Current branch:** `feat/club-first-navigation`  
-**PR:** #174 `feat: make member navigation club-first`  
-**Current focus:** final exact-head CI → Cave Pony/Impeccable release review → merge → verify main deploy → production smoke  
-**Backend/schema/infra change in PR #174:** NONE  
+**Updated:** 25 August 2026
+**Current branch:** `codex/fix-open-issues`
+**PR:** #180 `feat: close approved competition backlog`
+**Current focus:** exact-head CI after seven test-first review remediations → resolve review threads → reviewed merge → verify main deploy
+**Backend/schema/infra change:** Server-owned season readiness, member/public fixture reads, suspension response, movement/history reads, and desktop admin composition; no schema or Cloudflare architecture change
 **Production D1 migration required:** NO
 
-## Restart here
+## Current approved execution
 
 Read, in order:
 
@@ -16,10 +16,18 @@ Read, in order:
 3. `PRODUCT.md`
 4. `VISION.md`
 5. `DESIGN.md`
-6. `docs/superpowers/specs/2026-08-23-club-first-navigation-design.md`
-7. `docs/superpowers/plans/2026-08-23-club-first-navigation.md`
+6. `docs/operations/2026-08-24-issue-and-release-status.md`
+7. affected code, tests and release workflow
 
-This file is the current execution-state authority. The Superpowers plan records delivery structure; CI and the latest PR head are the release evidence.
+The approved execution branch implements all 26 issues that were open in the reviewed catalogue: #98, #105, #114, #121, #127-129, #131-144, #155, #157-160 and #165. The branch keeps the existing Hono + D1 + React architecture, adds no migration, and preserves Worker authorization for private data and mutations.
+
+The original implementation gate was green at **67 test files / 289 tests**, but later PR review found seven additional defects. Each finding was captured with a failing regression test before its production fix. The first RED run preserved the existing 289 green tests while three new regressions failed; the second RED run preserved 291 green tests while four new regressions failed. The fixes cover promotion-application eligibility, fixture readiness on idempotent commit, caller-scoped movement ambiguity, historical standings preservation, season-level provisional movement state, unavailable public deep links, and the fresh Google suspended-account error code.
+
+Do not merge from the historical local gate. A fresh exact-head repository gate is required after these review-remediation and handoff commits: Wrangler types, both TypeScript projects, full Vitest suite, production build, Impeccable detector and diff hygiene. The final review must also contain no unresolved blocking finding.
+
+This is source, contract, and review evidence. It is not a deployment, production-health, signed-in Google journey, or rendered-device acceptance claim. Those checks remain post-merge handoff gates.
+
+The earlier club-first release record remains below as historical evidence; it is not the current issue ledger.
 
 ## Production baseline already complete
 
@@ -31,7 +39,7 @@ That release established permanent `PENDING / APPROVED / REJECTED` membership, i
 
 Production migration `0006_private_club_membership.sql` was already executed and verified before that merge through GitHub Actions run `32633942454`. PR #174 does not alter the database and must not run a migration.
 
-## Club-first release contract
+## Historical club-first release contract
 
 PR #174 replaces the old league-framed signed-in experience with the approved club-first information architecture:
 
@@ -86,7 +94,7 @@ The simplification boundary is deliberate:
 
 Cloudflare remains the existing free-tier Worker + static assets + D1 architecture only.
 
-## TDD and CI evidence
+## Historical club-first TDD and CI evidence
 
 ### Initial club-first RED
 
@@ -156,7 +164,7 @@ The repo-local Impeccable detector has remained clean in all cited runs.
 
 This execution environment does not provide a rendered browser/Playwright surface for manual pixel inspection. Do not claim screenshot-perfect acceptance. CI/static responsive rules are release evidence here; rendered device review remains a post-release visual inspection item if needed.
 
-## Final release gate
+## Historical club-first final release gate
 
 Before merge:
 
@@ -183,9 +191,9 @@ After merge:
 - Cloudflare free tier only: existing Worker + static assets + D1.
 - No KV, R2, Durable Objects, Queues, scheduled jobs, background polling or extra application runtime.
 - Do not edit applied migrations.
-- No D1 migration is part of PR #174.
+- No D1 migration is part of PR #180.
 - Production D1 mutation remains manual GitHub Actions only.
 - Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
 - No private club data may be exposed before Worker-verified `APPROVED` membership.
 - Club approval never implies season/league participation.
-- Keep all **33 parked functional stories** open until separately revalidated.
+- The 26 previously open functional stories are implemented on `codex/fix-open-issues`; close them only after the reviewed PR merges and its target runtime is verified. Preserve the superseded-story disposition for #117 and #119.

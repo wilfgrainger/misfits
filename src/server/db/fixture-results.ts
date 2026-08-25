@@ -48,7 +48,12 @@ async function requireFixtureMembers(db: D1Database, fixture: FixtureRecord): Pr
     getMembership(db, fixture.league_id, fixture.player_a_id),
     getMembership(db, fixture.league_id, fixture.player_b_id),
   ]);
-  if (a?.active !== 1 || b?.active !== 1) throw new AppError('FORBIDDEN', 'Both fixture players must be active members of this league', 403);
+  if (
+    a?.active !== 1 || b?.active !== 1
+    || (a.role !== undefined && a.role !== 'PLAYER') || (b.role !== undefined && b.role !== 'PLAYER')
+    || (a.status !== undefined && a.status !== 'ACTIVE') || (b.status !== undefined && b.status !== 'ACTIVE')
+    || (a.club_status !== undefined && a.club_status !== 'APPROVED') || (b.club_status !== undefined && b.club_status !== 'APPROVED')
+  ) throw new AppError('FORBIDDEN', 'Both fixture players must be active members of this league', 403);
 }
 
 export async function leagueHasPersistedFixtures(db: D1Database, leagueId: string): Promise<boolean> {

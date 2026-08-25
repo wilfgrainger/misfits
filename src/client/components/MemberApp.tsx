@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ApiClient, type LeaguePlayer, type LeagueSummary, type UserSummary } from '../api';
+import { ApiClient, type LeaguePlayer, type LeagueSummary, type PromotionMovement, type SeasonHistoryEntry, type UserSummary } from '../api';
 import { AppIcon } from './AppIcons';
 import { MemberNavigation, type MemberDestination } from './MemberNavigation';
 import { PlayerLeague, type EmbeddedLeagueView } from './PlayerLeague';
 import { ProfilePanel } from './ProfilePanel';
 
 const api = new ApiClient();
-type MoreView = 'menu' | 'players' | 'profile';
+type MoreView = 'menu' | 'players' | 'profile' | 'history';
 
 function CompetitionButton({ league, onOpen }: { league: LeagueSummary; onOpen: () => void }) {
   return (
@@ -37,6 +37,12 @@ export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdm
   const [players, setPlayers] = useState<LeaguePlayer[]>([]);
   const [playersLoading, setPlayersLoading] = useState(false);
   const [playersError, setPlayersError] = useState('');
+  const [history, setHistory] = useState<SeasonHistoryEntry[]>([]);
+  const [historyMovements, setHistoryMovements] = useState<PromotionMovement[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyLeague, setHistoryLeague] = useState<LeagueSummary | null>(null);
+  const [historyLeagueView, setHistoryLeagueView] = useState<EmbeddedLeagueView>('table');
   const seenProfileRequest = useRef(profileRequestKey);
 
   const eligibleRecordLeagues = useMemo(() => myLeagues.filter((league) => league.status === 'OPEN'), [myLeagues]);
@@ -89,6 +95,23 @@ export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdm
     }
   };
 
+  const openHistory = async () => {
+    setMoreView('history');
+    setHistoryLeague(null);
+    setHistoryError('');
+    if (history.length > 0) return;
+    setHistoryLoading(true);
+    try {
+      const payload = await api.seasonHistory();
+      setHistory(payload.seasons);
+      setHistoryMovements(payload.movements);
+    } catch (cause) {
+      setHistoryError(cause instanceof Error ? cause.message : 'Season history could not be loaded.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   const saveUser = (profile: Pick<UserSummary, 'username' | 'profileImageUrl' | 'dartsCounterUrl'>) => onUserSaved({ ...user, ...profile });
 
   return (
@@ -99,7 +122,7 @@ export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdm
 
           <section className="club-home-section" aria-labelledby="your-competitions-title">
             <div className="club-section-heading"><div><p className="club-section-kicker">Playing now</p><h2 id="your-competitions-title">Your competitions</h2></div>{clubLeagues.length > 0 && <button type="button" className="text-button" onClick={() => selectDestination('leagues')}>See all</button>}</div>
-            {myLeagues.length > 0 ? <div className="competition-list">{myLeagues.map((league) => <CompetitionButton key={league.id} league={league} onOpen={() => openCompetition(league)} />)}</div> : <div className="club-empty-state"><strong>No competitions assigned yet</strong><span>You are in the club. When an admin places you in a competition, it will appear here.</span></div>}
+            {myLeagues.length > 0 ? <div className="competition-list">{myLeagues.map((league) => <CompetitionButton key={league.id} league={league} onOpen={() => openCompetition(league)} />)}</div> : <div className="club-empty-state"><strong>No current competition placement</strong><span>You are currently unassigned. A club administrator will place you before fixtures are generated.</span></div>}
           </section>
 
           <section className="club-home-section club-needs-you" aria-labelledby="needs-you-title">
@@ -122,8 +145,9 @@ export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdm
 
         {destination === 'more' && <section className="club-more" aria-labelledby="club-more-title">
           <header className="club-page-heading"><p className="club-page-kicker">Club account</p><h1 id="club-more-title">More</h1></header>
-          {moreView === 'menu' && <nav className="player-more-actions more-menu club-more-menu" aria-label="More player options"><button type="button" className="player-more-action" onClick={() => void openPlayers()}><AppIcon name="players" /><span>Players</span></button><button type="button" className="player-more-action" onClick={() => setMoreView('profile')}><AppIcon name="profile" /><span>Profile</span></button>{user.role === 'ADMIN' && onOpenAdmin && <button type="button" className="player-more-action" onClick={onOpenAdmin}><AppIcon name="settings" /><span>Admin</span></button>}<button type="button" className="player-more-action" onClick={onSignOut}><AppIcon name="logout" /><span>Sign out</span></button></nav>}
+          {moreView === 'menu' && <nav className="player-more-actions more-menu club-more-menu" aria-label="More player options"><button type="button" className="player-more-action" onClick={() => void openPlayers()}><AppIcon name="players" /><span>Players</span></button><button type="button" className="player-more-action" onClick={() => void openHistory()}><AppIcon name="calendar" /><span>Past seasons</span></button><button type="button" className="player-more-action" onClick={() => setMoreView('profile')}><AppIcon name="profile" /><span>Profile</span></button>{user.role === 'ADMIN' && onOpenAdmin && <button type="button" className="player-more-action" onClick={onOpenAdmin}><AppIcon name="settings" /><span>Admin</span></button>}<button type="button" className="player-more-action" onClick={onSignOut}><AppIcon name="logout" /><span>Sign out</span></button></nav>}
           {moreView === 'players' && <div className="player-more-panel"><button type="button" className="text-button more-back-button" onClick={() => setMoreView('menu')}>Back to More</button><h2>Players</h2>{playersLoading && <p className="loading-message">Loading players...</p>}{playersError && <p className="error-message" role="alert">{playersError}</p>}{!playersLoading && !playersError && players.length === 0 && <div className="club-empty-state club-empty-quiet"><span>No competition players are published yet.</span></div>}{players.length > 0 && <ul className="club-player-list">{players.map((player) => <li key={player.id}><div className="avatar">{player.profileImageUrl ? <img src={player.profileImageUrl} alt="" /> : (player.username ?? '?').slice(0, 1).toUpperCase()}</div><strong>{player.username ?? 'Name pending'}</strong>{player.id === user.id && <span className="you-label">You</span>}</li>)}</ul>}</div>}
+          {moreView === 'history' && <div className="player-more-panel history-panel"><button type="button" className="text-button more-back-button" onClick={() => { setHistoryLeague(null); setMoreView('menu'); }}>Back to More</button>{historyLeague ? <><button type="button" className="text-button more-back-button" onClick={() => setHistoryLeague(null)}>Back to seasons</button><header className="history-heading"><p className="club-section-kicker">Historical season</p><h2>{historyLeague.name}</h2><span>{historyLeague.seasonName}</span></header><nav className="competition-tabs" aria-label={`${historyLeague.name} historical views`} role="tablist">{(['table', 'fixtures', 'results'] as const).map((view) => <button key={view} type="button" role="tab" aria-selected={historyLeagueView === view} className={historyLeagueView === view ? 'competition-tab competition-tab-active' : 'competition-tab'} onClick={() => setHistoryLeagueView(view)}>{view === 'table' ? 'Table' : view === 'fixtures' ? 'Fixtures' : 'Results'}</button>)}</nav><PlayerLeague user={user} league={historyLeague} isParticipant={history.some((entry) => entry.leagues.some((league) => league.id === historyLeague.id && entry.placedLeagueIds.includes(league.id)))} onUserSaved={onUserSaved} onSignOut={onSignOut} embedded embeddedView={historyLeagueView} /></> : <><h2>Past seasons</h2><p className="form-help">Your previous tables, fixtures and results stay linked to the season they belong to.</p>{historyLoading && <p className="loading-message">Loading season history...</p>}{historyError && <p className="error-message" role="alert">{historyError}</p>}{!historyLoading && !historyError && history.length === 0 && <div className="club-empty-state club-empty-quiet"><span>No season history is available yet.</span></div>}{!historyLoading && !historyError && <div className="history-season-list">{history.map((entry) => { const movement = historyMovements.find((item) => item.fromSeasonId === entry.season.id); const placedLeague = entry.leagues.find((league) => entry.placedLeagueIds.includes(league.id)); return <section className="history-season-card" key={entry.season.id}><div className="section-heading"><div><strong>{entry.season.name}</strong><small>{entry.season.isCurrent ? 'Current season' : entry.season.status === 'CLOSED' ? 'Completed season' : entry.season.status}</small></div>{placedLeague && <span className="status-label">{placedLeague.name}</span>}</div>{entry.season.isCurrent && !placedLeague && <p className="form-help">Placement pending for this season. No league has been assumed.</p>}{movement && <p className="form-help">{movement.status === 'APPLIED' ? 'Confirmed movement' : 'Movement under review'}: {movement.toLeagueName ?? movement.toLeagueId ?? 'destination pending'}{movement.toSeasonName ? ` · ${movement.toSeasonName} season` : ''}.</p>}<div className="history-league-list">{entry.leagues.map((league) => <button type="button" className="picker-item" key={league.id} onClick={() => { setHistoryLeague(league); setHistoryLeagueView('table'); }}>{league.name}<span>{league.status} · {league.seasonName}</span></button>)}</div></section>; })}</div>}</>}</div>}
           {moreView === 'profile' && <div className="player-more-panel"><button type="button" className="text-button more-back-button" onClick={() => setMoreView('menu')}>Back to More</button><ProfilePanel user={user} onSaved={saveUser} /></div>}
         </section>}
       </div>

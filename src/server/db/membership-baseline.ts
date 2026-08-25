@@ -56,7 +56,9 @@ export async function copySeasonMembershipBaseline(
     `SELECT lp.league_id, lp.season_id, lp.user_id, lp.active, lp.joined_at, l.hierarchy_position
        FROM league_players lp
        JOIN leagues l ON l.id = lp.league_id
+       JOIN users u ON u.id = lp.user_id
       WHERE lp.season_id = ? AND lp.active = 1
+        AND u.status = 'ACTIVE' AND u.club_status = 'APPROVED' AND u.role = 'PLAYER'
       ORDER BY l.hierarchy_position, lp.user_id`,
   ).bind(fromSeasonId).all<SourcePlacement>();
 

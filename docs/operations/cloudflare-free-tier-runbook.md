@@ -28,7 +28,7 @@ Current measured usage is a separate record. No baseline has been recorded by th
 1. Record the release date, deployment identifier, dashboard measurements, and the date the official limits pages were reviewed.
 2. Confirm the change still uses only the Worker, static assets, and D1 on the core path.
 3. Confirm no source, migration, or configuration change adds a queue, object store, scheduled trigger, paid service, background polling, or a secret in source.
-4. For a D1 migration, verify it is additive and run remote migrations before code that depends on it.
+4. For a D1 migration, verify it is additive, then dispatch the manual **Production D1 management** workflow with the immutable migration commit SHA and `APPLY-D1` before code that depends on it is merged.
 5. Run:
 
 ```bash
@@ -39,13 +39,9 @@ npx wrangler types
 npx wrangler deploy --dry-run
 ```
 
-6. Deploy with existing secrets preserved:
+6. After the PR verification gate and any required D1-management run are green, merge to `main`. CI deploys with dashboard-managed variables preserved; do not run a production deploy from a local shell.
 
-```bash
-npx wrangler deploy --keep-vars
-```
-
-7. After deployment, smoke-test Google Identity sign-in at the authorized production origin and confirm public responses disclose no private member data.
+7. After CI reports the deployment complete, smoke-test Google Identity sign-in at the authorized production origin and confirm public responses disclose no private member data.
 
 ## Automatic main-branch deployment
 
@@ -56,7 +52,7 @@ Configure these GitHub Actions repository secrets before relying on the merge pa
 - `CLOUDFLARE_API_TOKEN`: narrowly scoped to deploy Workers in the target Cloudflare account.
 - `CLOUDFLARE_ACCOUNT_ID`: the account containing the `darts-501` Worker and `misfits` D1 database.
 
-The workflow intentionally does not run `wrangler d1 migrations apply --remote`. Apply and verify an additive migration before merging code that depends on it; this keeps schema rollout explicit and prevents a code deployment from racing an unreviewed database mutation. A missing deployment secret fails the deploy job with an explicit error rather than silently leaving production unchanged.
+The deployment workflow intentionally does not run `wrangler d1 migrations apply --remote`. The manual D1-management workflow applies and verifies an additive migration before dependent code is merged; this keeps schema rollout explicit and prevents a code deployment from racing an unreviewed database mutation. A missing deployment secret fails the deploy job with an explicit error rather than silently leaving production unchanged.
 
 ## Escalation
 
