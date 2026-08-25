@@ -140,7 +140,13 @@ export default function App() {
         setView('public');
         setMessage('');
       }).catch(() => {
-        if (active) checkPrivateEntry();
+        if (!active) return;
+        setUser(null);
+        clearClubData();
+        setPublicLeague(null);
+        setPublicLeaguePathKey(pathKey);
+        setView('signed-out');
+        setMessage('Private club access');
       });
     }
     return () => { active = false; };
@@ -224,6 +230,7 @@ export default function App() {
     setMyLeagues((current) => current.map((item) => item.id === league.id ? league : item));
   };
   const googleSlot = <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />;
+  const unavailablePublicLeague = Boolean(publicLeaguePathKey && !publicLeague);
 
   if (view === 'loading') {
     return <ClubShell><section className="private-entry-state private-entry-loading" aria-live="polite"><span className="private-entry-icon"><AppIcon name="lock" /></span><h1>Misfits</h1><p>Private members club</p><div className="private-loading-line" aria-hidden="true" /><small>{message}</small></section></ClubShell>;
@@ -232,9 +239,9 @@ export default function App() {
   if (view === 'signed-out') {
     return <ClubShell><section className="private-entry-state private-signin-state">
       <span className="private-entry-icon"><AppIcon name="lock" /></span>
-      <p className="entry-kicker">Private members club</p>
-      <h1>{clubInviteToken ? "You've been invited to join Misfits" : 'Welcome to Misfits'}</h1>
-      <p className="entry-copy">{clubInviteToken ? 'Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.' : 'Existing members can sign in with Google. New members need a private club invitation.'}</p>
+      <p className="entry-kicker">{unavailablePublicLeague ? 'Private club access' : 'Private members club'}</p>
+      <h1>{unavailablePublicLeague ? 'League unavailable' : clubInviteToken ? "You've been invited to join Misfits" : 'Welcome to Misfits'}</h1>
+      <p className="entry-copy">{unavailablePublicLeague ? 'This shared league is private or unavailable. Sign in with Google to continue to Misfits if you are a member.' : clubInviteToken ? 'Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.' : 'Existing members can sign in with Google. New members need a private club invitation.'}</p>
       <div className="private-google-card" role="group" aria-label="Sign in with Google">{googleSlot}</div>
       {message && message !== 'Private club access' && <p className={message === 'A club invitation is required' ? 'error-message entry-message' : 'form-help entry-message'} role={message === 'A club invitation is required' ? 'alert' : 'status'}>{message}</p>}
       <p className="privacy-note"><AppIcon name="lock" /> League tables, results and member details stay private until membership is approved.</p>
