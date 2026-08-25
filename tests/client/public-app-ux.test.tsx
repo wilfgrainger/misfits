@@ -49,11 +49,12 @@ describe('private signed-out UX', () => {
     await waitFor(() => expect(state.leagueCalls).toBe(0));
   });
 
-  it('treats a league-shaped deep link as private until membership is approved', async () => {
+  it('keeps an unavailable league-shaped deep link explicit and privacy-safe', async () => {
     window.history.replaceState({}, '', '/league/tuesday-club');
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Welcome to Misfits' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'League unavailable' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Tuesday Club' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Share league' })).toBeNull();
     expect(state.leagueCalls).toBe(0);
