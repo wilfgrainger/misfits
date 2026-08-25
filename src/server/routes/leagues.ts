@@ -201,13 +201,7 @@ export function createLeagueRoutes(_dependencies: LeagueRouteDependencies = {}) 
     const projected = preview?.movements.find((movement) => movement.userId === c.get('user').id) ?? null;
     const rawMovement = saved ? movementSummary(saved) : projected ? movementSummary({ ...projected, fromSeasonId: seasonId }) : null;
     const movement = rawMovement ? await movementNames(c.env.DB, rawMovement) : null;
-    const assigned = await c.env.DB.prepare(
-      `SELECT league_id FROM league_players WHERE user_id = ? AND season_id = ? AND active = 1`,
-    ).bind(c.get('user').id, seasonId).all<{ league_id: string }>();
-    const assignedLeagueIds = new Set(assigned.results.map((row) => row.league_id));
-    const ambiguity = preview?.ambiguities.find((item) =>
-      item.tiedUserIds.includes(c.get('user').id) || assignedLeagueIds.has(item.leagueId),
-    );
+    const ambiguity = preview?.ambiguities.find((item) => item.tiedUserIds.includes(c.get('user').id));
     const state = saved?.status === 'APPLIED'
       ? 'CONFIRMED'
       : saved?.status === 'APPROVED'
