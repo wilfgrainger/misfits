@@ -214,7 +214,7 @@ export function createLeagueRoutes(_dependencies: LeagueRouteDependencies = {}) 
     return c.json({
       seasonId,
       state,
-      provisional: state === 'PROVISIONAL',
+      provisional: preview?.provisional ?? false,
       unresolvedCount: preview?.unresolvedCount ?? 0,
       movement,
       ambiguity: ambiguity ? { boundary: ambiguity.boundary, position: ambiguity.position } : null,
