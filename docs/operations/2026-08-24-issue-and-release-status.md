@@ -3,10 +3,10 @@
 ## Scope and evidence
 
 - The approved execution branch is `codex/fix-open-issues`, isolated from the unrelated dirty `main` checkout and based on `origin/main` at `5f1d182febcdaad59bf1e978a23e6b63c2374da3`.
-- The implementation is committed at `99ac8f71e8f37ae0a33081fd1f59102fc3facbda`; the current ledger commit records this handoff reference.
 - The branch implements the 26 issues that were open in the reviewed catalogue: season-placement integrity, desktop administration, suspension UX, rules visibility, fixture-first member workflows, movement/history, and public fixtures.
 - No D1 schema migration, production mutation, deployment, or authenticated live-browser acceptance is claimed by this branch. The existing production baseline remains a separate proof boundary.
-- Fresh local verification is currently: **67 test files / 289 tests**, client and Worker TypeScript, production Vite build, Wrangler 4.124.0 type freshness, Impeccable detector (`[]`), and `git diff --check` all pass.
+- The original implementation gate was **67 test files / 289 tests** plus TypeScript, build, Wrangler types, Impeccable and `git diff --check`. Subsequent PR review found seven additional integrity/UX defects. Each was captured with a failing regression test before its production fix: promotion application eligibility, fixture readiness on idempotent commit, caller-scoped movement ambiguity, historical standings preservation, provisional movement status, failed public deep-link handling, and the suspended Google sign-in error code.
+- The first review RED run kept the existing 289 tests green while the three new regression tests failed. The second review RED run kept 291 existing tests green while the four new regression tests failed. A fresh exact-head full CI gate is required after the remediation and handoff documentation commits before merge.
 
 ## Closed issue history
 
@@ -26,13 +26,13 @@ The closed catalogue is historical evidence, not a reason to reopen current priv
 | --- | --- | --- |
 | Implemented; close after reviewed merge | #98 | Whole-season readiness is server-owned. Active approved players must have exactly one valid placement; invalid, duplicate, and unassigned states block fixture generation and are visible in the admin desk. |
 | Implemented; close after reviewed merge | #105 | Administration now has an explicit desktop control-room layout: responsive task rail, sticky desktop navigation, readable content surface, accessible tab semantics, and the same task surface on mobile. |
-| Implemented; close after reviewed merge | #114 | Suspended sessions fail closed for protected access but receive a privacy-safe `ACCOUNT_SUSPENDED` explanation and sign-out path. |
+| Implemented; close after reviewed merge | #114 | Suspended sessions and fresh Google sign-ins fail closed with the same privacy-safe `ACCOUNT_SUSPENDED` explanation and sign-out path. |
 | Implemented; close after reviewed merge | #121 | Player-facing rules show best-of/first-to, meetings per opponent, points, and W-D-L scoring. |
-| Implemented; close after reviewed merge | #127-129 | Standings expose promotion/relegation zones, movement state, provisional markers, and ambiguity at tied boundaries. |
-| Implemented; close after reviewed merge | #131-144 | Member-scoped fixture reads, fixture-first result entry, linked result/status context, progress counters, void/pending/disputed states, and server-enforced score rules are in place. |
-| Implemented; close after reviewed merge | #155 | Past seasons are separated from current competitions and historical league workspaces retain their own standings, fixtures, and results context. |
-| Implemented; close after reviewed merge | #157-160 | Provisional and confirmed movement are caller-scoped, named, and explicit about ambiguity or pending next-season placement. |
-| Implemented; close after reviewed merge | #165 | Public leagues have a separate anonymous fixture board that permits only `PUBLIC` schedules and omits member/account/private result fields. |
+| Implemented; close after reviewed merge | #127-129 | Standings expose promotion/relegation zones, movement state, provisional markers, and caller-specific ambiguity at tied boundaries. |
+| Implemented; close after reviewed merge | #131-144 | Member-scoped fixture reads, fixture-first result entry, linked result/status context, progress counters, void/pending/disputed states, and server-enforced score rules are in place. Fixture readiness is enforced even on repeated/idempotent commit requests. |
+| Implemented; close after reviewed merge | #155 | Past seasons are separated from current competitions and historical league workspaces retain their own standings, fixtures, and results context. Later account-status changes do not erase persisted competition history from standings. |
+| Implemented; close after reviewed merge | #157-160 | Provisional and confirmed movement are caller-scoped, named, and explicit about ambiguity or pending next-season placement; applying a saved proposal now aborts if a participant has become ineligible. |
+| Implemented; close after reviewed merge | #165 | Public leagues have a separate anonymous fixture board that permits only `PUBLIC` schedules and omits member/account/private result fields. Missing/private shared league links remain in an explicit privacy-safe unavailable state rather than falling through to the private workspace. |
 
 The previously delivered issue set (#92, #100, #101, #104, and #145) remains covered by its earlier reviewed work. Issues #117 and #119 remain historical superseded stories and were already closed as not planned. No current issue is being silently closed from this branch; GitHub issue closure should follow the reviewed PR merge.
 
@@ -41,8 +41,9 @@ The previously delivered issue set (#92, #100, #101, #104, and #145) remains cov
 - Existing Hono + D1 + React architecture is preserved.
 - No schema or migration change is included.
 - Private member fixture endpoints require the authenticated approved club-member boundary; public fixture serialization is a separate allowlisted path.
-- Season readiness is checked before fixture preview/generation and is reloaded after admin placement/status operations.
+- Season readiness is checked before fixture preview/generation, including idempotent commits, and is reloaded after admin placement/status operations.
 - Current competition browsing and past-season history use separate server/client data paths so closed history does not silently become current Home content.
+- Current account eligibility controls future participation and protected actions; it does not retroactively rewrite confirmed historical standings.
 
 ## Release and test review
 
@@ -57,4 +58,4 @@ One operational decision remains outside the code change: repository owners shou
 
 ## Handoff
 
-PR #180 is open against `main` with the issue references and this evidence. The local gate is not a deployment claim. Post-merge CI, the exact deployed Worker SHA, production `/api/health`, privacy-safe signed-out behavior, and a separately authorized signed-in Google journey must be recorded before calling the release live-accepted.
+PR #180 is open against `main` with the issue references and this evidence. Seven review findings have been remediated test-first. Require a fresh exact-head CI run and no unresolved blocking review finding before merge. Post-merge CI, the exact deployed Worker SHA, production `/api/health`, privacy-safe signed-out behavior, and a separately authorized signed-in Google journey remain distinct release evidence; do not claim them from the PR gate alone.
