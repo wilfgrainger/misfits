@@ -1,10 +1,9 @@
 # Misfits 501 Progress
 
-**Updated:** 24 August 2026
+**Updated:** 25 August 2026
 **Current branch:** `codex/fix-open-issues`
-**Implementation commit:** `99ac8f71e8f37ae0a33081fd1f59102fc3facbda`
 **PR:** #180 `feat: close approved competition backlog`
-**Current focus:** Complete the approved 26-issue backlog, then hand off the exact branch SHA for reviewed merge
+**Current focus:** exact-head CI after seven test-first review remediations → resolve review threads → reviewed merge → verify main deploy
 **Backend/schema/infra change:** Server-owned season readiness, member/public fixture reads, suspension response, movement/history reads, and desktop admin composition; no schema or Cloudflare architecture change
 **Production D1 migration required:** NO
 
@@ -22,9 +21,11 @@ Read, in order:
 
 The approved execution branch implements all 26 issues that were open in the reviewed catalogue: #98, #105, #114, #121, #127-129, #131-144, #155, #157-160 and #165. The branch keeps the existing Hono + D1 + React architecture, adds no migration, and preserves Worker authorization for private data and mutations.
 
-Fresh local verification from `C:\Users\wilf6\dev\misfits\.worktrees\fix-open-issues` is green: **67 test files / 289 tests**, client and Worker TypeScript, production Vite build, Wrangler 4.124.0 `types --check`, Impeccable detector (`[]`), and `git diff --check`.
+The original implementation gate was green at **67 test files / 289 tests**, but later PR review found seven additional defects. Each finding was captured with a failing regression test before its production fix. The first RED run preserved the existing 289 green tests while three new regressions failed; the second RED run preserved 291 green tests while four new regressions failed. The fixes cover promotion-application eligibility, fixture readiness on idempotent commit, caller-scoped movement ambiguity, historical standings preservation, season-level provisional movement state, unavailable public deep links, and the fresh Google suspended-account error code.
 
-This is source, contract, and local-build evidence. It is not a deployment, production-health, signed-in Google journey, or rendered-device acceptance claim. Those checks remain post-merge handoff gates.
+Do not merge from the historical local gate. A fresh exact-head repository gate is required after these review-remediation and handoff commits: Wrangler types, both TypeScript projects, full Vitest suite, production build, Impeccable detector and diff hygiene. The final review must also contain no unresolved blocking finding.
+
+This is source, contract, and review evidence. It is not a deployment, production-health, signed-in Google journey, or rendered-device acceptance claim. Those checks remain post-merge handoff gates.
 
 The earlier club-first release record remains below as historical evidence; it is not the current issue ledger.
 
@@ -190,7 +191,7 @@ After merge:
 - Cloudflare free tier only: existing Worker + static assets + D1.
 - No KV, R2, Durable Objects, Queues, scheduled jobs, background polling or extra application runtime.
 - Do not edit applied migrations.
-- No D1 migration is part of PR #174.
+- No D1 migration is part of PR #180.
 - Production D1 mutation remains manual GitHub Actions only.
 - Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
 - No private club data may be exposed before Worker-verified `APPROVED` membership.
