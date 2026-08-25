@@ -25,13 +25,16 @@ const drawResult = {
 };
 
 function installApi() {
+  const fixture = { id: 'f1', seasonId: 's1', leagueId: 'l1', playerAId: 'u1', playerBId: 'u2', pairKey: 'u1:u2', round: 1, meetingNumber: 1, status: 'OUTSTANDING', createdAt: '2026-08-21T00:00:00.000Z', updatedAt: '2026-08-21T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: 'Bravo', resultId: null };
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const path = String(input);
     if (path === '/api/public/leagues/l1/standings') return new Response(JSON.stringify({ standings }), { status: 200 });
     if (path === '/api/public/leagues/l1/results') return new Response(JSON.stringify({ results: [drawResult] }), { status: 200 });
     if (path === '/api/public/leagues/l1') return new Response(JSON.stringify({ league, players: [{ id: 'u1', username: 'Alpha', profileImageUrl: null }, { id: 'u2', username: 'Bravo', profileImageUrl: null }] }), { status: 200 });
     if (path === '/api/me/results') return new Response(JSON.stringify({ results: [] }), { status: 200 });
-    if (path === '/api/admin/competition/leagues/l1/fixtures') return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
+    if (path === '/api/admin/competition/leagues/l1/fixtures') return new Response(JSON.stringify({ fixtures: [fixture] }), { status: 200 });
+    if (path === '/api/leagues/l1/fixtures') return new Response(JSON.stringify({ fixtures: [fixture] }), { status: 200 });
+    if (path === '/api/me/leagues/l1/fixtures') return new Response(JSON.stringify({ fixtures: [fixture] }), { status: 200 });
     throw new Error(`Unexpected fetch ${path}`);
   });
 }
@@ -55,7 +58,7 @@ describe('player scoring rules', () => {
     renderParticipant();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Premier' })).toBeTruthy());
     await screen.findByRole('rowheader', { name: 'Alpha' });
-    expect(screen.getByText('Best of 6 · Win 3 · Draw 1 · Loss 0')).toBeTruthy();
+    expect(screen.getByText('Best of 6 · first to 4 · 1 match per opponent · Win 3 · Draw 1 · Loss 0')).toBeTruthy();
     expect(screen.getByText('Table: Points → Legs won → Head-to-head')).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'W-D-L' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Legs' })).toBeTruthy();
@@ -70,6 +73,7 @@ describe('player scoring rules', () => {
     expect(await screen.findByText('Draw')).toBeTruthy();
     expect(screen.queryByText(/Winner:/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Record this fixture' }));
     expect(screen.getByText('Best of 6: first to 4 wins; 3-3 is a draw.')).toBeTruthy();
     const yourLegs = screen.getByLabelText('Your legs') as HTMLInputElement;
     expect(yourLegs.value).toBe('');

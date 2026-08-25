@@ -687,6 +687,75 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
 }
 .season-health-grid dt { color: var(--text-3); font-size: .76rem; font-weight: 700; }
 .season-health-grid dd { margin: 0; color: var(--text); font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fixture-readiness-block {
+  display: grid;
+  gap: .6rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--danger) 9%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+  border-radius: 8px;
+}
+.fixture-readiness-block strong { color: var(--danger); }
+.fixture-readiness-block .form-help { margin: 0; }
+.fixture-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .5rem;
+  margin: 0;
+}
+.fixture-readiness-grid > div { display: grid; gap: .15rem; }
+.fixture-readiness-grid dt { color: var(--text-3); font-size: .72rem; font-weight: 700; }
+.fixture-readiness-grid dd { margin: 0; color: var(--text); font-weight: 800; font-variant-numeric: tabular-nums; }
+.compact-message { margin-top: 1rem; }
+.movement-card {
+  display: grid;
+  gap: .75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+}
+.movement-card .experience-section-heading { margin: 0; }
+.movement-route { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; margin: 0; color: var(--text-2); }
+.movement-route strong { color: var(--text); }
+.movement-route small { flex-basis: 100%; color: var(--text-3); }
+.movement-warning { margin: 0; color: var(--danger); }
+.movement-legend { margin: .75rem 0 0; }
+.standing-rank { vertical-align: top; }
+.movement-zone { display: block; margin-top: .2rem; font-size: .62rem; line-height: 1.1; white-space: nowrap; }
+.movement-zone-promotion { color: var(--success); }
+.movement-zone-relegation { color: var(--danger); }
+
+@media (min-width: 960px) {
+  .admin-competition-desk {
+    max-width: 88rem;
+    padding-inline: clamp(1rem, 2vw, 2.5rem);
+  }
+  .admin-competition-desk[data-admin-layout="control-room"] {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    column-gap: clamp(2rem, 4vw, 4rem);
+    align-items: start;
+  }
+  .admin-competition-desk[data-admin-layout="control-room"] .admin-rail {
+    padding: .35rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .admin-competition-desk[data-admin-layout="control-room"] > [role="tabpanel"] {
+    padding: clamp(1rem, 2vw, 2rem);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .admin-competition-desk .workspace-heading h2 { letter-spacing: -.025em; }
+  .admin-competition-desk > [role="tabpanel"] { min-width: 0; }
+  .admin-competition-desk .admin-list li { gap: 1.25rem; }
+  .admin-competition-desk .inline-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .admin-competition-desk .fixture-readiness-block { max-width: 46rem; }
+}
 .invite-box {
   display: grid;
   gap: .5rem;

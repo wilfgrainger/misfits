@@ -51,7 +51,7 @@ class MemoryD1 {
     if (sql.includes('FROM leagues WHERE id')) return (this.leagues.get(String(values[0])) ?? null) as T;
     if (sql.includes('FROM users') && (sql.includes('WHERE id') || sql.includes('WHERE u.id'))) {
       const user = this.users.get(String(values[0]));
-      if (!user || (sql.includes("status = 'ACTIVE'") && user.status !== 'ACTIVE') || (sql.includes("club_status = 'APPROVED'") && user.club_status !== 'APPROVED')) return null;
+      if (!user || (sql.includes("status = 'ACTIVE'") && user.status !== 'ACTIVE') || (sql.includes("club_status = 'APPROVED'") && user.club_status !== 'APPROVED') || (sql.includes("role = 'PLAYER'") && user.role !== 'PLAYER')) return null;
       return user as T;
     }
     if (sql.includes('SELECT league_id FROM league_players WHERE season_id')) {
@@ -74,7 +74,8 @@ class MemoryD1 {
     if (sql.includes('FROM users u') && sql.includes('NOT EXISTS')) {
       const seasonId = String(values[0]);
       const requiresApprovedClub = sql.includes("u.club_status = 'APPROVED'");
-      return { results: [...this.users.values()].filter((user) => user.status === 'ACTIVE' && (!requiresApprovedClub || user.club_status === 'APPROVED') && ![...this.memberships.values()].some((row) => row.user_id === user.id && row.season_id === seasonId && row.active === 1)).map((user) => ({ id: user.id, username: user.username, email: user.email, status: user.status })) as T[] };
+      const requiresPlayerRole = sql.includes("u.role = 'PLAYER'");
+      return { results: [...this.users.values()].filter((user) => user.status === 'ACTIVE' && (!requiresApprovedClub || user.club_status === 'APPROVED') && (!requiresPlayerRole || user.role === 'PLAYER') && ![...this.memberships.values()].some((row) => row.user_id === user.id && row.season_id === seasonId && row.active === 1)).map((user) => ({ id: user.id, username: user.username, email: user.email, status: user.status })) as T[] };
     }
     if (sql.includes('FROM league_players lp') && sql.includes('JOIN users')) {
       const leagueId = String(values[0]);
@@ -119,12 +120,26 @@ describe('season-aware membership administration', () => {
 
     const before = await routes.fetch(new Request('https://misfits.test/api/admin/seasons/s1/unassigned', { headers: { Cookie: cookie } }), env, {} as never);
     const users = (await before.json() as { users: Array<{ id: string }> }).users;
-    expect(users.map((user) => user.id)).toEqual(['admin', 'p1']);
+    expect(users.map((user) => user.id)).toEqual(['p1']);
 
     for (const userId of ['pending', 'rejected']) {
       const response = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/s1/members/${userId}/assign`, mutation(cookie, { leagueId: 'l1' })), env, {} as never);
       expect(response.status).toBe(409);
     }
+  });
+
+  it('does not allow an administrator to become a season competitor', async () => {
+    const { db, env, routes } = setup(); const cookie = await cookieFor(db);
+    const response = await routes.fetch(new Request('https://misfits.test/api/admin/seasons/s1/members/admin/assign', mutation(cookie, { leagueId: 'l1' })), env, {} as never);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'VALIDATION_ERROR' } });
+  });
+
+  it('shows a player with only an inactive placement as unassigned', async () => {
+    const { db, env, routes } = setup(); const cookie = await cookieFor(db);
+    db.memberships.set('l1:p1', { league_id: 'l1', season_id: 's1', user_id: 'p1', active: 0, joined_at: now.toISOString() });
+    const response = await routes.fetch(new Request('https://misfits.test/api/admin/seasons/s1/unassigned', { headers: { Cookie: cookie } }), env, {} as never);
+    expect((await response.json() as { users: Array<{ id: string }> }).users.map((user) => user.id)).toContain('p1');
   });
 
   it('moves a player between divisions before fixtures exist and preserves one active placement', async () => {

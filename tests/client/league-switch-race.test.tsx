@@ -33,6 +33,8 @@ const { state, MockApiClient } = vi.hoisted(() => {
     standings(leagueId: string) { return this.wait(leagueId).then(() => ({ standings: [{ rank: 1, playerId: leagueId, username: leagueId === firstLeague.id ? 'Stale player' : 'Fresh player', played: 1, won: 1, lost: 0, points: 2, average: 60 }] })); }
     results(leagueId: string) { return this.wait(leagueId).then(() => ({ results: [] })); }
     fixtures(leagueId: string) { return this.wait(leagueId).then(() => ({ fixtures: [] })); }
+    memberFixtures(leagueId: string) { return this.wait(leagueId).then(() => ({ fixtures: [] })); }
+    myFixtures(leagueId: string) { return this.wait(leagueId).then(() => ({ fixtures: [] })); }
     publicLeague(leagueId: string) { return this.wait(leagueId).then(() => ({ league: leagueId === firstLeague.id ? firstLeague : secondLeague, players: [] })); }
     myResults() { return Promise.resolve({ results: [] }); }
     private wait(leagueId: string) { state.calls.push(leagueId); return state.gates[leagueId].promise; }

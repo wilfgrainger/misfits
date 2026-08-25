@@ -2,10 +2,11 @@
 
 ## Scope and evidence
 
-- Reviewed every GitHub issue in `wilfgrainger/misfits`: **26 open, 125 closed**. Pull requests were reviewed separately.
-- Checked `https://darts.graingers.agency`: HTTPS returned `200`, `/api/health` returned `{"ok":true}`, and the public shell carried the expected privacy/security headers. The deployed bundle contains the club-first member-shell markers.
-- Reviewed the supplied signed-in and signed-out captures. No Google-authenticated live journey was performed because no member credentials were used.
-- Fresh repository gate: Wrangler types, both TypeScript projects, **66 test files / 273 tests**, production Vite build, Impeccable detector (`[]`) and `git diff --check` all passed.
+- The approved execution branch is `codex/fix-open-issues`, isolated from the unrelated dirty `main` checkout and based on `origin/main` at `5f1d182febcdaad59bf1e978a23e6b63c2374da3`.
+- The branch implements the 26 issues that were open in the reviewed catalogue: season-placement integrity, desktop administration, suspension UX, rules visibility, fixture-first member workflows, movement/history, and public fixtures.
+- No D1 schema migration, production mutation, deployment, or authenticated live-browser acceptance is claimed by this branch. The existing production baseline remains a separate proof boundary.
+- The original implementation gate was **67 test files / 289 tests** plus TypeScript, build, Wrangler types, Impeccable and `git diff --check`. Subsequent PR review found seven additional integrity/UX defects. Each was captured with a failing regression test before its production fix: promotion application eligibility, fixture readiness on idempotent commit, caller-scoped movement ambiguity, historical standings preservation, provisional movement status, failed public deep-link handling, and the suspended Google sign-in error code.
+- The first review RED run kept the existing 289 tests green while the three new regression tests failed. The second review RED run kept 291 existing tests green while the four new regression tests failed. A fresh exact-head full CI gate is required after the remediation and handoff documentation commits before merge.
 
 ## Closed issue history
 
@@ -21,38 +22,40 @@ The closed catalogue is historical evidence, not a reason to reopen current priv
 
 ## Open issue disposition
 
-| Disposition | Issues | Outcome |
+| Disposition | Issues | Outcome in this branch |
 | --- | --- | --- |
-| Fixed in #177/#178 | #92, #100, #101, #104, #145 | Promotion ambiguity visibility, season health, approved-member season placement, destructive fixture confirmation/focus return, 44px admin controls, and submitter-owned pending results. |
-| Requires integrity or authorization design | #98, #114 | Do not merge casually: #98 changes season readiness enforcement and #114 changes authentication-facing suspension behaviour. |
-| Fixture-first scope, separately approved | #131-144 | Keep parked until the separately approved player-facing fixture-first scope is activated; then build one Worker-enforced member-scoped fixture read instead of weakening the current admin-only endpoint. |
-| Intentionally parked scope | #127-129, #157-160 | Movement/placement policy remains parked by `PROGRESS.md`. |
-| Requires product revalidation | #121, #155, #165 | Rules wall, historical archive, and public fixtures conflict with the current product/visibility authority. |
-| UI follow-up | #105 | Desktop administration needs a separate rendered design pass, not an opportunistic layout patch. |
+| Implemented; close after reviewed merge | #98 | Whole-season readiness is server-owned. Active approved players must have exactly one valid placement; invalid, duplicate, and unassigned states block fixture generation and are visible in the admin desk. |
+| Implemented; close after reviewed merge | #105 | Administration now has an explicit desktop control-room layout: responsive task rail, sticky desktop navigation, readable content surface, accessible tab semantics, and the same task surface on mobile. |
+| Implemented; close after reviewed merge | #114 | Suspended sessions and fresh Google sign-ins fail closed with the same privacy-safe `ACCOUNT_SUSPENDED` explanation and sign-out path. |
+| Implemented; close after reviewed merge | #121 | Player-facing rules show best-of/first-to, meetings per opponent, points, and W-D-L scoring. |
+| Implemented; close after reviewed merge | #127-129 | Standings expose promotion/relegation zones, movement state, provisional markers, and caller-specific ambiguity at tied boundaries. |
+| Implemented; close after reviewed merge | #131-144 | Member-scoped fixture reads, fixture-first result entry, linked result/status context, progress counters, void/pending/disputed states, and server-enforced score rules are in place. Fixture readiness is enforced even on repeated/idempotent commit requests. |
+| Implemented; close after reviewed merge | #155 | Past seasons are separated from current competitions and historical league workspaces retain their own standings, fixtures, and results context. Later account-status changes do not erase persisted competition history from standings. |
+| Implemented; close after reviewed merge | #157-160 | Provisional and confirmed movement are caller-scoped, named, and explicit about ambiguity or pending next-season placement; applying a saved proposal now aborts if a participant has become ineligible. |
+| Implemented; close after reviewed merge | #165 | Public leagues have a separate anonymous fixture board that permits only `PUBLIC` schedules and omits member/account/private result fields. Missing/private shared league links remain in an explicit privacy-safe unavailable state rather than falling through to the private workspace. |
+
+The previously delivered issue set (#92, #100, #101, #104, and #145) remains covered by its earlier reviewed work. Issues #117 and #119 remain historical superseded stories and were already closed as not planned. No current issue is being silently closed from this branch; GitHub issue closure should follow the reviewed PR merge.
+
+## Implementation boundaries
+
+- Existing Hono + D1 + React architecture is preserved.
+- No schema or migration change is included.
+- Private member fixture endpoints require the authenticated approved club-member boundary; public fixture serialization is a separate allowlisted path.
+- Season readiness is checked before fixture preview/generation, including idempotent commits, and is reloaded after admin placement/status operations.
+- Current competition browsing and past-season history use separate server/client data paths so closed history does not silently become current Home content.
+- Current account eligibility controls future participation and protected actions; it does not retroactively rewrite confirmed historical standings.
 
 ## Release and test review
 
-The core release design is proportionate:
+The release path remains proportionate:
 
-1. **No schema change:** pull request verification, merge to `main`, repeat verification, deploy Worker, then production privacy/auth smoke.
-2. **Schema change:** additive migration, manually dispatch the D1 workflow with an immutable SHA and typed confirmation, run verification plus pre/post-migration D1 checks, then merge and deploy normally.
+1. **No schema change:** pass PR verification, merge to `main`, repeat verification, deploy the Worker through the existing production path, then run production privacy/auth/health smoke checks.
+2. **Schema change:** additive migration, manually dispatch the D1 workflow with an immutable SHA and typed confirmation, run pre/post-migration D1 checks, then merge and deploy normally. This branch does not require that path.
 
-This PR removes only avoidable complexity:
+The branch retains the existing Actions-only production mutation boundary, main-only serialized deployment, immutable migration source, typed confirmation, D1 health/schema checks, and no automatic remote migration. No production mutation is part of this issue sweep.
 
-- local `deploy` and `db:migrate:remote` scripts, which contradicted the Actions-only production boundary;
-- a no-op `git diff --check` from the clean immutable D1-workflow checkout;
-- stale README/runbook instructions that advertised local production commands.
+One operational decision remains outside the code change: repository owners should require pull-request review and `CI / verify` before relying on the release path as the final gate.
 
-It retains the full CI verification gate, main-only serialized deploy, immutable migration source, typed confirmation, production environment, pre/post migration listing, D1 health/schema verification, and no automatic remote migration.
+## Handoff
 
-One operational gap remains outside this PR: `main` was not branch-protected during review. Repository owners should decide whether to require pull-request review and `CI / verify` before relying on the release path as the sole final gate.
-
-## UI follow-up
-
-The club-first structure is deployed and matches the intended destinations. The supplied desktop captures identify a focused next pass:
-
-1. Rebalance the desktop canvas so the private entry and club content do not leave unexplained dead vertical space.
-2. Recompose the competition workspace header/back/refresh treatment as one deliberate hierarchy.
-3. Recheck standings at exact phone and desktop widths; the captured table treatment needs a rendered review for player-name visibility and horizontal containment.
-
-No visual redesign was included here; these observations need a dedicated rendered UI review against `DESIGN.md`.
+PR #180 is open against `main` with the issue references and this evidence. Seven review findings have been remediated test-first. Require a fresh exact-head CI run and no unresolved blocking review finding before merge. Post-merge CI, the exact deployed Worker SHA, production `/api/health`, privacy-safe signed-out behavior, and a separately authorized signed-in Google journey remain distinct release evidence; do not claim them from the PR gate alone.

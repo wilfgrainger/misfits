@@ -22,7 +22,19 @@ class MemoryD1 {
   private async first<T>(sql: string, values: unknown[]): Promise<T | null> {
     if (sql.includes('FROM sessions') && sql.includes('JOIN users')) { const session = this.sessions.get(String(values[0])); const user = session && this.users.get(session.user_id); if (!session || !user || session.expires_at <= String(values[1])) return null; return { ...user, ...session } as T; }
     if (sql.includes('FROM leagues WHERE id')) return (this.leagues.get(String(values[0])) ?? null) as T;
+    if (sql.includes('AS unassigned_players')) {
+      const seasonId = String(values[0]);
+      const active = [...this.users.values()].filter((user) => user.role === 'PLAYER' && user.status === 'ACTIVE' && user.club_status === 'APPROVED');
+      const assigned = new Set([...this.memberships.values()].filter((row) => row.season_id === seasonId && row.active === 1).map((row) => row.user_id));
+      const unassignedPlayers = active.filter((user) => !assigned.has(user.id)).length;
+      const invalidPlayers = [...this.memberships.values()].filter((row) => row.season_id === seasonId && row.active === 1 && this.users.get(row.user_id)?.status !== 'ACTIVE').length;
+      const usersWithPlacements = new Map<string, number>();
+      for (const row of this.memberships.values()) if (row.season_id === seasonId && row.active === 1) usersWithPlacements.set(row.user_id, (usersWithPlacements.get(row.user_id) ?? 0) + 1);
+      const duplicatePlacements = [...usersWithPlacements.values()].filter((count) => count > 1).length;
+      return { unassigned_players: unassignedPlayers, invalid_players: invalidPlayers, duplicate_placements: duplicatePlacements, outstanding_fixtures: [...this.fixtures.values()].filter((row) => row.league_id && row.status === 'OUTSTANDING').length, pending_confirmations: [...this.fixtures.values()].filter((row) => row.status === 'PENDING_CONFIRMATION').length, disputes: [...this.fixtures.values()].filter((row) => row.status === 'DISPUTED').length } as T;
+    }
     if (sql.includes('SELECT COUNT(*) AS count FROM fixtures WHERE league_id')) return { count: [...this.fixtures.values()].filter((row) => row.league_id === String(values[0])).length } as T;
+    if (sql.includes('FROM league_players lp') && sql.includes('COUNT(*) AS count')) return { count: [...this.memberships.values()].filter((row) => row.league_id === String(values[0]) && row.season_id === String(values[1]) && row.active === 1).length } as T;
     if (sql.includes('SELECT COUNT(*) AS count FROM league_players')) return { count: [...this.memberships.values()].filter((row) => row.league_id === String(values[0]) && row.active === 1).length } as T;
     if (sql.includes('FROM fixtures f') && sql.includes('WHERE f.id')) { const row = this.fixtures.get(String(values[0])); return row ? ({ ...row, player_a_username: this.users.get(row.player_a_id)?.username, player_b_username: this.users.get(row.player_b_id)?.username, result_id: null } as T) : null; }
     if (sql.includes('SELECT COUNT(*) AS count FROM fixtures f')) { const leagueId = String(values[0]); return { count: [...this.fixtures.values()].filter((row) => row.league_id === leagueId && row.status !== 'OUTSTANDING').length } as T; }
@@ -59,6 +71,16 @@ describe('persisted fixture administration', () => {
     const {db,env,routes}=setup(); db.users.get('p4')!.status='SUSPENDED'; const cookie=await cookieFor(db);
     const response=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures/preview',{headers:{Cookie:cookie}}),env,{} as never);
     expect(response.status).toBe(409); expect(await response.json()).toMatchObject({ error:{ code:'VALIDATION_ERROR' } }); expect(db.fixtures.size).toBe(0);
+  });
+
+  it('blocks a league preview when another active approved competitor is unassigned in the same season', async () => {
+    const { db, env, routes } = setup();
+    db.users.set('p5', { id: 'p5', username: 'Player 5', role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED', is_master_admin: 0 });
+    const cookie = await cookieFor(db);
+    const response = await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures/preview', { headers: { Cookie: cookie } }), env, {} as never);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'VALIDATION_ERROR', message: expect.stringContaining('unassigned') } });
+    expect(db.fixtures.size).toBe(0);
   });
 
   it('commits fixtures once and makes repeated generation idempotent', async () => {
@@ -109,7 +131,7 @@ describe('persisted fixture administration', () => {
     const {db,env,routes}=setup(); const cookie=await cookieFor(db);
     const created=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never); const oldIds=new Set((await created.json() as {fixtures:Fixture[]}).fixtures.map((row)=>row.id)); expect(oldIds.size).toBe(6);
     const reset=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie,undefined,'DELETE')),env,{} as never); expect(reset.status).toBe(200); expect(db.fixtures.size).toBe(0);
-    db.memberships.get('l1:p4')!.active=0;
+    db.memberships.get('l1:p4')!.active=0; db.users.get('p4')!.status='SUSPENDED';
     const regenerated=await routes.fetch(new Request('https://misfits.test/api/admin/competition/leagues/l1/fixtures',mutation(cookie)),env,{} as never); expect(regenerated.status).toBe(201);
     const rows=(await regenerated.json() as {fixtures:Fixture[]}).fixtures; expect(rows).toHaveLength(3); expect(rows.every((row)=>!oldIds.has(row.id))).toBe(true); expect(rows.every((row)=>row.player_a_id!=='p4' && row.player_b_id!=='p4')).toBe(true);
   });

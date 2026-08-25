@@ -102,6 +102,8 @@ class MemoryD1 {
       }).length;
       return {
       unassigned_players: unassignedPlayers,
+      invalid_players: 0,
+      duplicate_placements: 0,
       outstanding_fixtures: 2,
       pending_confirmations: 3,
       disputes: 4,
@@ -190,7 +192,7 @@ describe('competition administration routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(await response.json()).toEqual({ health: { unassignedPlayers: 1, outstandingFixtures: 2, pendingConfirmations: 3, disputes: 4 } });
+    expect(await response.json()).toEqual({ health: { unassignedPlayers: 1, invalidPlayers: 0, duplicatePlacements: 0, readyForFixtures: false, outstandingFixtures: 2, pendingConfirmations: 3, disputes: 4 } });
 
     const playerResponse = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}/health`, { headers: { Cookie: await cookieFor(db, 'player') } }), env, {} as never);
     expect(playerResponse.status).toBe(403);

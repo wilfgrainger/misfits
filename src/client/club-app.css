@@ -401,6 +401,50 @@
   border-color: var(--club-red-line);
 }
 
+.history-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.history-heading {
+  display: grid;
+  gap: .2rem;
+}
+
+.history-heading h2 { margin: 0; }
+.history-heading span { color: var(--club-muted); font-size: .85rem; }
+
+.history-season-list {
+  display: grid;
+  gap: .85rem;
+}
+
+.history-season-card {
+  display: grid;
+  gap: .75rem;
+  padding: 1rem;
+  background: var(--club-card-raised);
+  border: 1px solid var(--club-border);
+  border-radius: 10px;
+}
+
+.history-season-card .section-heading { align-items: center; }
+.history-season-card .section-heading > div { display: grid; gap: .2rem; }
+.history-season-card .section-heading small { color: var(--club-muted); }
+.history-season-card .form-help { margin: 0; }
+
+.history-league-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: .5rem;
+}
+
+.history-league-list .picker-item {
+  min-height: 3.5rem;
+  border: 1px solid var(--club-border);
+  border-radius: 8px;
+}
+
 .club-more .club-player-list {
   padding: 0;
   background: transparent;

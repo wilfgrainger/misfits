@@ -4,9 +4,12 @@ interface StandingsTableProps {
   standings: StandingRow[];
   label: string;
   highlightPlayerId?: string;
+  promotionPlaces?: number;
+  relegationPlaces?: number;
+  movementProvisional?: boolean;
 }
 
-export function StandingsTable({ standings, label, highlightPlayerId }: StandingsTableProps) {
+export function StandingsTable({ standings, label, highlightPlayerId, promotionPlaces = 0, relegationPlaces = 0, movementProvisional = true }: StandingsTableProps) {
   return (
     <div className="standings-scroll" role="region" aria-label={label} tabIndex={0}>
       <table className="standings-table" aria-label={label}>
@@ -22,9 +25,13 @@ export function StandingsTable({ standings, label, highlightPlayerId }: Standing
           </tr>
         </thead>
         <tbody>
-          {standings.map((row) => (
+          {standings.map((row) => {
+            const inPromotionZone = promotionPlaces > 0 && row.rank <= promotionPlaces;
+            const inRelegationZone = relegationPlaces > 0 && row.rank > standings.length - relegationPlaces;
+            const zoneLabel = inPromotionZone ? `Promotion zone${movementProvisional ? ' · provisional' : ''}` : inRelegationZone ? `Relegation zone${movementProvisional ? ' · provisional' : ''}` : null;
+            return (
             <tr className={row.playerId === highlightPlayerId ? 'standing-row-you' : undefined} key={row.playerId}>
-              <td className="standing-rank">{row.rank}</td>
+              <td className="standing-rank"><span>{row.rank}</span>{zoneLabel && <small className={inPromotionZone ? 'movement-zone movement-zone-promotion' : 'movement-zone movement-zone-relegation'}>{zoneLabel}</small>}</td>
               <th className="standing-player" scope="row" aria-label={row.username}>
                 <span className="standing-player-avatar" aria-hidden="true">{row.username.slice(0, 1).toUpperCase()}</span>
                 <span className="standing-player-name">{row.username}</span>
@@ -35,7 +42,8 @@ export function StandingsTable({ standings, label, highlightPlayerId }: Standing
               <td className="standing-cell-secondary">{row.average.toFixed(2)}</td>
               <td className="standing-points">{row.points}</td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

@@ -11,6 +11,8 @@ describe('admin touch targets', () => {
 
     expect(sharedStyles).toMatch(/\.segmented-tab\s*\{[^}]*min-height:\s*44px/);
     expect(sharedStyles).toMatch(/\.admin-list \.action-button\s*\{[^}]*min-height:\s*44px/);
+    expect(sharedStyles).toMatch(/\.admin-competition-desk\[data-admin-layout="control-room"\][\s\S]*grid-template-columns:\s*15rem/);
+    expect(sharedStyles).toMatch(/\.admin-competition-desk\[data-admin-layout="control-room"\] \.admin-rail[\s\S]*position:\s*sticky/);
     expect(privateClubStyles).toMatch(/\.compact-button\s*\{[^}]*min-height:\s*44px/);
   });
 });

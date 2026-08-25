@@ -1,13 +1,13 @@
 # Misfits 501 Progress
 
-**Updated:** 24 August 2026
-**Current branch:** `wilfgrainger-issue-and-release-review`
-**PR:** #177 `fix: resolve issue and release gaps`
-**Current focus:** PR #177 review and merge, then main deployment and production privacy/auth smoke
-**Backend/schema/infra change:** Admin-only season-health read; no schema or Cloudflare architecture change
+**Updated:** 25 August 2026
+**Current branch:** `codex/fix-open-issues`
+**PR:** #180 `feat: close approved competition backlog`
+**Current focus:** exact-head CI after seven test-first review remediations → resolve review threads → reviewed merge → verify main deploy
+**Backend/schema/infra change:** Server-owned season readiness, member/public fixture reads, suspension response, movement/history reads, and desktop admin composition; no schema or Cloudflare architecture change
 **Production D1 migration required:** NO
 
-## Current review
+## Current approved execution
 
 Read, in order:
 
@@ -19,9 +19,15 @@ Read, in order:
 6. `docs/operations/2026-08-24-issue-and-release-status.md`
 7. affected code, tests and release workflow
 
-The current bounded repair set resolves #92, #100, #101, #104 and #145, and removes competing local production deploy/migration shortcuts. The 24 August full repository gate passed: Wrangler types, both TypeScript projects, 65 test files / 269 tests, production build, Impeccable detector and `git diff --check`. The remaining 28 open issues are classified in the status report rather than silently widened into this release.
+The approved execution branch implements all 26 issues that were open in the reviewed catalogue: #98, #105, #114, #121, #127-129, #131-144, #155, #157-160 and #165. The branch keeps the existing Hono + D1 + React architecture, adds no migration, and preserves Worker authorization for private data and mutations.
 
-PR #174 merged into `main` at `11e692e` on 23 August 2026. Its club-first design and plan remain historical implementation evidence.
+The original implementation gate was green at **67 test files / 289 tests**, but later PR review found seven additional defects. Each finding was captured with a failing regression test before its production fix. The first RED run preserved the existing 289 green tests while three new regressions failed; the second RED run preserved 291 green tests while four new regressions failed. The fixes cover promotion-application eligibility, fixture readiness on idempotent commit, caller-scoped movement ambiguity, historical standings preservation, season-level provisional movement state, unavailable public deep links, and the fresh Google suspended-account error code.
+
+Do not merge from the historical local gate. A fresh exact-head repository gate is required after these review-remediation and handoff commits: Wrangler types, both TypeScript projects, full Vitest suite, production build, Impeccable detector and diff hygiene. The final review must also contain no unresolved blocking finding.
+
+This is source, contract, and review evidence. It is not a deployment, production-health, signed-in Google journey, or rendered-device acceptance claim. Those checks remain post-merge handoff gates.
+
+The earlier club-first release record remains below as historical evidence; it is not the current issue ledger.
 
 ## Production baseline already complete
 
@@ -88,7 +94,7 @@ The simplification boundary is deliberate:
 
 Cloudflare remains the existing free-tier Worker + static assets + D1 architecture only.
 
-## TDD and CI evidence
+## Historical club-first TDD and CI evidence
 
 ### Initial club-first RED
 
@@ -185,9 +191,9 @@ After merge:
 - Cloudflare free tier only: existing Worker + static assets + D1.
 - No KV, R2, Durable Objects, Queues, scheduled jobs, background polling or extra application runtime.
 - Do not edit applied migrations.
-- No D1 migration is part of PR #174.
+- No D1 migration is part of PR #180.
 - Production D1 mutation remains manual GitHub Actions only.
 - Preserve same-origin protection, admin/master-admin protection, auditability and competition invariants.
 - No private club data may be exposed before Worker-verified `APPROVED` membership.
 - Club approval never implies season/league participation.
-- Keep all **33 parked functional stories** open until separately revalidated.
+- The 26 previously open functional stories are implemented on `codex/fix-open-issues`; close them only after the reviewed PR merges and its target runtime is verified. Preserve the superseded-story disposition for #117 and #119.
