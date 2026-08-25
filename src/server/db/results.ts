@@ -352,13 +352,7 @@ async function getStandingResults(db: D1Database, leagueId: string): Promise<Res
 export async function getLeagueStandings(db: D1Database, leagueId: string): Promise<StandingRow[]> {
   const league = await getLeagueById(db, leagueId);
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
-  const members = (await listLeagueMembers(db, leagueId)).filter((member) =>
-    member.active === 1
-    && member.username
-    && (member.role === undefined || member.role === 'PLAYER')
-    && (member.status === undefined || member.status === 'ACTIVE')
-    && (member.club_status === undefined || member.club_status === 'APPROVED'),
-  );
+  const members = (await listLeagueMembers(db, leagueId)).filter((member) => member.active === 1 && member.username);
   const results = await getStandingResults(db, leagueId);
   return calculateStandings(
     members.map((member) => ({ id: member.user_id, username: member.username! })),
