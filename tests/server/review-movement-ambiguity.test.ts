@@ -59,7 +59,7 @@ class AssignedLeagueDb {
 }
 
 describe('member movement ambiguity regression', () => {
-  it('does not warn a caller who is not one of the tied players', async () => {
+  it('does not warn a caller who is not one of the tied players and preserves provisional season status', async () => {
     const routes = createLeagueRoutes();
     const env = { DB: new AssignedLeagueDb() as never, ASSETS: {} as never, APP_ORIGIN: 'https://misfits.test' };
 
@@ -70,6 +70,6 @@ describe('member movement ambiguity regression', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ ambiguity: null });
+    expect(await response.json()).toMatchObject({ ambiguity: null, provisional: true });
   });
 });
