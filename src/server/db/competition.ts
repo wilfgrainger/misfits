@@ -429,9 +429,9 @@ export async function previewLeagueFixtures(db: D1Database, leagueId: string): P
 }
 
 export async function commitLeagueFixtures(db: D1Database, actorUserId: string, leagueId: string, now = new Date()): Promise<FixtureRecord[]> {
+  const preview = await previewLeagueFixtures(db, leagueId);
   const existing = await db.prepare('SELECT COUNT(*) AS count FROM fixtures WHERE league_id = ?').bind(leagueId).first<{ count: number }>();
   if (Number(existing?.count ?? 0) > 0) return listFixtures(db, leagueId);
-  const preview = await previewLeagueFixtures(db, leagueId);
   const at = timestamp(now);
   const statements = preview.fixtures.map((fixture) => db.prepare(
     `INSERT INTO fixtures (id, season_id, league_id, player_a_id, player_b_id, pair_key, round, meeting_number, status, created_at, updated_at)
