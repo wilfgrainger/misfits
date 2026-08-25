@@ -64,7 +64,7 @@ async function existingOrConfiguredUser(
 }
 
 function ensureActive(user: UserRecord): void {
-  if (user.status !== 'ACTIVE') throw new AppError('FORBIDDEN', 'This account is suspended', 403);
+  if (user.status !== 'ACTIVE') throw new AppError('ACCOUNT_SUSPENDED', 'This account is suspended. Contact a club administrator.', 403);
 }
 
 function authPayload(user: UserRecord) {
