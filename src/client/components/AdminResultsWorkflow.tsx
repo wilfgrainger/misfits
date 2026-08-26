@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, type CompetitionMember, type FixtureSummary, type ResultSummary } from '../api';
 
 const api = new ApiClient();
@@ -72,6 +72,87 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
+  const editDialogRef = useRef<HTMLDivElement | null>(null);
+  const deleteDialogRef = useRef<HTMLDivElement | null>(null);
+  const editTriggerRef = useRef<HTMLElement | null>(null);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
+  const editWasOpen = useRef(false);
+  const deleteWasOpen = useRef(false);
+
+  useEffect(() => {
+    if (!editing) {
+      if (editWasOpen.current) {
+        editWasOpen.current = false;
+        editTriggerRef.current?.focus();
+      }
+      return;
+    }
+    if (!editWasOpen.current && !editTriggerRef.current) editTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    editWasOpen.current = true;
+    const dialog = editDialogRef.current;
+    const controls = dialog ? Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')) : [];
+    const initialControl = dialog?.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') ?? controls[0];
+    initialControl?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setEditing(null);
+        return;
+      }
+      if (event.key !== 'Tab' || controls.length === 0) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!dialog?.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [Boolean(editing)]);
+
+  useEffect(() => {
+    if (!deleteTarget) {
+      if (deleteWasOpen.current) {
+        deleteWasOpen.current = false;
+        deleteTriggerRef.current?.focus();
+      }
+      return;
+    }
+    if (!deleteWasOpen.current && !deleteTriggerRef.current) deleteTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    deleteWasOpen.current = true;
+    const dialog = deleteDialogRef.current;
+    const controls = dialog ? Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')) : [];
+    controls[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setDeleteTarget(null);
+        return;
+      }
+      if (event.key !== 'Tab' || controls.length === 0) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!dialog?.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [Boolean(deleteTarget)]);
 
   const outstanding = useMemo(() => fixtures.filter((fixture) => fixture.status === 'OUTSTANDING'), [fixtures]);
   const pending = useMemo(() => results.filter((result) => result.status === 'PENDING'), [results]);
@@ -169,8 +250,8 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
         </div>
         <div className="inline-actions">
           {result.status !== 'CONFIRMED' && <button className="action-button" type="button" aria-label={`Confirm ${result.status === 'DISPUTED' ? 'disputed ' : ''}result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={() => void confirmResult(result)}>Confirm result</button>}
-          <button className="action-button" type="button" aria-label={`Edit result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={() => setEditing({ ...result })}>Edit result</button>
-          <button className="action-button" type="button" aria-label={`Delete result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={() => setDeleteTarget(result)}>Delete result</button>
+          <button className="action-button" type="button" aria-label={`Edit result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={(event) => { editTriggerRef.current = event.currentTarget; setEditing({ ...result }); }}>Edit result</button>
+          <button className="action-button" type="button" aria-label={`Delete result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={(event) => { deleteTriggerRef.current = event.currentTarget; setDeleteTarget(result); }}>Delete result</button>
         </div>
       </li>)}
     </ul>}
@@ -198,7 +279,8 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
     {renderQueue('Disputed results', disputed)}
     {renderQueue('Confirmed results', confirmed)}
 
-    {editing && <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-labelledby="edit-result-title" className="confirm-dialog">
+    {editing && <div className="dialog-backdrop"><div ref={editDialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-result-title" className="confirm-dialog">
+      <button className="dialog-close icon-action" type="button" aria-label="Close result editor" onClick={() => setEditing(null)}>×</button>
       <h3 id="edit-result-title">Correct result</h3>
       <div className="form-grid">
         <label>Edit player A legs<input aria-label="Edit player A legs" type="number" min="0" value={editing.playerALegs} onChange={(event) => setEditing({ ...editing, playerALegs: Number(event.target.value) })} /></label>
@@ -209,9 +291,10 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
       <div className="inline-actions"><button className="secondary-button" type="button" onClick={() => setEditing(null)}>Cancel</button><button className="primary-button" type="button" onClick={() => void saveResult(editing, 'Result corrected.')}>Save corrected result</button></div>
     </div></div>}
 
-    {deleteTarget && <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-labelledby="delete-result-title" className="confirm-dialog">
+    {deleteTarget && <div className="dialog-backdrop"><div ref={deleteDialogRef} role="dialog" aria-modal="true" aria-labelledby="delete-result-title" aria-describedby="delete-result-message" className="confirm-dialog">
+      <button className="dialog-close icon-action" type="button" aria-label="Close delete confirmation" onClick={() => setDeleteTarget(null)}>×</button>
       <h3 id="delete-result-title">Delete result?</h3>
-      <p>This removes the official result and restores its fixture for correction. The audit history remains intact.</p>
+      <p id="delete-result-message">This removes the official result and restores its fixture for correction. The audit history remains intact.</p>
       <div className="inline-actions"><button className="secondary-button" type="button" onClick={() => setDeleteTarget(null)}>Cancel</button><button className="primary-button" type="button" onClick={() => void deleteResult()}>Confirm</button></div>
     </div></div>}
   </div>;

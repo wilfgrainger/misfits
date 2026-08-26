@@ -34,7 +34,7 @@ body {
 }
 
 .experience-shell :focus-visible {
-  outline-color: var(--club-green);
+  outline-color: var(--club-red, #d44040);
 }
 
 .experience-panel {
@@ -571,7 +571,6 @@ body {
 }
 
 .club-nav-item svg { width: 1.35rem; height: 1.35rem; }
-.club-nav-item-active { color: var(--club-green-strong); background: rgba(103, 215, 125, 0.07); }
 
 /* League selector becomes a compact context switcher, not another hero. */
 .experience-panel .league-tabs {

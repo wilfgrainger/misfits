@@ -50,7 +50,12 @@ it('keeps competition detail inside Leagues instead of making it the whole app f
 
   expect(await screen.findByRole('heading', { name: 'Premier' })).toBeTruthy();
   expect(screen.getByText('2026 season')).toBeTruthy();
-  expect(screen.getByRole('tab', { name: 'Table' })).toBeTruthy();
+  const tableTab = screen.getByRole('tab', { name: 'Table' });
+  expect(tableTab).toBeTruthy();
+  expect(tableTab.getAttribute('aria-controls')).toBe('competition-panel');
+  const panel = screen.getByRole('tabpanel');
+  expect(panel.getAttribute('id')).toBe('competition-panel');
+  expect(panel.getAttribute('aria-labelledby')).toBe('competition-tab-table');
   expect(screen.getByRole('tab', { name: 'Fixtures' })).toBeTruthy();
   expect(screen.getByRole('tab', { name: 'Results' })).toBeTruthy();
   expect(document.querySelector('.player-league-hero')).toBeNull();

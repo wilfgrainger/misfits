@@ -59,9 +59,9 @@ class HistoricalResultsDb {
 }
 
 describe('historical standings eligibility regression', () => {
-  it('keeps confirmed historical competitors without adding a current ineligible non-competitor', async () => {
+  it('keeps confirmed historical competitors and includes an assigned active administrator', async () => {
     const rows = await getLeagueStandings(new HistoricalResultsDb() as never, 'league-1');
-    expect(rows.map((row) => row.playerId).sort()).toEqual(['p1', 'p2']);
+    expect(rows.map((row) => row.playerId).sort()).toEqual(['admin', 'p1', 'p2']);
     expect(rows.find((row) => row.playerId === 'p1')).toMatchObject({ played: 1, won: 1 });
   });
 });

@@ -315,7 +315,10 @@ describe('private club league routes', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('private, no-store');
     const body = await response.json() as { players: Array<Record<string, unknown>> };
-    expect(body.players).toEqual([{ id: 'player-1', username: 'Player', profileImageUrl: null }]);
+    expect(body.players).toEqual([
+      { id: 'admin-1', username: 'Admin', profileImageUrl: null },
+      { id: 'player-1', username: 'Player', profileImageUrl: null },
+    ]);
     expect(body.players[0]).not.toHaveProperty('email');
   });
 
