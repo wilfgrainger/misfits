@@ -65,7 +65,7 @@ function renderMember(myLeagues: LeagueSummary[], clubLeagues = myLeagues) {
   );
 }
 
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe('club-first Record', () => {
   it('asks which competition is being recorded when more than one open assignment is eligible', async () => {
@@ -96,8 +96,40 @@ describe('club-first Record', () => {
     expect(screen.queryByTestId('record-workspace')).toBeNull();
   });
 
+  it('surfaces opponent-submitted pending reviews and opens that competition Results view', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      if (String(input).endsWith('/api/me/results')) {
+        return new Response(JSON.stringify({ results: [{
+          id: 'result-review',
+          leagueId: tuesday.id,
+          playerAId: user.id,
+          playerBId: 'player-b',
+          playerAUsername: user.username,
+          playerBUsername: 'Bravo',
+          playerALegs: 1,
+          playerBLegs: 3,
+          playerAAverage: 48,
+          playerBAverage: 57,
+          submittedBy: 'player-b',
+          status: 'PENDING',
+          confirmedBy: null,
+          disputeNote: null,
+          createdAt: '',
+          confirmedAt: null,
+        }] }), { status: 200 });
+      }
+      throw new Error(`Unexpected fetch: ${String(input)}`);
+    });
+    renderMember([tuesday], [tuesday]);
+
+    const review = await screen.findByRole('button', { name: /1 result awaiting your review/ });
+    fireEvent.click(review);
+
+    expect((await screen.findByTestId('record-workspace')).textContent).toBe('Tuesday Club:results');
+  });
+
   it('keeps current placement empty-state explicit and exposes season-linked history under More', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({
       seasons: [
         { season: { id: 'current', name: '2026/27', status: 'OPEN', isCurrent: true, createdAt: '', updatedAt: '', closedAt: null }, leagues: [tuesday], placedLeagueIds: [] },
         { season: { id: 'old', name: '2025/26', status: 'CLOSED', isCurrent: false, createdAt: '', updatedAt: '', closedAt: '' }, leagues: [closed], placedLeagueIds: ['league-closed'] },

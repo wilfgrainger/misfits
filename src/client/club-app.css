@@ -137,6 +137,24 @@
   letter-spacing: -0.035em;
 }
 
+.text-button {
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  color: var(--club-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.text-button:hover {
+  color: var(--club-text);
+  background: var(--club-red-soft);
+  border-color: var(--club-red-line);
+}
+
 .club-section-heading .text-button,
 .competition-back {
   min-height: 44px;
@@ -360,6 +378,7 @@
 .fixture-browser-list li {
   display: flex;
   min-width: 0;
+  min-height: 3.75rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -592,5 +611,81 @@
   .competition-tab,
   .header-avatar-button {
     transition: none !important;
+  }
+}
+.embedded-league-experience .standings-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.club-more .player-more-panel h2 {
+  font-size: clamp(1.35rem, 4vw, 1.65rem);
+}
+
+.admin-competition-desk .admin-rail {
+  scroll-padding-inline: 0.75rem;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  background: rgba(4, 7, 6, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.confirm-dialog {
+  position: relative;
+  display: grid;
+  width: min(100%, 36rem);
+  max-height: calc(100dvh - 2rem);
+  gap: 1rem;
+  overflow: auto;
+  padding: 1.35rem;
+  color: var(--club-text);
+  background: var(--club-card);
+  border: 1px solid var(--club-border);
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+}
+
+.confirm-dialog h3 {
+  margin: 0;
+  padding-right: 2.75rem;
+}
+
+.confirm-dialog > p {
+  margin: 0;
+  color: var(--club-muted);
+  line-height: 1.55;
+}
+
+.confirm-dialog .dialog-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  color: var(--club-red-strong);
+  background: transparent;
+  border-color: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.confirm-dialog .dialog-close:hover {
+  color: var(--club-text);
+  background: var(--club-red-soft);
+  border-color: var(--club-red-line);
+}
+
+@media (max-width: 959px) {
+  .admin-competition-desk .admin-rail {
+    scroll-snap-type: x proximity;
+  }
+
+  .admin-competition-desk .admin-rail .content-tab {
+    scroll-snap-align: start;
   }
 }

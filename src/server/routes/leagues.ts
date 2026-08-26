@@ -36,7 +36,6 @@ function publicPlayers(members: Awaited<ReturnType<typeof listLeagueMembers>>) {
   return members
     .filter((member) =>
       member.active === 1
-      && (member.role === undefined || member.role === 'PLAYER')
       && (member.status === undefined || member.status === 'ACTIVE')
       && (member.club_status === undefined || member.club_status === 'APPROVED'),
     )

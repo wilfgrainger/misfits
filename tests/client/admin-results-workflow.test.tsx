@@ -110,14 +110,27 @@ describe('admin official-result workflows', () => {
     expect(await screen.findByText('Result confirmed.')).toBeTruthy();
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/results/r2' && init?.method === 'PATCH' && JSON.parse(String(init.body)).status === 'CONFIRMED')).toBe(true);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit result Alpha vs Bravo' }));
+    const editTrigger = screen.getByRole('button', { name: 'Edit result Alpha vs Bravo' });
+    fireEvent.click(editTrigger);
+    expect(document.activeElement).toBe(screen.getByLabelText('Edit player A legs'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Correct result' })).toBeNull();
+    expect(document.activeElement).toBe(editTrigger);
+
+    fireEvent.click(editTrigger);
     fireEvent.change(screen.getByLabelText('Edit player B legs'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save corrected result' }));
     expect(await screen.findByText('Result corrected.')).toBeTruthy();
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/results/r1' && init?.method === 'PATCH' && JSON.parse(String(init.body)).playerBLegs === 2)).toBe(true);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete result Alpha vs Bravo' }));
+    const deleteTrigger = screen.getByRole('button', { name: 'Delete result Alpha vs Bravo' });
+    fireEvent.click(deleteTrigger);
     expect(await screen.findByRole('dialog', { name: 'Delete result?' })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close delete confirmation' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Delete result?' })).toBeNull();
+    expect(document.activeElement).toBe(deleteTrigger);
+    fireEvent.click(deleteTrigger);
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/results/r1' && init?.method === 'DELETE')).toBe(true));
   });

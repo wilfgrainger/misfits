@@ -88,8 +88,9 @@ class IntegrityD1 {
   private async all<T>(sql: string, _values: unknown[]): Promise<{ results: T[] }> {
     if (sql.includes('FROM league_players') && sql.includes('JOIN users')) {
       return { results: [
-        { league_id: 'l1', season_id: 's1', user_id: 'a', active: 1, joined_at: now.toISOString(), username: 'Alpha', profile_image_url: null },
-        { league_id: 'l1', season_id: 's1', user_id: 'b', active: 1, joined_at: now.toISOString(), username: 'Bravo', profile_image_url: null },
+        { league_id: 'l1', season_id: 's1', user_id: 'a', active: 1, joined_at: now.toISOString(), username: 'Alpha', profile_image_url: null, role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED' },
+        { league_id: 'l1', season_id: 's1', user_id: 'b', active: 1, joined_at: now.toISOString(), username: 'Bravo', profile_image_url: null, role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED' },
+        { league_id: 'l1', season_id: 's1', user_id: 'c', active: 1, joined_at: now.toISOString(), username: 'Captain', profile_image_url: null, role: 'ADMIN', status: 'ACTIVE', club_status: 'APPROVED' },
       ] as T[] };
     }
     if (sql.includes('FROM matches')) {
@@ -124,5 +125,6 @@ describe('admin result integrity', () => {
     const standings = await getLeagueStandings(db as never, 'l1');
     expect(standings.find((row) => row.playerId === 'a')).toMatchObject({ played: 1, won: 1, points: 2 });
     expect(standings.find((row) => row.playerId === 'b')).toMatchObject({ played: 1, lost: 1, points: 0 });
+    expect(standings.find((row) => row.playerId === 'c')).toMatchObject({ played: 0, points: 0 });
   });
 });

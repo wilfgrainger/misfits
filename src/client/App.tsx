@@ -59,6 +59,7 @@ export default function App() {
   const [publicLeague, setPublicLeague] = useState<LeagueSummary | null>(null);
   const [publicLeaguePathKey, setPublicLeaguePathKey] = useState<string | null>(null);
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  const clubLoadRequest = useRef(0);
 
   const clearClubData = () => {
     setClubLeagues([]);
@@ -67,19 +68,23 @@ export default function App() {
     setClubLoadError('');
   };
 
-  const loadApprovedClub = async () => {
-    setClubLoadError('');
+  const loadApprovedClub = async (isActive: () => boolean = () => true) => {
+    const request = ++clubLoadRequest.current;
+    if (isActive()) setClubLoadError('');
     try {
       const [clubPayload, personalPayload] = await Promise.all([api.leagues(), api.myLeagues()]);
+      if (!isActive() || request !== clubLoadRequest.current) return;
       setClubLeagues(clubPayload.leagues);
       setMyLeagues(personalPayload.leagues);
     } catch (cause) {
+      if (!isActive() || request !== clubLoadRequest.current) return;
       clearClubData();
       setClubLoadError(messageFor(cause, 'Your private club workspace could not be loaded.'));
     }
   };
 
-  const mapAuthenticatedUser = async (payload: AuthPayload) => {
+  const mapAuthenticatedUser = async (payload: AuthPayload, isActive: () => boolean = () => true) => {
+    if (!isActive()) return;
     setSigningIn(false);
     setUser(payload.user);
     clearClubData();
@@ -103,7 +108,7 @@ export default function App() {
 
     setView('signed-in');
     setMessage('');
-    await loadApprovedClub();
+    await loadApprovedClub(isActive);
   };
 
   useEffect(() => {
@@ -111,7 +116,7 @@ export default function App() {
     const checkPrivateEntry = () => {
       api.me().then((payload) => {
         if (!active || !payload?.user) return;
-        void mapAuthenticatedUser(payload);
+        void mapAuthenticatedUser(payload, () => active);
       }).catch((error: unknown) => {
         if (!active) return;
         setUser(null);
@@ -149,7 +154,7 @@ export default function App() {
         setMessage('Private club access');
       });
     }
-    return () => { active = false; };
+    return () => { active = false; clubLoadRequest.current += 1; };
   }, []);
 
   useEffect(() => {
@@ -169,7 +174,7 @@ export default function App() {
           setClubInviteToken(null);
           window.history.replaceState({}, '', '/');
         }
-        void mapAuthenticatedUser(payload);
+        void mapAuthenticatedUser(payload, () => active);
       }).catch((error: unknown) => {
         if (!active) return;
         setSigningIn(false);
@@ -209,6 +214,7 @@ export default function App() {
 
   const logout = async () => {
     await api.logout().catch(() => undefined);
+    clubLoadRequest.current += 1;
     setSigningIn(false);
     setUser(null);
     clearClubData();

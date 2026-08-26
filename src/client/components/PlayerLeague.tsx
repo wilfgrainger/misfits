@@ -248,7 +248,7 @@ export function PlayerLeague({ user, league, isParticipant, onUserSaved, onOpenA
     <section className={embedded ? 'player-workspace league-experience embedded-league-experience' : 'player-workspace league-experience'} aria-labelledby="league-title">
       {embedded ? (
         <header className="competition-heading">
-          <div><p className="competition-eyebrow">{league.seasonName} season</p><h2 id="league-title">{league.name}</h2></div>
+          <div><p className="competition-eyebrow">{league.seasonName} season</p><h2 id="league-title" title={league.name}>{league.name}</h2></div>
           <button className="refresh-button icon-action" type="button" aria-label="Refresh league" onClick={() => void load()} disabled={loading}><AppIcon name="refresh" /></button>
         </header>
       ) : <>

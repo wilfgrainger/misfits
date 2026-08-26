@@ -358,7 +358,6 @@ export async function getLeagueStandings(db: D1Database, leagueId: string): Prom
   for (const member of members) {
     if (
       member.active === 1 && member.username
-      && (member.role === undefined || member.role === 'PLAYER')
       && (member.status === undefined || member.status === 'ACTIVE')
       && (member.club_status === undefined || member.club_status === 'APPROVED')
     ) players.set(member.user_id, member.username);
