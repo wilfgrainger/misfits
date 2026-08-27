@@ -247,6 +247,7 @@ export default function App() {
       <span className="private-entry-icon"><AppIcon name="lock" /></span>
       <p className="entry-kicker">{unavailablePublicLeague ? 'Private club access' : 'Private members club'}</p>
       <h1>{unavailablePublicLeague ? 'League unavailable' : clubInviteToken ? "You've been invited to join Misfits" : 'Welcome to Misfits'}</h1>
+      <p className="entry-promise">Club darts, properly settled.</p>
       <p className="entry-copy">{unavailablePublicLeague ? 'This shared league is private or unavailable. Sign in with Google to continue to Misfits if you are a member.' : clubInviteToken ? 'Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.' : 'Existing members can sign in with Google. New members need a private club invitation.'}</p>
       <div className="private-google-card" role="group" aria-label="Sign in with Google">{googleSlot}</div>
       {message && message !== 'Private club access' && <p className={message === 'A club invitation is required' ? 'error-message entry-message' : 'form-help entry-message'} role={message === 'A club invitation is required' ? 'alert' : 'status'}>{message}</p>}
