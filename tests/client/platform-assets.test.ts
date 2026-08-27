@@ -64,21 +64,33 @@ describe('Misfits platform assets', () => {
     expect(meta['og:image']).toBe('https://darts.graingers.agency/brand/misfits-501.jpg');
     expect(meta['og:url']).toBe('https://darts.graingers.agency/');
     expect(document).toContain('<meta name="twitter:card" content="summary_large_image" />');
-    expect(document).toContain('luxury private darts club');
+    expect(document).toContain('private darts club');
     expect(manifest.description).toContain('private darts club');
+    expect(document).not.toMatch(/luxury/i);
+    expect(manifest.description).not.toMatch(/luxury/i);
     expect(document).not.toMatch(/properly settled/i);
     expect(manifest.description).not.toMatch(/properly settled/i);
   });
 
   it('declares a real tab icon and an installable home-screen icon', () => {
     const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
-    const iconHref = document.match(/<link rel="icon"[^>]*href="([^"]+)"/)?.[1];
+    const iconHrefs = [...document.matchAll(/<link rel="icon"[^>]*href="([^"]+)"/g)].map((match) => match[1]);
     const touchHref = document.match(/<link rel="apple-touch-icon"[^>]*href="([^"]+)"/)?.[1];
 
-    expect(iconHref).toBe('/brand/misfits-501-mark.svg');
+    expect(iconHrefs).toContain('/favicon.ico');
+    expect(iconHrefs).toContain('/brand/misfits-501-mark.svg');
     expect(touchHref).toBe('/brand/misfits-501.jpg');
     expect(document).toContain('type="image/svg+xml"');
     expect(readFileSync(resolve(publicRoot, 'brand/misfits-501-mark.svg'), 'utf8')).toContain('<svg');
+  });
+
+  it('ships a real /favicon.ico asset instead of falling through to the SPA shell', () => {
+    const ico = readFileSync(resolve(publicRoot, 'favicon.ico'));
+    // ICO header: reserved(0) type(1=icon) count(>=1), little-endian.
+    expect(ico.readUInt16LE(0)).toBe(0);
+    expect(ico.readUInt16LE(2)).toBe(1);
+    expect(ico.readUInt16LE(4)).toBeGreaterThanOrEqual(1);
+    expect(ico.length).toBeGreaterThan(100);
   });
 
   it('defines a centered logo reveal and an immediate reduced-motion composition', () => {
