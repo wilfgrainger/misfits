@@ -93,15 +93,16 @@ describe('Misfits platform assets', () => {
     expect(ico.length).toBeGreaterThan(100);
   });
 
-  it('defines a centered logo reveal and an immediate reduced-motion composition', () => {
+  it('defines a static private threshold with reduced-motion-safe decoration', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const styles = readFileSync(resolve(clientRoot, 'private-club.css'), 'utf8');
 
-    expect(styles).toMatch(/\.front-page-intro\s*\{[\s\S]*position:\s*fixed[\s\S]*place-items:\s*center[\s\S]*animation:\s*front-page-intro-curtain/);
-    expect(styles).toMatch(/\.front-page-intro-content\s*\{[\s\S]*animation:\s*front-page-entry-arrive/);
-    expect(styles).toMatch(/\.front-page-intro-logo\s*\{[\s\S]*transform/);
-    expect(styles).toMatch(/@keyframes front-page-intro-logo[\s\S]*opacity:\s*0;\s*\n\s*transform:\s*scale\(1\.3\)/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.front-page-intro,[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.front-page-entry-content[\s\S]*pointer-events:\s*auto/);
+    expect(document).toMatch(/<body>\s*<!-- premium-club-v2[\s\S]*THESIS:[\s\S]*OWN-WORLD:[\s\S]*STORY:[\s\S]*FIRST VIEWPORT:[\s\S]*FINISH:/);
+    expect(styles).toMatch(/\.private-entry-state\.private-entry-v2\s*\{[\s\S]*min-height:\s*100dvh[\s\S]*padding:\s*clamp\(1\.25rem, 5vw, 3\.5rem\)[\s\S]*radial-gradient/);
+    expect(styles).toMatch(/\.private-admission-card\s*\{[\s\S]*width:\s*100%[\s\S]*box-shadow:\s*0 24px 64px/);
+    expect(styles).toMatch(/@media \(min-width:\s*768px\)[\s\S]*\.private-entry-state\.private-entry-v2[\s\S]*grid-template-columns:/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.private-entry-v2::before\s*\{[\s\S]*animation:\s*none[\s\S]*transform:\s*none/);
+    expect(styles).not.toMatch(/front-page-intro|front-page-entry-arrive|front-page-intro-curtain/);
   });
 
   it('offers a maskable install icon so the club mark is not cropped on a phone', () => {

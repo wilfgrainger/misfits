@@ -116,8 +116,12 @@ describe('private club entry', () => {
     meResult = () => Promise.reject(new ApiClientError(401, 'Unauthenticated'));
     render(<App />);
 
+    const title = await screen.findByRole('heading', { name: 'Misfits 501' });
+    expect(title.closest('.private-entry-masthead')).toBeTruthy();
     expect(await screen.findByText('Club darts, properly settled.')).toBeTruthy();
-    expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
+    const admissionCard = screen.getByRole('group', { name: 'Sign in with Google' });
+    expect(admissionCard.classList.contains('private-admission-card')).toBe(true);
+    expect(admissionCard.closest('.private-entry-v2')).toBeTruthy();
     expect(screen.getByText(/League tables, results and member details stay private/i)).toBeTruthy();
     expect(screen.queryByText('Your competitions')).toBeNull();
     expect(calls.leagues).toBe(0);
