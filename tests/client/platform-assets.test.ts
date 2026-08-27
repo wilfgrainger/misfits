@@ -52,28 +52,22 @@ describe('Misfits platform assets', () => {
     expect(scriptSource).not.toContain("'unsafe-inline'");
   });
 
-  it('gives a shared club link a privacy-safe preview', () => {
+  it('keeps the shared preview and install metadata free of the retired slogan', () => {
     const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as { description?: string };
     const meta = Object.fromEntries([...document.matchAll(/<meta property="(og:[^"]+)" content="([^"]+)"/g)].map((match) => [match[1], match[2]]));
 
     expect(meta['og:type']).toBe('website');
     expect(meta['og:site_name']).toBe('Misfits 501');
-    expect(meta['og:title']).toContain('Club darts, properly settled.');
+    expect(meta['og:title']).toBe('Misfits 501 — Private club darts.');
     expect(meta['og:description']).toContain('private');
     expect(meta['og:image']).toBe('https://darts.graingers.agency/brand/misfits-501.jpg');
     expect(meta['og:url']).toBe('https://darts.graingers.agency/');
     expect(document).toContain('<meta name="twitter:card" content="summary_large_image" />');
-  });
-
-  it('carries the fixed club promise in the document and install metadata', () => {
-    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
-    const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as { description?: string };
-
     expect(document).toContain('luxury private darts club');
-    expect(document).toContain('Club darts, properly settled.');
-    expect(manifest.description).toContain('Club darts, properly settled.');
-    expect(document).not.toContain('darts league');
-    expect(manifest.description).not.toContain('darts league');
+    expect(manifest.description).toContain('private darts club');
+    expect(document).not.toMatch(/properly settled/i);
+    expect(manifest.description).not.toMatch(/properly settled/i);
   });
 
   it('declares a real tab icon and an installable home-screen icon', () => {
@@ -85,6 +79,17 @@ describe('Misfits platform assets', () => {
     expect(touchHref).toBe('/brand/misfits-501.jpg');
     expect(document).toContain('type="image/svg+xml"');
     expect(readFileSync(resolve(publicRoot, 'brand/misfits-501-mark.svg'), 'utf8')).toContain('<svg');
+  });
+
+  it('defines a centered logo reveal and an immediate reduced-motion composition', () => {
+    const styles = readFileSync(resolve(clientRoot, 'private-club.css'), 'utf8');
+
+    expect(styles).toMatch(/\.front-page-intro\s*\{[\s\S]*position:\s*fixed[\s\S]*place-items:\s*center[\s\S]*animation:\s*front-page-intro-curtain/);
+    expect(styles).toMatch(/\.front-page-intro-content\s*\{[\s\S]*animation:\s*front-page-entry-arrive/);
+    expect(styles).toMatch(/\.front-page-intro-logo\s*\{[\s\S]*transform/);
+    expect(styles).toMatch(/@keyframes front-page-intro-logo[\s\S]*opacity:\s*0;\s*\n\s*transform:\s*scale\(1\.3\)/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.front-page-intro,[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.front-page-entry-content[\s\S]*pointer-events:\s*auto/);
   });
 
   it('offers a maskable install icon so the club mark is not cropped on a phone', () => {
