@@ -96,9 +96,12 @@ describe('Misfits platform assets', () => {
   it('defines a static private threshold with reduced-motion-safe decoration', () => {
     const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const styles = readFileSync(resolve(clientRoot, 'private-club.css'), 'utf8');
+    const direction = document.match(/<body>\s*<!--\s*(premium-club-v2[\s\S]*?)\s*-->/)?.[1];
 
-    expect(document).toMatch(/<body>\s*<!-- premium-club-v2[\s\S]*THESIS:[\s\S]*OWN-WORLD:[\s\S]*STORY:[\s\S]*FIRST VIEWPORT:[\s\S]*FINISH:/);
-    expect(styles).toMatch(/\.private-entry-state\.private-entry-v2\s*\{[\s\S]*min-height:\s*100dvh[\s\S]*padding:\s*clamp\(1\.25rem, 5vw, 3\.5rem\)[\s\S]*radial-gradient/);
+    expect(direction).toBeTruthy();
+    expect(direction).toMatch(/^premium-club-v2\s+THESIS:[\s\S]*OWN-WORLD:[\s\S]*STORY:[\s\S]*FIRST VIEWPORT:[\s\S]*FINISH:/);
+    expect(direction?.trim().endsWith('unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance')).toBe(true);
+    expect(styles).toMatch(/\.private-entry-state\.private-entry-v2\s*\{[\s\S]*min-height:\s*100dvh[\s\S]*padding:\s*max\(clamp\(1\.25rem, 5vw, 3\.5rem\), env\(safe-area-inset-top\)\)[\s\S]*radial-gradient/);
     expect(styles).toMatch(/\.private-admission-card\s*\{[\s\S]*width:\s*100%[\s\S]*box-shadow:\s*0 24px 64px/);
     expect(styles).toMatch(/@media \(min-width:\s*768px\)[\s\S]*\.private-entry-state\.private-entry-v2[\s\S]*grid-template-columns:/);
     expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.private-entry-v2::before\s*\{[\s\S]*animation:\s*none[\s\S]*transform:\s*none/);

@@ -65,7 +65,7 @@ describe('private signed-out UX', () => {
     expect(state.leagueCalls).toBe(0);
   });
 
-  it('keeps the static threshold usable for visitors who prefer reduced motion', async () => {
+  it('keeps the static threshold available when reduced motion is requested', async () => {
     const originalMatchMedia = window.matchMedia;
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,

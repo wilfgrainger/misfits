@@ -55,6 +55,14 @@ describe('private member navigation', () => {
     expect(screen.getByRole('heading', { name: 'Needs you' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Your competitions' }).closest('section')).toHaveClass('club-home-primary');
     expect(screen.getByRole('heading', { name: 'Needs you' }).closest('section')).toHaveClass('club-home-attention');
+    const home = screen.getByRole('heading', { name: /Good to see you/i }).closest('.club-home');
+    const competitions = screen.getByRole('heading', { name: 'Your competitions' });
+    const attention = screen.getByRole('heading', { name: 'Needs you' });
+    expect(home?.contains(competitions)).toBe(true);
+    expect(home?.contains(attention)).toBe(true);
+    expect(competitions.compareDocumentPosition(attention) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Record' })).not.toHaveAttribute('aria-current');
 
     fireEvent.click(screen.getByRole('button', { name: 'Record' }));
     await screen.findByRole('heading', { name: 'Record your result' });

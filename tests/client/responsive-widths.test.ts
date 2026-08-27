@@ -97,4 +97,11 @@ describe('responsive acceptance widths', () => {
     expect(privateEntry + memberShell).toMatch(/:focus-visible\s*\{[^}]*outline:\s*3px\s+solid\s+var\(--club-red-strong\)/);
     expect(mobile).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
   });
+
+  it('keeps Home intentionally two-column only when desktop width is available', () => {
+    const memberShell = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
+
+    expect(memberShell).toMatch(/@media\s*\(min-width:\s*960px\)\s*\{[\s\S]*?\.club-home\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1\.2fr\)\s+minmax\(18rem,\s*0\.8fr\)/);
+    expect(memberShell).toMatch(/\.club-home-primary,[\s\S]*?\.club-home-attention\s*\{[\s\S]*?align-content:\s*start/);
+  });
 });

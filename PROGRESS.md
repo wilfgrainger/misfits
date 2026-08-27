@@ -3,7 +3,7 @@
 **Updated:** 27 August 2026
 **Current branch:** `codex/premium-club-v2`
 **Base:** `56603ee8304955618bed870c93ad41253669ce4d` — `fix: plainer landing copy and a real favicon.ico`
-**Current focus:** Premium Club V2 handoff to Kiro — complete the paused review, responsive safeguards, rendered acceptance, and release decision without widening product scope.
+**Current focus:** Premium Club V2 final release gate and Cloudflare deployment, requested by the owner, without widening product scope.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -29,7 +29,8 @@ This branch is a presentation-led redesign of the existing Misfits 501 private-c
 | `ef7d413` | reviewed clean | Privacy, promise, club-first navigation, and public-record regression contracts. |
 | `70aa56a` | reviewed clean | Static private-club threshold: no timed curtain, admission card, fixed promise, emitted V2 direction contract, and retained access boundaries. |
 | `c9c903c` | reviewed clean | Club record-book member shell: Home grouping, Record hook, desktop composition, and unchanged four-destination member navigation. |
-| `bf61697` | committed; **review paused** | Public fixture, table, fixture/result, and admin scorebook presentation. The independent Task 4 review was interrupted at the user's handoff request; treat it as unreviewed until Kiro completes it. |
+| `bf61697` | reviewed clean | Public fixture, table, fixture/result, and admin scorebook presentation. The deferred Task 4 review completed clean against `c9c903c..bf61697`; no Critical or Important finding. |
+| `ac18b00` | reviewed locally | Responsive safeguards: safe-area entry spacing, supplied Google-control containment, minimum navigation clearance, and focus/reduced-motion coverage. |
 
 ### Product truth that must not change
 
@@ -40,28 +41,29 @@ This branch is a presentation-led redesign of the existing Misfits 501 private-c
 - DartCounter scores; Misfits records and settles outcomes. Do not add live scoring, social/member marketing, payments, teams, tournaments, or public member data.
 - Use the supplied club art intact; do not use it behind text. No external font, dependency, Cloudflare service, migration, route, or API belongs in this release.
 
-## Kiro job queue
+## Release sequence
 
 Work in this exact isolated checkout, not the original dirty checkout:
 
 `C:\Users\wilf6\dev\misfits\.worktrees\premium-club-v2`
 
-| Priority | Job | Required completion evidence |
+| Status | Job | Evidence recorded |
 | --- | --- | --- |
-| 1 | **Complete the paused Task 4 review.** Read the Task 4 brief, report, and package in `.superpowers/sdd/2026-08-27-premium-club-v2/`. Review `c9c903c..bf61697` as a read-only task gate. | Spec/quality verdict recorded in the SDD ledger. Fix any Critical/Important finding through the planned fix/re-review loop before moving on. |
-| 2 | **Task 5 — responsive, focus, and motion safeguards.** Add only the plan's source-level tests and smallest CSS safeguards. | TDD RED/GREEN, required widths represented, private-entry and responsive focused tests passing, independent task review. |
-| 3 | **Task 6 — bounded visual finish.** Build, serve, and capture the private root at 390px and 1440px. Inspect both captures, make at most one batched correction pass, then run detector and a fresh full gate. | Valid `.impeccable/review/mobile.png` and `desktop.png`; source detector; Wrangler types; client/Worker typecheck; full Vitest; production build; `git diff --check`; review verdict. |
-| 4 | **Resolve deferred minor review debt during the final whole-branch review.** | (a) strengthen the V2 direction-comment test to bind the exact blocks/closing sentence and keep built-output grep; (b) label or replace the reduced-motion test so it proves what it claims; (c) retain evidence for desktop Home ratio, mobile source order, and selected `aria-current`; (d) decide whether the standalone non-embedded `PlayerLeague` navigation can ever be product-mounted. |
-| 5 | **Release decision only after the prior jobs are green.** | Commit exact final source/evidence/docs; request review/CI; push, PR, merge, deployment, and production checks need their own evidence and authority. |
+| complete | **Deferred Task 4 review.** Reviewed `c9c903c..bf61697` read-only. | Clean diff; public app, standings, and player focused suites: 17 tests passed. |
+| complete | **Responsive, focus, and motion safeguards.** | Safe-area/sizing source safeguards committed in `ac18b00`; focused entry and responsive suite passed. |
+| complete | **Bounded rendered finish.** | Signed-out private root captured at 390×844 and 1440×900 in `.impeccable/review/`; one correction pass fixed supplied Google-control sizing and true centring. |
+| complete | **Deferred minor review debt.** | Direction-comment contract tightened; motion-test title corrected; desktop ratio/mobile source order/selected `aria-current` are explicit; no product route directly mounts non-embedded `PlayerLeague`. |
+| in progress | **Fresh release gate and deployment.** | Run current types, tests, build, detector, configuration check, dry-run, final diff check; commit the exact release candidate, deploy the Worker, then verify the live root and health endpoint. |
 
 ## Evidence already reported by completed task implementations
 
 - Task 2 report: 77 files / 319 tests, TypeScript, Wrangler types, production build, emitted V2 HTML-comment grep, detector `[]`, and diff checks passed.
 - Task 3 report: 77 files / 320 tests, client/Worker TypeScript, production build, detector `[]`, and diff checks passed.
-- Task 4 report: 77 files / 320 tests, client/Worker TypeScript, production build, detector `[]`, and staged diff checks passed.
-- Task 1–3 have independent clean task-review verdicts. Task 4 implementation is committed but its independent task-review verdict is outstanding.
+- Task 4 review: `git diff --check c9c903c..bf61697` was clean; `public-app-ux`, `standings-table`, and `player-app` passed (3 files / 17 tests).
+- Rendered acceptance used the local Worker with its local D1 at 390×844 and 1440×900. The anonymous entrance displayed only the private-club promise and Google sign-in, with no member, fixture, result, or table data mounted.
+- Google Identity Services sizing now uses the actual sign-in slot, not its padded parent card; its supported logo alignment is `center`. The source regression test proves the narrower slot wins. The live Google sign-in journey was not performed.
 
-These are task-report claims from local work, not a substitute for the final fresh release gate. None establishes rendered-device acceptance, a live Google journey, CI, a push, a pull request, a deployment, or production health.
+These are local task and browser results, not a substitute for the final fresh release gate. They do not establish a live Google journey, CI, a push, a pull request, a deployment, or production health.
 
 ## Handoff files and operating discipline
 
@@ -69,12 +71,12 @@ These are task-report claims from local work, not a substitute for the final fre
 - Plan: `docs/superpowers/plans/2026-08-27-premium-club-v2.md`
 - SDD ledger/reports/packages: `.superpowers/sdd/2026-08-27-premium-club-v2/`
 - Use explicit staging paths; do not use `git add -A`, reset, or overwrite unrelated files.
-- The V2 source branch is local only. No push, PR, CI, merge, deployment, or Cloudflare/D1 action has been requested or performed.
+- The V2 source branch is local only. A production Worker deployment has been requested by the owner; no push, PR, CI, merge, D1 mutation, or deployment has yet been performed.
 - No schema, migration, Cloudflare service, dependency, API, authorization, or data-visibility change is included.
 
 ## Next action
 
-Start Kiro at the exact worktree above. Have it complete Job 1 (the paused Task 4 review) before it edits anything, then execute Jobs 2–4 in order. Do not call the V2 complete, deployable, or production-ready until Job 3's fresh evidence and Job 4's whole-branch review are recorded.
+Run the fresh release gate, commit only the exact V2 source/tests/visual evidence/ledger paths, deploy the Worker without a D1 operation, and verify the public root plus `/api/health` against the custom domain. Do not call the V2 complete until those live checks are recorded.
 
 ## Historical evidence
 
