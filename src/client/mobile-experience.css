@@ -1,8 +1,8 @@
 :root {
-  --club-green: #67d77d;
+  --club-green: #63c978;
   --club-green-strong: #7ee291;
-  --club-green-soft: rgba(103, 215, 125, 0.13);
-  --club-green-line: rgba(103, 215, 125, 0.3);
+  --club-green-soft: rgba(99, 201, 120, 0.13);
+  --club-green-line: rgba(99, 201, 120, 0.3);
   --club-ink: #090d0c;
   --club-card: #111715;
   --club-card-raised: #17201c;
@@ -24,13 +24,13 @@ body,
 
 body {
   background:
-    radial-gradient(circle at 82% -8%, rgba(46, 93, 65, 0.22), transparent 32rem),
+    radial-gradient(circle at 82% -8%, rgba(212, 64, 64, 0.1), transparent 32rem),
     var(--club-ink);
 }
 
 ::selection {
-  color: #071009;
-  background: var(--club-green);
+  color: #fff8f2;
+  background: var(--club-red, #d44040);
 }
 
 .experience-shell :focus-visible {
@@ -40,7 +40,7 @@ body {
 .experience-panel {
   min-width: 0;
   background:
-    radial-gradient(circle at 90% 8rem, rgba(60, 120, 78, 0.1), transparent 21rem),
+    radial-gradient(circle at 90% 8rem, rgba(212, 64, 64, 0.06), transparent 21rem),
     linear-gradient(180deg, #0a0f0d 0%, #0d1210 100%);
 }
 
@@ -62,17 +62,17 @@ body {
   height: 15rem;
   content: '';
   opacity: 0.22;
-  border: 1px solid rgba(103, 215, 125, 0.18);
+  border: 1px solid rgba(212, 64, 64, 0.18);
   border-radius: 50%;
   background:
-    radial-gradient(circle, transparent 0 16%, rgba(103, 215, 125, 0.2) 16.5% 17.5%, transparent 18% 31%, rgba(103, 215, 125, 0.15) 31.5% 32.5%, transparent 33% 46%, rgba(103, 215, 125, 0.1) 46.5% 47.5%, transparent 48%);
+    radial-gradient(circle, transparent 0 16%, rgba(212, 64, 64, 0.2) 16.5% 17.5%, transparent 18% 31%, rgba(212, 64, 64, 0.15) 31.5% 32.5%, transparent 33% 46%, rgba(212, 64, 64, 0.1) 46.5% 47.5%, transparent 48%);
   pointer-events: none;
 }
 
 .experience-header .brand-mark {
   width: 3rem;
   height: 3rem;
-  border-color: var(--club-green-line);
+  border-color: var(--club-red-line, rgba(212, 64, 64, 0.34));
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
 }
 
@@ -142,9 +142,9 @@ body {
   padding: 1.35rem;
   overflow: hidden;
   background:
-    radial-gradient(circle at 84% 34%, rgba(103, 215, 125, 0.13), transparent 8rem),
-    linear-gradient(145deg, #132019 0%, #0c1410 58%, #0b100e 100%);
-  border: 1px solid var(--club-green-line);
+    radial-gradient(circle at 84% 34%, rgba(212, 64, 64, 0.13), transparent 8rem),
+    linear-gradient(145deg, #211514 0%, #15100f 58%, #0f0d0c 100%);
+  border: 1px solid var(--club-red-line, rgba(212, 64, 64, 0.34));
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
 }
 
@@ -181,13 +181,36 @@ body {
 .league-hero-card .status-label,
 .player-workspace .status-label {
   padding: 0.45rem 0.75rem;
-  color: var(--club-green-strong);
-  background: rgba(103, 215, 125, 0.1);
-  border: 1px solid var(--club-green-line);
+  color: var(--club-muted);
+  background: rgba(170, 182, 174, 0.08);
+  border: 1px solid var(--club-border);
   border-radius: 9px;
   font-size: 0.73rem;
   font-weight: 800;
   letter-spacing: 0.05em;
+}
+
+.league-hero-card .status-label.status-open,
+.player-workspace .status-label.status-open,
+.player-workspace .status-label.status-confirmed {
+  color: var(--club-green-strong);
+  background: var(--club-green-soft);
+  border-color: var(--club-green-line);
+}
+
+.player-workspace .status-label.status-pending,
+.player-workspace .status-label.status-pending_confirmation {
+  color: #d9b56f;
+  background: rgba(217, 181, 111, 0.1);
+  border-color: rgba(217, 181, 111, 0.32);
+}
+
+.player-workspace .status-label.status-disputed,
+.player-workspace .status-label.status-void,
+.player-workspace .status-label.status-closed {
+  color: var(--danger, #c84a4a);
+  background: rgba(200, 74, 74, 0.1);
+  border-color: rgba(200, 74, 74, 0.3);
 }
 
 .icon-action {
@@ -197,9 +220,9 @@ body {
   min-height: 44px;
   padding: 0;
   place-items: center;
-  color: var(--club-green-strong);
-  background: rgba(10, 18, 14, 0.72);
-  border: 1px solid var(--club-green-line);
+  color: var(--club-red-strong, #e35454);
+  background: rgba(212, 64, 64, 0.08);
+  border: 1px solid var(--club-red-line, rgba(212, 64, 64, 0.34));
   border-radius: 12px;
 }
 
@@ -221,8 +244,8 @@ body {
   width: 8.5rem;
   height: 8.5rem;
   place-items: center;
-  color: rgba(103, 215, 125, 0.2);
-  border: 1px solid rgba(103, 215, 125, 0.08);
+  color: rgba(212, 64, 64, 0.2);
+  border: 1px solid rgba(212, 64, 64, 0.08);
   border-radius: 50%;
   opacity: 0.8;
   pointer-events: none;
@@ -234,7 +257,7 @@ body {
   width: 66%;
   height: 66%;
   content: '';
-  border: 1px solid rgba(103, 215, 125, 0.12);
+  border: 1px solid rgba(212, 64, 64, 0.12);
   border-radius: 50%;
 }
 
@@ -275,7 +298,7 @@ body {
 
 .league-hero-meta span:first-child { padding-left: 0; }
 .league-hero-meta span + span { border-left: 1px solid rgba(255, 255, 255, 0.08); }
-.league-hero-meta svg { width: 1.15rem; height: 1.15rem; flex: 0 0 auto; color: var(--club-green); }
+.league-hero-meta svg { width: 1.15rem; height: 1.15rem; flex: 0 0 auto; color: var(--club-red, #d44040); }
 
 .rules-card,
 .signin-action-card {
@@ -294,9 +317,9 @@ body {
   height: 2.75rem;
   flex: 0 0 auto;
   place-items: center;
-  color: var(--club-green);
-  background: var(--club-green-soft);
-  border: 1px solid rgba(103, 215, 125, 0.2);
+  color: var(--club-red-strong, #e35454);
+  background: var(--club-red-soft, rgba(212, 64, 64, 0.14));
+  border: 1px solid var(--club-red-line, rgba(212, 64, 64, 0.34));
   border-radius: 13px;
 }
 
@@ -358,8 +381,8 @@ body {
   width: 100%;
   min-width: 0;
   table-layout: fixed;
-  border-collapse: separate;
-  border-spacing: 0 0.45rem;
+  border-collapse: collapse;
+  border-spacing: 0;
 }
 
 .league-experience .standings-table thead tr {
@@ -386,22 +409,14 @@ body {
 .league-experience .standings-table tbody td {
   min-height: 3.6rem;
   color: var(--club-text);
-  background: #17201c;
-  border-top: 1px solid rgba(103, 215, 125, 0.13);
-  border-bottom: 1px solid rgba(103, 215, 125, 0.13);
+  background: #141b17;
+  border-top: 0;
+  border-bottom: 1px solid rgba(42, 54, 48, 0.9);
   font-size: 0.84rem;
   font-weight: 650;
 }
 
-.league-experience .standings-table tbody tr > :first-child {
-  border-left: 1px solid rgba(103, 215, 125, 0.13);
-  border-radius: 12px 0 0 12px;
-}
-
-.league-experience .standings-table tbody tr > :last-child {
-  border-right: 1px solid rgba(103, 215, 125, 0.13);
-  border-radius: 0 12px 12px 0;
-}
+.league-experience .standings-table tbody tr:last-child > * { border-bottom: 0; }
 
 .league-experience .standings-table th:nth-child(1) { width: 10%; }
 .league-experience .standings-table th:nth-child(2) { width: 38%; }
@@ -423,9 +438,9 @@ body {
   height: 1.8rem;
   flex: 0 0 auto;
   place-items: center;
-  color: var(--club-green-strong);
-  background: rgba(103, 215, 125, 0.08);
-  border: 1px solid var(--club-green-line);
+  color: var(--club-red-strong, #e35454);
+  background: var(--club-red-soft, rgba(212, 64, 64, 0.14));
+  border: 1px solid var(--club-red-line, rgba(212, 64, 64, 0.34));
   border-radius: 50%;
   font-size: 0.72rem;
   font-weight: 850;
@@ -440,9 +455,13 @@ body {
 
 .standing-rank,
 .standing-points {
-  color: var(--club-green-strong) !important;
+  color: var(--club-text) !important;
   font-size: 1rem !important;
   font-weight: 850 !important;
+}
+
+.standing-points {
+  font-size: 1.1rem !important;
 }
 
 .standing-record { white-space: nowrap; }
@@ -595,8 +614,8 @@ body {
 
 .experience-panel .league-tab-active {
   color: var(--club-text);
-  background: #18241e;
-  border-color: var(--club-green-line);
+  background: var(--club-red-soft, rgba(212, 64, 64, 0.14));
+  border-color: var(--club-red-line, rgba(212, 64, 64, 0.34));
 }
 
 /* Signed-in player surface inherits the same visual language without changing its behaviour. */
@@ -622,8 +641,8 @@ body {
   align-items: flex-start;
   padding: 1.2rem;
   overflow: hidden;
-  background: linear-gradient(145deg, #132019 0%, #0b120e 100%);
-  border: 1px solid var(--club-green-line);
+  background: linear-gradient(145deg, #211514 0%, #0f0d0c 100%);
+  border: 1px solid var(--club-red-line, rgba(212, 64, 64, 0.34));
   border-radius: 16px;
 }
 
@@ -634,9 +653,9 @@ body {
   width: 9rem;
   height: 9rem;
   content: '';
-  border: 1px solid rgba(103, 215, 125, 0.12);
+  border: 1px solid rgba(212, 64, 64, 0.12);
   border-radius: 50%;
-  box-shadow: inset 0 0 0 2.5rem rgba(103, 215, 125, 0.02), inset 0 0 0 3.6rem rgba(103, 215, 125, 0.03);
+  box-shadow: inset 0 0 0 2.5rem rgba(212, 64, 64, 0.02), inset 0 0 0 3.6rem rgba(212, 64, 64, 0.03);
 }
 
 .player-workspace .section-kicker {
@@ -650,9 +669,9 @@ body {
   z-index: 2;
   min-width: 44px;
   min-height: 44px;
-  color: var(--club-green);
-  background: rgba(103, 215, 125, 0.08);
-  border-color: var(--club-green-line);
+  color: var(--club-red-strong, #e35454);
+  background: rgba(212, 64, 64, 0.08);
+  border-color: var(--club-red-line, rgba(212, 64, 64, 0.34));
   border-radius: 12px;
 }
 
@@ -690,10 +709,10 @@ body {
 
 .player-workspace .content-tab-active,
 .experience-panel .segmented-tab-active {
-  color: #08100a;
-  background: var(--club-green);
-  border-color: var(--club-green);
-  box-shadow: 0 6px 18px rgba(64, 152, 84, 0.18);
+  color: #fff8f2;
+  background: var(--club-red, #d44040);
+  border-color: var(--club-red, #d44040);
+  box-shadow: 0 6px 18px rgba(212, 64, 64, 0.18);
 }
 
 .player-workspace .admin-block,

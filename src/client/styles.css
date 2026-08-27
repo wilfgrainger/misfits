@@ -23,8 +23,8 @@
   --gold-dim:    #7a6640;
 
   /* Semantic */
-  --success:     #4a9b6a;
-  --danger:      #c04040;
+  --success:     #63c978;
+  --danger:      #c84a4a;
   --warning:     #b5882a;
 
   color: var(--text);
@@ -488,6 +488,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   text-transform: uppercase;
   text-align: right;
 }
+.standings-table thead th { border-bottom: 1px solid var(--border-mid); }
 .standings-table th:nth-child(2), .standings-table th[scope="row"] { text-align: left; }
 .standings-table td {
   padding: .85rem .6rem;
@@ -497,6 +498,8 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
 }
 .standings-table tbody tr:last-child td { border-bottom: 0; }
 .standings-table tbody tr:hover td { background: var(--surface-2); }
+.standings-table tbody th[scope="row"],
+.standings-table tbody td { font-variant-numeric: tabular-nums; }
 
 /* Rank column */
 .standings-table td:first-child {
@@ -528,7 +531,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   padding-right: .85rem;
   letter-spacing: -.01em;
 }
-.standings-table tbody tr:first-child td:last-child { color: var(--red); }
+.standings-table tbody tr:first-child td:last-child { color: var(--text); }
 
 /* You row */
 .standing-row-you td, .standing-row-you th {
@@ -558,6 +561,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   gap: .5rem;
   padding: 1rem 0;
   border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
   transition: background .12s ease;
 }
 .result-row:last-child { border-bottom: 0; }
@@ -729,6 +733,10 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
 .admin-list li { justify-content: space-between; }
 .admin-list li > div:first-child { display: grid; min-width: 0; gap: .2rem; }
 .admin-list .action-button { width: auto; min-height: 44px; flex: 0 0 auto; }
+.admin-competition-desk,
+.admin-results-workflow,
+.fixture-browser-list,
+.public-fixture-list { font-variant-numeric: tabular-nums; }
 .season-health-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

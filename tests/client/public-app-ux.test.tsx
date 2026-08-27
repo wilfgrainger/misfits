@@ -104,9 +104,15 @@ describe('private signed-out UX', () => {
     window.history.replaceState({}, '', '/league/tuesday-club');
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Tuesday Club' })).toBeTruthy();
+    const heading = await screen.findByRole('heading', { name: 'Tuesday Club' });
+    expect(heading).toBeTruthy();
+    expect(heading.closest('header')?.classList.contains('record-header')).toBe(true);
+    expect(screen.getByText('Public fixture board')).toBeTruthy();
     expect(await screen.findByText('Alpha vs Bravo')).toBeTruthy();
+    expect(document.querySelector('.record-rules')).toBeTruthy();
+    expect(document.querySelector('.record-list')).toBeTruthy();
     expect(screen.getByText('Only the club\'s deliberately public fixture schedule is shown here. Private account and member details stay protected.')).toBeTruthy();
+    expect(screen.queryByText('Join the')).toBeNull();
     expect(state.leagueCalls).toBe(0);
   });
 });
