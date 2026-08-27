@@ -199,4 +199,19 @@ describe('private club entry', () => {
     expect(screen.getByRole('button', { name: 'Home' }).getAttribute('aria-current')).toBe('page');
     expect(screen.queryByText('Your Misfits 501 club workspace is ready.')).toBeNull();
   });
+
+  it('holds a successful Google sign-in in a brief branded handoff before opening Home', async () => {
+    meResult = () => unauthenticated();
+    signInResult = () => Promise.resolve({ user: approvedUser, requiresOnboarding: false });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Google test sign-in' }));
+
+    expect(await screen.findByRole('heading', { name: 'Entering Misfits' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Home' })).toBeNull();
+    expect(screen.getByText('Your club record is opening.')).toBeTruthy();
+    expect(document.querySelector('.private-admission-handoff .private-admission-mark')).toBeTruthy();
+
+    expect(await screen.findByRole('button', { name: 'Home' }, { timeout: 1000 })).toBeTruthy();
+  });
 });

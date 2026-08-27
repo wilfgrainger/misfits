@@ -151,6 +151,22 @@
   animation: private-entry-registration 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.private-entry-v2::after {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: min(74vw, 36rem);
+  aspect-ratio: 1;
+  content: '';
+  background: url('/brand/misfits-501.jpg') center / cover no-repeat;
+  border-radius: 50%;
+  opacity: 0.075;
+  filter: grayscale(1) contrast(1.15);
+  transform: translate(-50%, -50%) rotate(-8deg);
+  pointer-events: none;
+}
+
 @keyframes private-entry-registration {
   from { transform: scaleY(0.35); }
   to { transform: scaleY(1); }
@@ -224,6 +240,46 @@
   max-width: 30rem;
   justify-self: end;
   text-align: left;
+}
+
+.private-admission-handoff {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 42%, rgba(212, 64, 64, 0.16), transparent 23rem), var(--club-ink);
+}
+
+.private-admission-mark {
+  position: absolute;
+  z-index: -1;
+  width: min(78vw, 30rem);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  opacity: 0.18;
+  filter: saturate(0.72) contrast(1.08);
+  animation: private-admission-mark 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.private-admission-copy {
+  display: grid;
+  max-width: 24rem;
+  gap: 0.55rem;
+  text-align: center;
+  animation: private-admission-copy 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.private-admission-copy h1 { max-width: none; }
+.private-admission-copy > p:last-child { color: var(--club-muted); font-weight: 650; }
+
+@keyframes private-admission-mark {
+  from { opacity: 0; transform: scale(0.55); }
+  to { opacity: 0.18; transform: scale(1); }
+}
+
+@keyframes private-admission-copy {
+  from { opacity: 0; filter: blur(5px); transform: translateY(0.6rem); }
+  to { opacity: 1; filter: blur(0); transform: translateY(0); }
 }
 
 .private-entry-v2 .privacy-note {
@@ -567,11 +623,103 @@
   color: var(--club-text);
 }
 
+.private-club-shell .admin-workbench {
+  display: grid;
+  gap: 1.5rem;
+  width: min(100%, 78rem);
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 2.25rem) max(1rem, env(safe-area-inset-right)) calc(6.8rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  border-top: 0;
+}
+
+.private-club-shell .admin-workbench-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+  padding: 0 0 1.25rem;
+  border-bottom: 1px solid var(--club-border);
+}
+
+.private-club-shell .admin-workbench-kicker {
+  margin: 0 0 .32rem;
+  color: var(--club-red-strong);
+  font-size: .7rem;
+  font-weight: 850;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.private-club-shell .admin-workbench-entry h1 {
+  max-width: 18ch;
+  font-size: clamp(1.7rem, 6vw, 2.7rem);
+  letter-spacing: -.04em;
+}
+
+.private-club-shell .admin-workbench-entry .form-help { margin-top: .45rem; }
+
+.private-club-shell .admin-back-button { margin-top: .1rem; white-space: nowrap; }
+
+.private-club-shell .admin-competition-desk .workspace-heading {
+  padding: 0 0 1rem;
+  border-bottom-color: var(--club-border);
+}
+
+.private-club-shell .admin-competition-desk .workspace-heading h2 {
+  color: var(--club-text);
+  font-size: clamp(1.25rem, 4vw, 1.7rem);
+}
+
+.private-club-shell .admin-competition-desk .admin-rail {
+  gap: .45rem;
+  margin-top: 1rem;
+  padding: .35rem;
+  background: #101612;
+  border: 1px solid var(--club-border);
+  border-radius: 14px;
+}
+
+.private-club-shell .admin-competition-desk .admin-rail .content-tab {
+  min-height: 46px;
+  padding-inline: .85rem;
+  color: var(--club-muted);
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+
+.private-club-shell .admin-competition-desk .admin-rail .content-tab:hover { background: #19211e; }
+
+.private-club-shell .admin-competition-desk .admin-rail .content-tab-active {
+  color: #fff8f2;
+  background: var(--club-red);
+  border-color: var(--club-red);
+  box-shadow: 0 6px 18px rgba(212, 64, 64, .18);
+}
+
 .private-club-shell .admin-block {
   margin-top: 1.35rem;
   padding-top: 1.1rem;
   border-top-color: rgba(42, 54, 48, .9);
 }
+
+.private-club-shell .admin-competition-desk .stack-form.admin-block,
+.private-club-shell .admin-results-workflow > .stack-form.admin-block {
+  padding: 1rem;
+  background: #111715;
+  border: 1px solid var(--club-border);
+  border-radius: 14px;
+}
+
+.private-club-shell .admin-competition-desk .rules-panel {
+  display: grid;
+  gap: .7rem;
+  padding: .9rem;
+  background: #0d1311;
+  border: 1px solid var(--club-border);
+  border-radius: 12px;
+}
+
+.private-club-shell .admin-competition-desk .rules-panel h4 { margin: 0; color: var(--club-text); }
 
 .private-club-shell .admin-desk > .admin-block:first-of-type,
 .private-club-shell .admin-results-workflow > .admin-block:first-of-type {
@@ -613,6 +761,37 @@
 
 .private-club-shell .admin-results-workflow .admin-list {
   margin-top: .55rem;
+}
+
+.private-club-shell .fixture-health {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .55rem;
+}
+
+.private-club-shell .fixture-health .action-button {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding-inline: .75rem;
+  color: var(--club-muted);
+  background: #151d19;
+  border-color: var(--club-border);
+  font-size: .8rem;
+  text-align: center;
+}
+
+.private-club-shell .fixture-health .action-button:hover { color: var(--club-text); border-color: var(--club-red-line); }
+
+.private-club-shell .admin-competition-desk .inline-actions {
+  gap: .7rem;
+}
+
+.private-club-shell .admin-competition-desk .inline-actions > .action-button,
+.private-club-shell .admin-competition-desk .inline-actions > .secondary-button,
+.private-club-shell .admin-competition-desk .inline-actions > .primary-button {
+  min-width: max-content;
 }
 
 /* Club access is an admission workflow, not a generic user table. */
@@ -721,6 +900,23 @@
   .private-entry-state {
     min-height: min(46rem, calc(100dvh - 7rem));
   }
+
+  .private-club-shell .admin-workbench-entry { grid-template-columns: 1fr; }
+
+  .private-club-shell .admin-workbench-entry .admin-back-button { width: max-content; }
+
+  .private-club-shell .admin-competition-desk .admin-rail .content-tab { flex: 0 0 auto; }
+
+  .private-club-shell .admin-competition-desk .admin-list li { align-items: stretch; }
+
+  .private-club-shell .admin-competition-desk .admin-list li > .inline-actions {
+    width: 100%;
+  }
+
+  .private-club-shell .admin-competition-desk .admin-list li > .inline-actions > button,
+  .private-club-shell .admin-competition-desk .admin-list li > .inline-actions > select {
+    flex: 1 1 10rem;
+  }
 }
 
 @media (min-width: 768px) {
@@ -744,6 +940,11 @@
   .private-entry-v2::before {
     animation: none;
     transform: none;
+  }
+
+  .private-admission-mark,
+  .private-admission-copy {
+    animation: none;
   }
 
   .private-loading-line::after {
