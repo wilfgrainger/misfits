@@ -37,7 +37,7 @@ describe('private signed-out UX', () => {
 
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-  it('shows the centered decorative logo intro and the existing private entry content', async () => {
+  it('shows the centered decorative logo intro and the premium private entry content', async () => {
     render(<App />);
 
     expect(await screen.findByRole('heading', { name: 'Misfits 501' })).toBeTruthy();
@@ -47,7 +47,7 @@ describe('private signed-out UX', () => {
     expect(intro?.querySelector('img')?.getAttribute('alt')).toBe('');
     expect(screen.getByText('Existing members can sign in with Google. New members need a private club invitation.')).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
-    expect(screen.queryByText(/properly settled/i)).toBeNull();
+    expect(screen.getByText('Club darts, properly settled.')).toBeTruthy();
     expect(screen.getByText(/League tables, results and member details stay private/)).toBeTruthy();
     expect(screen.queryByText('Standings')).toBeNull();
     expect(screen.queryByText('Latest results')).toBeNull();

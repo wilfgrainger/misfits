@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemberApp } from '../../src/client/components/MemberApp';
 import { PlayerLeague } from '../../src/client/components/PlayerLeague';
 import type { LeagueSummary, UserSummary } from '../../src/client/api';
 
@@ -46,6 +47,26 @@ describe('private member navigation', () => {
     expect(labels).toEqual(['League', 'Record', 'Results', 'More']);
     expect(within(nav).queryByRole('button', { name: 'Fixtures' })).toBeNull();
     expect(within(nav).queryByRole('button', { name: 'Players' })).toBeNull();
+  });
+
+  it('keeps global destinations club-first and competition views local to the selected league', async () => {
+    mockLeagueLoad(false);
+    render(<MemberApp
+      user={player}
+      clubLeagues={[league]}
+      myLeagues={[league]}
+      onUserSaved={vi.fn()}
+      onSignOut={vi.fn()}
+    />);
+
+    expect(screen.getAllByRole('button', { name: /^(Home|Record|Leagues|More)$/ })
+      .map((button) => button.textContent))
+      .toEqual(['Home', 'Record', 'Leagues', 'More']);
+    expect(screen.queryByRole('button', { name: 'Fixtures' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Leagues' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Misfits 501/i }));
+    expect(screen.getByRole('tablist', { name: /Misfits 501 views/i })).toBeTruthy();
   });
 
   it('puts outstanding fixture selection inside Record rather than a Fixtures destination', async () => {

@@ -112,6 +112,18 @@ describe('private club entry', () => {
     expect(calls.leagues).toBe(0);
   });
 
+  it('presents the club promise and admission card without mounting protected club data', async () => {
+    meResult = () => Promise.reject(new ApiClientError(401, 'Unauthenticated'));
+    render(<App />);
+
+    expect(await screen.findByText('Club darts, properly settled.')).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
+    expect(screen.getByText(/League tables, results and member details stay private/i)).toBeTruthy();
+    expect(screen.queryByText('Your competitions')).toBeNull();
+    expect(calls.leagues).toBe(0);
+    expect(calls.myLeagues).toBe(0);
+  });
+
   it('carries a club invitation only into Google admission and removes the raw token after sign-in', async () => {
     window.history.replaceState({}, '', '/join/club-secret-token');
     meResult = () => unauthenticated();
