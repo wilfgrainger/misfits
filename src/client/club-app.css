@@ -90,7 +90,7 @@
   max-width: 20ch;
   font-size: clamp(1.75rem, 8vw, 2.65rem);
   line-height: 1.02;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
 }
 
 .club-page-kicker,
@@ -105,9 +105,12 @@
 }
 
 .club-home-section,
+.club-home-primary,
+.club-home-attention,
 .record-competition-picker,
 .club-more > .player-more-panel,
 .competition-workspace,
+.competition-record,
 .record-competition-workspace {
   min-width: 0;
 }
@@ -119,6 +122,18 @@
   background: var(--club-card);
   border: 1px solid var(--club-border);
   border-radius: 16px;
+}
+
+.club-home-primary,
+.club-home-attention {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+}
+
+.club-home-primary .club-section-heading,
+.club-home-attention .club-section-heading {
+  margin-bottom: 0;
 }
 
 .club-section-heading {
@@ -293,6 +308,10 @@
 .competition-workspace {
   display: grid;
   gap: 0.8rem;
+}
+
+.competition-record {
+  width: 100%;
 }
 
 .competition-back {
@@ -577,9 +596,9 @@
   }
 
   .club-home {
-    grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.75fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
     align-items: start;
-    gap: 1.15rem;
+    gap: 1.25rem;
   }
 
   .club-home > .club-page-heading {

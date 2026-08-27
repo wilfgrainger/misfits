@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemberApp } from '../../src/client/components/MemberApp';
@@ -37,6 +38,28 @@ function mockLeagueLoad(withFixture = true) {
 
 describe('private member navigation', () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+
+  it('groups the approved member home and Record surfaces as a club record book', async () => {
+    mockLeagueLoad(true);
+    render(<MemberApp
+      user={player}
+      clubLeagues={[league]}
+      myLeagues={[league]}
+      onUserSaved={vi.fn()}
+      onSignOut={vi.fn()}
+    />);
+
+    expect(screen.getByRole('navigation', { name: 'Member workspace' })).toHaveClass('club-member-nav');
+    expect(screen.getByRole('heading', { name: /Good to see you/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Your competitions' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Needs you' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Your competitions' }).closest('section')).toHaveClass('club-home-primary');
+    expect(screen.getByRole('heading', { name: 'Needs you' }).closest('section')).toHaveClass('club-home-attention');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    await screen.findByRole('heading', { name: 'Record your result' });
+    expect(document.querySelector('.record-competition-workspace')).toHaveClass('competition-record');
+  });
 
   it('keeps the primary navigation fixed to League, Record, Results and More even when fixtures exist', async () => {
     mockLeagueLoad(true);
