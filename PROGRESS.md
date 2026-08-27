@@ -1,9 +1,9 @@
 # Misfits 501 Progress
 
 **Updated:** 27 August 2026
-**Current branch:** `codex/website-completion`
-**Base:** `main` at `21d3e2049` — PR #181 `feat: polish club member workflows` is merged
-**Current focus:** website completion release — closing shipped-surface gaps and making every data-bearing read recoverable
+**Current release:** `main` at `a3a34250a78c6978630fdd3981917583a6ed508b`
+**PR #183:** merged at 2026-08-27T08:16:47Z; front-page logo reveal and copy update
+**Current focus:** post-deploy front-page handoff complete
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -28,11 +28,11 @@ This branch finishes the shipped website rather than adding product scope.
 - Pending opponent-result reviews surface on the member Home screen and route to the relevant Results workspace.
 - Competition tab/tabpanel associations are stable, with responsive touch-target and modal polish.
 
-### This branch — website completion audit
+### Completed website completion audit
 
 Each item was captured with a failing test before its fix.
 
-1. **The declared landing promise was missing.** `PRODUCT.md` and `VISION.md` name "Club darts, properly settled." as the fixed promise, and the 21 August Impeccable review recorded it on the landing surface. It had since disappeared from the entire client. It is now on the signed-out and invited entrances, the document title, the meta description and the install manifest.
+1. **The landing promise was revised.** The earlier completion release restored "Club darts, properly settled." to the public shell and metadata. PR #183 deliberately removed that slogan from user-facing UI and metadata, leaving the club identity, private-members-club context and existing admission copy intact.
 2. **There was no favicon.** Because asset not-found handling is `single-page-application`, `/favicon.ico` answered `200 text/html` with the app shell instead of an icon. `public/brand/misfits-501-mark.svg` is a restrained `DESIGN.md`-palette bullseye, wired as `rel="icon"`, with the supplied club artwork as `apple-touch-icon`.
 3. **The install manifest had one 1254px JPEG icon.** A maskable SVG entry now prevents the club mark being cropped on a phone home screen.
 4. **There was no `robots.txt`.** A private members club now says so explicitly, reinforced by `<meta name="robots" content="noindex, nofollow">`.
@@ -43,33 +43,47 @@ Each item was captured with a failing test before its fix.
 9. **A deliberately public table had no address.** An admin could set league visibility to `PUBLIC`, `PublicLeagueView` served `/league/:slug`, and `shareLeague()` was fully tested — but nothing connected them, so the approved "publicly chosen club table" was unreachable in practice. The admin league edit form now shows the public address with an open link and a share/copy control, using the existing helper. No endpoint, dependency or migration was added.
 10. **The public share copy invited a join.** A read-only public table said "Join the X league.", which contradicts the `DESIGN.md` ban on self-service join UI. It now reads "See the X table." with the title "X — Misfits 501".
 11. **Read failures had no recovery action.** Public fixtures, member competition data, member Players/history and the admin read surfaces announced errors but left users stranded. A shared accessible `LoadFailure` surface now offers contextual retry for those reads; mutation failures remain separate so a retry never repeats a write.
+12. **The front page had no authored entrance sequence, and its slogan no longer fit the club.** The supplied Misfits 501 artwork now arrives large and centered, scales/fades as a decorative one-shot intro, then hands off to the existing private sign-in content. The normal heading is `Misfits 501`; `Club darts, properly settled.` is removed from user-facing UI, document metadata, manifest and no-JavaScript copy. Reduced-motion users receive the content immediately.
 
 ## Current verification
 
-Fresh local gate on the working tree, run with a Linux-native `node_modules`:
+Front-page release gate before merge on exact PR head `4b8b3ec`:
 
 - `npx wrangler types`: GREEN.
-- `npm run typecheck` (client and Worker TypeScript): GREEN.
+- `npm run typecheck`: GREEN.
 - Impeccable source detector for `src/client`: `[]`.
-- `vitest run`: **77 test files / 315 tests GREEN**, up from the 75/311 website-completion baseline and the 73/296 baseline on the merged PR #181 head.
-- Recovery regressions: public fixture, member competition, member Players and admin initial-load retry tests are GREEN.
+- `vitest run`: **77 test files / 316 tests GREEN**.
 - `npm run build`: GREEN.
-- `git diff --check` and `git diff --cached --check`: clean.
+- `git diff --check`: clean.
+- User-facing source/public phrase audit: no `properly settled` occurrences.
 
-This is source, contract and local-gate evidence. It is not a deployment, production-health, signed-in Google journey or rendered-device acceptance claim.
+Post-merge GitHub Actions run `33053338107` succeeded for exact main SHA `a3a34250a78c6978630fdd3981917583a6ed508b`:
+
+- Verify job `98453926131`: GREEN — Wrangler types, TypeScript, Impeccable, tests and build.
+- Deploy Worker job `98454111140`: GREEN — credentials check and Cloudflare deploy.
+
+Privacy-safe production smoke checks after deployment:
+
+- `/`: `200 text/html`; `Misfits 501 — Private club darts.` present, intro JS/CSS assets live, retired slogan absent.
+- `/brand/misfits-501.jpg`: `200 image/jpeg`.
+- `/manifest.webmanifest`: `200 application/manifest+json`; retired slogan absent.
+- `/robots.txt`: `200 text/plain`; `Disallow: /` present.
+- `/api/health`: `200 application/json`; `{"ok":true}`.
+- Signed-out `/api/me`: `401 application/json`; `UNAUTHENTICATED`, with no email/username/leagues/results fields.
+
+This evidence covers source, contract, CI, deployment and privacy-safe production health. It does not claim an authenticated Google journey or rendered-device pixel review.
 
 ## Current blockers and decisions
 
-- The Linux `gh` CLI in this environment is unauthenticated. The authenticated Windows GitHub CLI at `/mnt/c/Program Files/GitHub CLI/gh.exe` (account `wilfgrainger`, scopes `repo`/`workflow`) is the working route for push and pull-request operations from WSL.
-- **Merging is deliberately not automated here.** A merge to `main` triggers the `deploy` job and changes production, so it waits for an explicit decision after `CI / verify` is green on the exact head.
-- The `main` working checkout at `/mnt/c/Users/wilf6/dev/misfits` reports 411 modified files purely from CRLF/LF translation on the Windows mount. It is unsafe for commits. Use the `/tmp/misfits-release` worktree.
-- `robots.txt` disallows all crawling, including the deliberately public table paths. That follows the private-members-club positioning; reverse it only if the club decides a public table should be discoverable by search.
-- `og:image` and `og:url` name the production origin directly, matching the existing `APP_ORIGIN` in `wrangler.jsonc`.
+- No production blocker remains for this release. The code-only front-page deployment succeeded; no D1 migration was needed.
+- The supplied artwork remains intact and is used as a decorative intro; no private data is present in the animation or public shell.
+- `robots.txt` disallows all crawling, including deliberately public table paths. That follows the private-members-club positioning; reverse it only if the club decides a public table should be discoverable by search.
 - No schema, migration, Cloudflare service, dependency or authorization change is included.
+- An authenticated Google journey and rendered mobile/desktop visual walkthrough remain intentionally unclaimed because the post-deploy check used no credentials or browser surface.
 
 ## Next action
 
-Push the recovery update to PR #182, require a fresh exact-head `CI / verify` run, then merge on review, verify the `main` deploy job, and smoke-test production `/`, `/favicon.ico`, `/robots.txt`, `/manifest.webmanifest` and `/api/health`.
+Monitor normal club use and provider measurements. Any future change should begin from deployed `main` commit `a3a34250` and preserve the private-club, free-tier and Worker authorization boundaries.
 
 ## Historical evidence
 
