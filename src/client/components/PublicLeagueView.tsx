@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiClient, type LeagueSummary, type PublicFixtureSummary } from '../api';
 import { leagueScoringSummary } from '../scoring';
+import { LoadFailure } from './LoadFailure';
 
 const api = new ApiClient();
 
@@ -27,6 +28,7 @@ export function PublicLeagueView({ league, leagueKey }: { league: LeagueSummary;
   const [fixtures, setFixtures] = useState<PublicFixtureSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -40,7 +42,7 @@ export function PublicLeagueView({ league, leagueKey }: { league: LeagueSummary;
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [leagueKey]);
+  }, [leagueKey, reloadKey]);
 
   const completed = fixtures.filter((fixture) => fixture.status === 'CONFIRMED').length;
   const outstanding = fixtures.filter((fixture) => fixture.status === 'OUTSTANDING').length;
@@ -58,7 +60,7 @@ export function PublicLeagueView({ league, leagueKey }: { league: LeagueSummary;
     <section className="public-fixture-section" aria-labelledby="public-fixtures-title">
       <div className="section-heading"><div><p className="club-section-kicker">Schedule</p><h2 id="public-fixtures-title">Fixtures</h2></div><span className="status-label">{completed} completed · {outstanding} outstanding</span></div>
       {loading && <p className="loading-message">Loading fixtures...</p>}
-      {error && <p className="error-message" role="alert">{error}</p>}
+      {error && <LoadFailure message={error} retryLabel="Try loading fixtures again" onRetry={() => setReloadKey((current) => current + 1)} />}
       {!loading && !error && fixtures.length === 0 && <p className="empty-message">No public fixtures have been published yet.</p>}
       {!loading && !error && fixtures.length > 0 && <ul className="public-fixture-list">{fixtures.map((fixture, index) => <li key={`${fixture.round}:${fixture.meetingNumber}:${index}`}><div><strong>{fixture.playerAUsername ?? 'Player'} vs {fixture.playerBUsername ?? 'Player'}</strong><small>Round {fixture.round} · Meeting {fixture.meetingNumber}</small><span>{fixtureDetail(fixture)}</span></div><span className={`status-label status-${fixture.status.toLowerCase()}`}>{fixtureLabel(fixture.status)}</span></li>)}</ul>}
     </section>

@@ -18,6 +18,7 @@ import {
 } from '../api';
 import { cloneSeasonStructure } from '../season-clone';
 import { copyMembershipBaseline } from '../membership-baseline';
+import { LoadFailure } from './LoadFailure';
 import { shareInvite } from '../invite-share';
 import { buildLeagueUrl, publicLeaguePath, shareLeague } from '../share';
 import { AdminResultsWorkflow } from './AdminResultsWorkflow';
@@ -134,6 +135,10 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const [overrideReasons, setOverrideReasons] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [readFailure, setReadFailure] = useState<{ message: string; retry: () => void } | null>(null);
+  const [seasonReloadKey, setSeasonReloadKey] = useState(0);
+  const [taskReloadKey, setTaskReloadKey] = useState(0);
+  const [targetReloadKey, setTargetReloadKey] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const confirmDialogRef = useRef<HTMLDivElement | null>(null);
@@ -166,7 +171,11 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
   const approvedPlayers = useMemo(() => players.filter((player) => player.clubStatus === 'APPROVED'), [players]);
   const rejectedPlayers = useMemo(() => players.filter((player) => player.clubStatus === 'REJECTED'), [players]);
 
-  const clear = () => { setMessage(''); setError(''); };
+  const clear = () => { setMessage(''); setError(''); setReadFailure(null); };
+
+  // Reads get a contextual retry; mutations keep their own inline message,
+  // because re-running a read is not the recovery a failed write needs.
+  const failedRead = (cause: unknown, fallback: string, retry: () => void) => setReadFailure({ message: describeError(cause, fallback), retry });
 
   const loadHealth = async (seasonId = selectedSeason?.id) => {
     if (!seasonId || seasonId !== selectedSeasonIdRef.current) return;
@@ -177,7 +186,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       setHealth({ seasonId, data: payload.health });
     } catch (cause) {
       if (request !== healthRequestRef.current || seasonId !== selectedSeasonIdRef.current) return;
-      setError(describeError(cause, 'Season health could not be loaded.'));
+      failedRead(cause, 'Season health could not be loaded.', () => void loadHealth(seasonId));
     }
   };
 
@@ -202,7 +211,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       setTargetSeasonId((value) => value || draft?.id || '');
       setBaselineSeasonId((value) => value || draft?.id || '');
     } catch (cause) {
-      setError(describeError(cause, 'Competition administration could not be loaded.'));
+      failedRead(cause, 'Competition administration could not be loaded.', () => void loadCore());
     }
   };
 
@@ -223,9 +232,9 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
         ? next.find((league) => league.id === selectedLeagueId) ?? null
         : next[0] ?? null;
       selectLeague(preferred);
-    }).catch((cause) => active && setError(describeError(cause, 'League structure could not be loaded.')));
+    }).catch((cause) => active && failedRead(cause, 'League structure could not be loaded.', () => setSeasonReloadKey((key) => key + 1)));
     return () => { active = false; };
-  }, [selectedSeason?.id]);
+  }, [selectedSeason?.id, seasonReloadKey]);
 
   useEffect(() => {
     if (!selectedSeason) {
@@ -289,7 +298,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
         return copy;
       });
     } catch (cause) {
-      setError(describeError(cause, 'League membership could not be loaded.'));
+      failedRead(cause, 'League membership could not be loaded.', () => void loadLeagueMembers());
     } finally {
       setLeagueSummariesReady(true);
     }
@@ -317,7 +326,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
         return copy;
       });
     } catch (cause) {
-      setError(describeError(cause, 'Season membership could not be loaded.'));
+      failedRead(cause, 'Season membership could not be loaded.', () => void loadRoster());
     }
   };
 
@@ -327,7 +336,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
       setPlayers(playerPayload.players);
       setClubInvites(invitePayload.invites);
     } catch (cause) {
-      setError(describeError(cause, 'Club access could not be loaded.'));
+      failedRead(cause, 'Club access could not be loaded.', () => void loadClubAccess());
     }
   };
 
@@ -335,20 +344,20 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     clear();
     if (task === 'leagues') void loadLeagueMembers();
     if (task === 'members') void loadRoster();
-    if (task === 'fixtures' && selectedLeague) api.fixtures(selectedLeague.id).then((payload) => setFixtures(payload.fixtures)).catch((cause) => setError(describeError(cause, 'Fixtures could not be loaded.')));
+    if (task === 'fixtures' && selectedLeague) api.fixtures(selectedLeague.id).then((payload) => setFixtures(payload.fixtures)).catch((cause) => failedRead(cause, 'Fixtures could not be loaded.', () => setTaskReloadKey((key) => key + 1)));
     if (task === 'promotion' && selectedSeason) Promise.all([api.promotionPreview(selectedSeason.id), ...orderedLeagues.map((league) => api.competitionMembers(league.id))]).then(([preview, ...memberPayloads]) => {
       setPromotion((preview as { preview: PromotionProjection }).preview);
       const next: Record<string, CompetitionMember[]> = {};
       orderedLeagues.forEach((league, index) => { next[league.id] = (memberPayloads[index] as { members: CompetitionMember[] }).members; });
       setMembersByLeague((current) => ({ ...current, ...next }));
-    }).catch((cause) => setError(describeError(cause, 'Promotion projection could not be loaded.')));
+    }).catch((cause) => failedRead(cause, 'Promotion projection could not be loaded.', () => setTaskReloadKey((key) => key + 1)));
     if (task === 'access') void loadClubAccess();
-  }, [task, selectedLeague?.id, memberLeague?.id, selectedSeason?.id, leagues.length]);
+  }, [task, selectedLeague?.id, memberLeague?.id, selectedSeason?.id, leagues.length, taskReloadKey]);
 
   useEffect(() => {
     if (task !== 'promotion' || !targetSeasonId) return;
-    api.seasonLeagues(targetSeasonId).then((payload) => setTargetLeagues([...payload.leagues].sort(orderLeagues))).catch((cause) => setError(describeError(cause, 'Next-season leagues could not be loaded.')));
-  }, [task, targetSeasonId]);
+    api.seasonLeagues(targetSeasonId).then((payload) => setTargetLeagues([...payload.leagues].sort(orderLeagues))).catch((cause) => failedRead(cause, 'Next-season leagues could not be loaded.', () => setTargetReloadKey((key) => key + 1)));
+  }, [task, targetSeasonId, targetReloadKey]);
 
   const handleTabKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next = index;
@@ -564,6 +573,7 @@ export function AdminCompetitionDesk({ user, selectedLeagueId, onLeagueSelected,
     </div>
     {message && <p className="success-message" role="status">{message}</p>}
     {error && <p className="error-message" role="alert">{error}</p>}
+    {readFailure && <LoadFailure message={readFailure.message} retryLabel="Try loading this again" onRetry={() => { setReadFailure(null); readFailure.retry(); }} />}
 
     <div className="admin-tabs admin-rail" data-layout-region="rail" role="tablist" aria-label="Competition administration tasks">
       {tasks.map((item, index) => <button key={item.key} id={`competition-admin-tab-${item.key}`} role="tab" type="button" className={task === item.key ? 'content-tab content-tab-active' : 'content-tab'} aria-selected={task === item.key} tabIndex={task === item.key ? 0 : -1} onClick={() => setTask(item.key)} onKeyDown={(event) => handleTabKey(event, index)}>{item.label}</button>)}

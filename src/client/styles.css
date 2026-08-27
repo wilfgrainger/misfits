@@ -611,6 +611,24 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   margin-top: .5rem;
 }
 
+/* ─── Read failure recovery ───────────────────────────────────────────────── */
+.load-failure {
+  display: grid;
+  justify-items: start;
+  gap: .6rem;
+  margin: .75rem 0;
+  padding: .9rem 1rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+}
+.load-failure strong {
+  font-size: .93rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 /* ─── Public club table address ───────────────────────────────────────────── */
 .public-table-share {
   display: grid;

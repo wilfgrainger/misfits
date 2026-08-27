@@ -3,7 +3,7 @@
 **Updated:** 27 August 2026
 **Current branch:** `codex/website-completion`
 **Base:** `main` at `21d3e2049` — PR #181 `feat: polish club member workflows` is merged
-**Current focus:** website completion release — closing the shipped-surface gaps found in a full website audit
+**Current focus:** website completion release — closing shipped-surface gaps and making every data-bearing read recoverable
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -42,6 +42,7 @@ Each item was captured with a failing test before its fix.
 8. **`DESIGN.md` requires a responsive audit at 320/360/375/390/412/430/768/1024 and no test enforced it.** `tests/client/responsive-widths.test.ts` proves every required width lands in a declared band, that phone/tablet/desktop bands exist, that no layout is pinned wider than 320px, that page-level horizontal overflow is prevented, and that fixed member navigation respects the bottom safe area.
 9. **A deliberately public table had no address.** An admin could set league visibility to `PUBLIC`, `PublicLeagueView` served `/league/:slug`, and `shareLeague()` was fully tested — but nothing connected them, so the approved "publicly chosen club table" was unreachable in practice. The admin league edit form now shows the public address with an open link and a share/copy control, using the existing helper. No endpoint, dependency or migration was added.
 10. **The public share copy invited a join.** A read-only public table said "Join the X league.", which contradicts the `DESIGN.md` ban on self-service join UI. It now reads "See the X table." with the title "X — Misfits 501".
+11. **Read failures had no recovery action.** Public fixtures, member competition data, member Players/history and the admin read surfaces announced errors but left users stranded. A shared accessible `LoadFailure` surface now offers contextual retry for those reads; mutation failures remain separate so a retry never repeats a write.
 
 ## Current verification
 
@@ -50,7 +51,8 @@ Fresh local gate on the working tree, run with a Linux-native `node_modules`:
 - `npx wrangler types`: GREEN.
 - `npm run typecheck` (client and Worker TypeScript): GREEN.
 - Impeccable source detector for `src/client`: `[]`.
-- `vitest run`: **75 test files / 311 tests GREEN**, up from the 73/296 baseline on the merged PR #181 head.
+- `vitest run`: **77 test files / 315 tests GREEN**, up from the 75/311 website-completion baseline and the 73/296 baseline on the merged PR #181 head.
+- Recovery regressions: public fixture, member competition, member Players and admin initial-load retry tests are GREEN.
 - `npm run build`: GREEN.
 - `git diff --check` and `git diff --cached --check`: clean.
 
@@ -67,7 +69,7 @@ This is source, contract and local-gate evidence. It is not a deployment, produc
 
 ## Next action
 
-Require a fresh exact-head `CI / verify` run on the `codex/website-completion` pull request, then merge on review, verify the `main` deploy job, and smoke-test production `/`, `/favicon.ico`, `/robots.txt`, `/manifest.webmanifest` and `/api/health`.
+Push the recovery update to PR #182, require a fresh exact-head `CI / verify` run, then merge on review, verify the `main` deploy job, and smoke-test production `/`, `/favicon.ico`, `/robots.txt`, `/manifest.webmanifest` and `/api/health`.
 
 ## Historical evidence
 
