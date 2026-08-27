@@ -30,7 +30,7 @@ export async function shareLeague(
   const url = buildLeagueUrl(slug, origin);
   if (browser.share) {
     try {
-      await browser.share({ title: name, text: `Join the ${name} league.`, url });
+      await browser.share({ title: `${name} — Misfits 501`, text: `See the ${name} table.`, url });
       return 'shared';
     } catch (cause) {
       const error = cause as { name?: string; message?: string };

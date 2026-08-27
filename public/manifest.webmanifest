@@ -1,7 +1,7 @@
 {
   "name": "Misfits 501",
   "short_name": "Misfits 501",
-  "description": "A luxury private-club darts league, properly settled.",
+  "description": "One luxury private darts club. Club darts, properly settled.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#050505",
@@ -12,6 +12,12 @@
       "sizes": "1254x1254",
       "type": "image/jpeg",
       "purpose": "any"
+    },
+    {
+      "src": "/brand/misfits-501-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }

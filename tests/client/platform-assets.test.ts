@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const publicRoot = resolve(process.cwd(), 'public');
+const clientRoot = resolve(process.cwd(), 'src/client');
 
 function lastHexDeclaration(styles: string, selector: string, property: string): string {
   const blocks = /([^{}]+)\{([^{}]*)\}/g;
@@ -51,10 +52,78 @@ describe('Misfits platform assets', () => {
     expect(scriptSource).not.toContain("'unsafe-inline'");
   });
 
-  it('describes a luxury private-club experience in the document metadata', () => {
+  it('gives a shared club link a privacy-safe preview', () => {
     const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const meta = Object.fromEntries([...document.matchAll(/<meta property="(og:[^"]+)" content="([^"]+)"/g)].map((match) => [match[1], match[2]]));
 
-    expect(document).toContain('luxury private-club darts league');
+    expect(meta['og:type']).toBe('website');
+    expect(meta['og:site_name']).toBe('Misfits 501');
+    expect(meta['og:title']).toContain('Club darts, properly settled.');
+    expect(meta['og:description']).toContain('private');
+    expect(meta['og:image']).toBe('https://darts.graingers.agency/brand/misfits-501.jpg');
+    expect(meta['og:url']).toBe('https://darts.graingers.agency/');
+    expect(document).toContain('<meta name="twitter:card" content="summary_large_image" />');
+  });
+
+  it('carries the fixed club promise in the document and install metadata', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as { description?: string };
+
+    expect(document).toContain('luxury private darts club');
+    expect(document).toContain('Club darts, properly settled.');
+    expect(manifest.description).toContain('Club darts, properly settled.');
+    expect(document).not.toContain('darts league');
+    expect(manifest.description).not.toContain('darts league');
+  });
+
+  it('declares a real tab icon and an installable home-screen icon', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const iconHref = document.match(/<link rel="icon"[^>]*href="([^"]+)"/)?.[1];
+    const touchHref = document.match(/<link rel="apple-touch-icon"[^>]*href="([^"]+)"/)?.[1];
+
+    expect(iconHref).toBe('/brand/misfits-501-mark.svg');
+    expect(touchHref).toBe('/brand/misfits-501.jpg');
+    expect(document).toContain('type="image/svg+xml"');
+    expect(readFileSync(resolve(publicRoot, 'brand/misfits-501-mark.svg'), 'utf8')).toContain('<svg');
+  });
+
+  it('offers a maskable install icon so the club mark is not cropped on a phone', () => {
+    const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as {
+      icons?: Array<{ src?: string; sizes?: string; type?: string; purpose?: string }>;
+    };
+    const maskable = manifest.icons?.find((candidate) => candidate.purpose === 'maskable');
+
+    expect(maskable).toMatchObject({ src: '/brand/misfits-501-mark.svg', type: 'image/svg+xml', purpose: 'maskable' });
+  });
+
+  it('tells crawlers the club is private instead of relying on the SPA fallback', () => {
+    const robots = readFileSync(resolve(publicRoot, 'robots.txt'), 'utf8');
+
+    expect(robots).toMatch(/^User-agent: \*$/m);
+    expect(robots).toMatch(/^Disallow: \/$/m);
+  });
+
+  it('explains the club without JavaScript instead of rendering a blank shell', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const noscript = document.match(/<noscript>([\s\S]*?)<\/noscript>/)?.[1] ?? '';
+
+    expect(noscript).toContain('Misfits 501');
+    expect(noscript).toContain('JavaScript');
+  });
+
+  it('keeps the no-JavaScript message readable on the dark club ground', () => {
+    const styles = readFileSync(resolve(clientRoot, 'styles.css'), 'utf8');
+    const noscriptColor = styles.match(/noscript\s*\{[^}]*color:\s*(#[0-9a-f]{6})/i)?.[1];
+    if (!noscriptColor) throw new Error('The noscript block declares no explicit color');
+    const clubInk = readFileSync(resolve(clientRoot, 'mobile-experience.css'), 'utf8').match(/--club-ink:\s*(#[0-9a-f]{6})/i)?.[1]
+      ?? styles.match(/--club-ink:\s*(#[0-9a-f]{6})/i)?.[1]
+      ?? '#0d1110';
+    const baseBackground = styles.match(/--bg:\s*(#[0-9a-f]{6})/i)?.[1] ?? '#0d1110';
+
+    expect(styles).toMatch(/noscript\s*\{[^}]*display:\s*block/);
+    for (const background of [baseBackground, clubInk]) {
+      expect(contrastRatio(noscriptColor, background)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it('keeps rendered text at WCAG AA contrast on the remaining dark surfaces', () => {
