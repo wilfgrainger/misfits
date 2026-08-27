@@ -1,9 +1,9 @@
 # Misfits 501 Progress
 
 **Updated:** 27 August 2026
-**Current branch:** `codex/website-completion`
-**Base:** `main` at `21d3e2049` — PR #181 `feat: polish club member workflows` is merged
-**Current focus:** website completion release — closing shipped-surface gaps and making every data-bearing read recoverable
+**Current branch:** `codex/premium-club-v2`
+**Base:** `56603ee8304955618bed870c93ad41253669ce4d` — `fix: plainer landing copy and a real favicon.ico`
+**Current focus:** Premium Club V2 handoff to Kiro — complete the paused review, responsive safeguards, rendered acceptance, and release decision without widening product scope.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -18,58 +18,63 @@ Read, in order:
 5. `DESIGN.md`
 6. affected client code, tests and `public/` assets
 
-This branch finishes the shipped website rather than adding product scope.
+This branch is a presentation-led redesign of the existing Misfits 501 private-club product. It must preserve the existing admission, Google identity, result, fixture, table, public-share, and administration behaviour.
 
-### Already merged — club member workflows (PR #181)
+## What is committed on this branch
 
-- Active approved administrators are included in assigned competition rosters and standings.
-- Club bootstrap is hardened against stale responses after logout, unmount or competing loads.
-- Admin result dialogs have Escape handling, focus containment, initial focus, visible close controls and focus restoration.
-- Pending opponent-result reviews surface on the member Home screen and route to the relevant Results workspace.
-- Competition tab/tabpanel associations are stable, with responsive touch-target and modal polish.
+| Commit | Status | Scope |
+| --- | --- | --- |
+| `3a8ec5e` | committed | Approved Premium Club V2 design specification. |
+| `576346b` | committed | Task-by-task implementation plan, including V2 visual-contract correction. |
+| `ef7d413` | reviewed clean | Privacy, promise, club-first navigation, and public-record regression contracts. |
+| `70aa56a` | reviewed clean | Static private-club threshold: no timed curtain, admission card, fixed promise, emitted V2 direction contract, and retained access boundaries. |
+| `c9c903c` | reviewed clean | Club record-book member shell: Home grouping, Record hook, desktop composition, and unchanged four-destination member navigation. |
+| `bf61697` | committed; **review paused** | Public fixture, table, fixture/result, and admin scorebook presentation. The independent Task 4 review was interrupted at the user's handoff request; treat it as unreviewed until Kiro completes it. |
 
-### This branch — website completion audit
+### Product truth that must not change
 
-Each item was captured with a failing test before its fix.
+- Misfits 501 is one private darts club, not a multi-club product or generic league SaaS.
+- Anonymous, pending, rejected, and suspended visitors must never mount member, league, standings, fixture, or result data.
+- Google Identity Services remains the only sign-in method. Do not weaken Worker authorization or change invite/session behaviour.
+- The only global approved-member destinations are `Home`, `Record`, `Leagues`, and `More`. `Table`, `Fixtures`, and `Results` are local competition tabs.
+- DartCounter scores; Misfits records and settles outcomes. Do not add live scoring, social/member marketing, payments, teams, tournaments, or public member data.
+- Use the supplied club art intact; do not use it behind text. No external font, dependency, Cloudflare service, migration, route, or API belongs in this release.
 
-1. **The declared landing promise was missing.** `PRODUCT.md` and `VISION.md` name "Club darts, properly settled." as the fixed promise, and the 21 August Impeccable review recorded it on the landing surface. It had since disappeared from the entire client. It is now on the signed-out and invited entrances, the document title, the meta description and the install manifest.
-2. **There was no favicon.** Because asset not-found handling is `single-page-application`, `/favicon.ico` answered `200 text/html` with the app shell instead of an icon. `public/brand/misfits-501-mark.svg` is a restrained `DESIGN.md`-palette bullseye, wired as `rel="icon"`, with the supplied club artwork as `apple-touch-icon`.
-3. **The install manifest had one 1254px JPEG icon.** A maskable SVG entry now prevents the club mark being cropped on a phone home screen.
-4. **There was no `robots.txt`.** A private members club now says so explicitly, reinforced by `<meta name="robots" content="noindex, nofollow">`.
-5. **There was no no-JavaScript fallback.** A `<noscript>` block now explains the club. Its first implementation would have rendered invisible, because no colour was declared and the built stylesheet paints a dark ground without JavaScript; a contrast-guarded `noscript` rule fixes that and a test holds it at WCAG AA against both dark grounds.
-6. **Shared club links had no preview.** The product shares `/join/:token` invitations and `/league/:slug` tables, so privacy-safe Open Graph and Twitter card metadata now render club identity and the promise, and no member data.
-7. **The retired white-label "League Board" mark was still deployed.** `public/brand/league-board.svg` is removed; `AGENTS.md` forbids restoring that identity.
-8. **`DESIGN.md` requires a responsive audit at 320/360/375/390/412/430/768/1024 and no test enforced it.** `tests/client/responsive-widths.test.ts` proves every required width lands in a declared band, that phone/tablet/desktop bands exist, that no layout is pinned wider than 320px, that page-level horizontal overflow is prevented, and that fixed member navigation respects the bottom safe area.
-9. **A deliberately public table had no address.** An admin could set league visibility to `PUBLIC`, `PublicLeagueView` served `/league/:slug`, and `shareLeague()` was fully tested — but nothing connected them, so the approved "publicly chosen club table" was unreachable in practice. The admin league edit form now shows the public address with an open link and a share/copy control, using the existing helper. No endpoint, dependency or migration was added.
-10. **The public share copy invited a join.** A read-only public table said "Join the X league.", which contradicts the `DESIGN.md` ban on self-service join UI. It now reads "See the X table." with the title "X — Misfits 501".
-11. **Read failures had no recovery action.** Public fixtures, member competition data, member Players/history and the admin read surfaces announced errors but left users stranded. A shared accessible `LoadFailure` surface now offers contextual retry for those reads; mutation failures remain separate so a retry never repeats a write.
+## Kiro job queue
 
-## Current verification
+Work in this exact isolated checkout, not the original dirty checkout:
 
-Fresh local gate on the working tree, run with a Linux-native `node_modules`:
+`C:\Users\wilf6\dev\misfits\.worktrees\premium-club-v2`
 
-- `npx wrangler types`: GREEN.
-- `npm run typecheck` (client and Worker TypeScript): GREEN.
-- Impeccable source detector for `src/client`: `[]`.
-- `vitest run`: **77 test files / 315 tests GREEN**, up from the 75/311 website-completion baseline and the 73/296 baseline on the merged PR #181 head.
-- Recovery regressions: public fixture, member competition, member Players and admin initial-load retry tests are GREEN.
-- `npm run build`: GREEN.
-- `git diff --check` and `git diff --cached --check`: clean.
+| Priority | Job | Required completion evidence |
+| --- | --- | --- |
+| 1 | **Complete the paused Task 4 review.** Read the Task 4 brief, report, and package in `.superpowers/sdd/2026-08-27-premium-club-v2/`. Review `c9c903c..bf61697` as a read-only task gate. | Spec/quality verdict recorded in the SDD ledger. Fix any Critical/Important finding through the planned fix/re-review loop before moving on. |
+| 2 | **Task 5 — responsive, focus, and motion safeguards.** Add only the plan's source-level tests and smallest CSS safeguards. | TDD RED/GREEN, required widths represented, private-entry and responsive focused tests passing, independent task review. |
+| 3 | **Task 6 — bounded visual finish.** Build, serve, and capture the private root at 390px and 1440px. Inspect both captures, make at most one batched correction pass, then run detector and a fresh full gate. | Valid `.impeccable/review/mobile.png` and `desktop.png`; source detector; Wrangler types; client/Worker typecheck; full Vitest; production build; `git diff --check`; review verdict. |
+| 4 | **Resolve deferred minor review debt during the final whole-branch review.** | (a) strengthen the V2 direction-comment test to bind the exact blocks/closing sentence and keep built-output grep; (b) label or replace the reduced-motion test so it proves what it claims; (c) retain evidence for desktop Home ratio, mobile source order, and selected `aria-current`; (d) decide whether the standalone non-embedded `PlayerLeague` navigation can ever be product-mounted. |
+| 5 | **Release decision only after the prior jobs are green.** | Commit exact final source/evidence/docs; request review/CI; push, PR, merge, deployment, and production checks need their own evidence and authority. |
 
-This is source, contract and local-gate evidence. It is not a deployment, production-health, signed-in Google journey or rendered-device acceptance claim.
+## Evidence already reported by completed task implementations
 
-## Current blockers and decisions
+- Task 2 report: 77 files / 319 tests, TypeScript, Wrangler types, production build, emitted V2 HTML-comment grep, detector `[]`, and diff checks passed.
+- Task 3 report: 77 files / 320 tests, client/Worker TypeScript, production build, detector `[]`, and diff checks passed.
+- Task 4 report: 77 files / 320 tests, client/Worker TypeScript, production build, detector `[]`, and staged diff checks passed.
+- Task 1–3 have independent clean task-review verdicts. Task 4 implementation is committed but its independent task-review verdict is outstanding.
 
-- The Linux `gh` CLI in this environment is unauthenticated. The authenticated Windows GitHub CLI at `/mnt/c/Program Files/GitHub CLI/gh.exe` (account `wilfgrainger`, scopes `repo`/`workflow`) is the working route for push and pull-request operations from WSL.
-- **Merging is deliberately not automated here.** A merge to `main` triggers the `deploy` job and changes production, so it waits for an explicit decision after `CI / verify` is green on the exact head.
-- The `main` working checkout at `/mnt/c/Users/wilf6/dev/misfits` reports 411 modified files purely from CRLF/LF translation on the Windows mount. It is unsafe for commits. Use the `/tmp/misfits-release` worktree.
-- `robots.txt` disallows all crawling, including the deliberately public table paths. That follows the private-members-club positioning; reverse it only if the club decides a public table should be discoverable by search.
-- `og:image` and `og:url` name the production origin directly, matching the existing `APP_ORIGIN` in `wrangler.jsonc`.
-- No schema, migration, Cloudflare service, dependency or authorization change is included.
+These are task-report claims from local work, not a substitute for the final fresh release gate. None establishes rendered-device acceptance, a live Google journey, CI, a push, a pull request, a deployment, or production health.
+
+## Handoff files and operating discipline
+
+- Design: `docs/superpowers/specs/2026-08-27-premium-club-v2-design.md`
+- Plan: `docs/superpowers/plans/2026-08-27-premium-club-v2.md`
+- SDD ledger/reports/packages: `.superpowers/sdd/2026-08-27-premium-club-v2/`
+- Use explicit staging paths; do not use `git add -A`, reset, or overwrite unrelated files.
+- The V2 source branch is local only. No push, PR, CI, merge, deployment, or Cloudflare/D1 action has been requested or performed.
+- No schema, migration, Cloudflare service, dependency, API, authorization, or data-visibility change is included.
 
 ## Next action
 
-Push the recovery update to PR #182, require a fresh exact-head `CI / verify` run, then merge on review, verify the `main` deploy job, and smoke-test production `/`, `/favicon.ico`, `/robots.txt`, `/manifest.webmanifest` and `/api/health`.
+Start Kiro at the exact worktree above. Have it complete Job 1 (the paused Task 4 review) before it edits anything, then execute Jobs 2–4 in order. Do not call the V2 complete, deployable, or production-ready until Job 3's fresh evidence and Job 4's whole-branch review are recorded.
 
 ## Historical evidence
 
