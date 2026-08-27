@@ -3,7 +3,7 @@
 **Updated:** 27 August 2026
 **Current branch:** `codex/premium-club-v2`
 **Base:** `56603ee8304955618bed870c93ad41253669ce4d` — `fix: plainer landing copy and a real favicon.ico`
-**Current focus:** Premium Club V2 final release gate and Cloudflare deployment, requested by the owner, without widening product scope.
+**Current focus:** Premium Club V2 deployed and live-verified; source handoff remains on the local release branch.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -53,7 +53,7 @@ Work in this exact isolated checkout, not the original dirty checkout:
 | complete | **Responsive, focus, and motion safeguards.** | Safe-area/sizing source safeguards committed in `ac18b00`; focused entry and responsive suite passed. |
 | complete | **Bounded rendered finish.** | Signed-out private root captured at 390×844 and 1440×900 in `.impeccable/review/`; one correction pass fixed supplied Google-control sizing and true centring. |
 | complete | **Deferred minor review debt.** | Direction-comment contract tightened; motion-test title corrected; desktop ratio/mobile source order/selected `aria-current` are explicit; no product route directly mounts non-embedded `PlayerLeague`. |
-| in progress | **Fresh release gate and deployment.** | Run current types, tests, build, detector, configuration check, dry-run, final diff check; commit the exact release candidate, deploy the Worker, then verify the live root and health endpoint. |
+| complete | **Fresh release gate, deployment, and live check.** | `wrangler types`, client/Worker typecheck, 77-file/323-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `90e4e6f` deployed as Worker version `e568ce96-0012-419c-8ce3-41f8c8fcadc6`; live root and `/api/health` returned HTTP 200. |
 
 ## Evidence already reported by completed task implementations
 
@@ -62,8 +62,9 @@ Work in this exact isolated checkout, not the original dirty checkout:
 - Task 4 review: `git diff --check c9c903c..bf61697` was clean; `public-app-ux`, `standings-table`, and `player-app` passed (3 files / 17 tests).
 - Rendered acceptance used the local Worker with its local D1 at 390×844 and 1440×900. The anonymous entrance displayed only the private-club promise and Google sign-in, with no member, fixture, result, or table data mounted.
 - Google Identity Services sizing now uses the actual sign-in slot, not its padded parent card; its supported logo alignment is `center`. The source regression test proves the narrower slot wins. The live Google sign-in journey was not performed.
+- The deployed custom domain `https://darts.graingers.agency/` served the new `index-BRH1UTI9.js` and `index-B8ZTN2TB.css` asset hashes, returned the V2 direction contract, and rendered the signed-out 390px entrance with the Google mark and label centred. `https://darts.graingers.agency/api/health` returned `{"ok":true}`.
 
-These are local task and browser results, not a substitute for the final fresh release gate. They do not establish a live Google journey, CI, a push, a pull request, a deployment, or production health.
+These are local task, browser, and production checks. They do not establish a live Google journey, CI, a push, or a pull request.
 
 ## Handoff files and operating discipline
 
@@ -71,12 +72,12 @@ These are local task and browser results, not a substitute for the final fresh r
 - Plan: `docs/superpowers/plans/2026-08-27-premium-club-v2.md`
 - SDD ledger/reports/packages: `.superpowers/sdd/2026-08-27-premium-club-v2/`
 - Use explicit staging paths; do not use `git add -A`, reset, or overwrite unrelated files.
-- The V2 source branch is local only. A production Worker deployment has been requested by the owner; no push, PR, CI, merge, D1 mutation, or deployment has yet been performed.
+- The V2 source branch is local only. The production Worker was deployed from committed source `90e4e6f`; no push, PR, CI, merge, or D1 mutation was performed.
 - No schema, migration, Cloudflare service, dependency, API, authorization, or data-visibility change is included.
 
 ## Next action
 
-Run the fresh release gate, commit only the exact V2 source/tests/visual evidence/ledger paths, deploy the Worker without a D1 operation, and verify the public root plus `/api/health` against the custom domain. Do not call the V2 complete until those live checks are recorded.
+The requested release is complete. If a source-hosted review is wanted next, push `codex/premium-club-v2` and open a PR as a separate, explicitly verified handoff; the runtime deployed from `90e4e6f` is already live.
 
 ## Historical evidence
 
