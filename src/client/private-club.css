@@ -38,6 +38,82 @@
   outline-offset: 3px;
 }
 
+.front-page-entry {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.front-page-entry-content {
+  position: relative;
+  z-index: 1;
+}
+
+.front-page-intro-content {
+  animation: front-page-entry-arrive 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) 0.95s both;
+}
+
+@keyframes front-page-entry-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.front-page-intro {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--club-ink);
+  pointer-events: auto;
+  animation: front-page-intro-curtain 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.front-page-intro-logo {
+  width: min(78vw, 34rem);
+  max-height: 72dvh;
+  object-fit: contain;
+  border-radius: 50%;
+  box-shadow: 0 22px 90px rgba(0, 0, 0, 0.48);
+  animation: front-page-intro-logo 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes front-page-intro-logo {
+  0% {
+    opacity: 0;
+    transform: scale(0.58);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(0.86);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes front-page-intro-curtain {
+  0%, 68% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
 .private-entry-state {
   display: grid;
   width: min(100% - 2rem, 31rem);
@@ -92,16 +168,6 @@
   color: var(--club-muted);
   font-size: 0.98rem;
   line-height: 1.65;
-}
-
-.entry-promise {
-  max-width: 24ch;
-  margin: -0.15rem 0 0.1rem;
-  color: var(--club-text);
-  font-size: 1.02rem;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
 }
 
 .private-google-card {
@@ -427,6 +493,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .front-page-intro,
+  .front-page-intro-logo {
+    display: none;
+    animation: none;
+  }
+
+  .front-page-entry-content {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
   .private-loading-line::after {
     animation: none;
     transform: none;

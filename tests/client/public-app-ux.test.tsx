@@ -37,26 +37,49 @@ describe('private signed-out UX', () => {
 
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-  it('shows a privacy-safe members-club entry without loading league data', async () => {
+  it('shows the centered decorative logo intro and the existing private entry content', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Welcome to Misfits' })).toBeTruthy();
-    expect(screen.getByText('Club darts, properly settled.')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Misfits 501' })).toBeTruthy();
+    await waitFor(() => expect(document.querySelector('[data-front-page-intro]')).toBeTruthy());
+    const intro = document.querySelector('[data-front-page-intro]');
+    expect(intro?.getAttribute('aria-hidden')).toBe('true');
+    expect(intro?.querySelector('img')?.getAttribute('alt')).toBe('');
     expect(screen.getByText('Existing members can sign in with Google. New members need a private club invitation.')).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
+    expect(screen.queryByText(/properly settled/i)).toBeNull();
     expect(screen.getByText(/League tables, results and member details stay private/)).toBeTruthy();
     expect(screen.queryByText('Standings')).toBeNull();
     expect(screen.queryByText('Latest results')).toBeNull();
     await waitFor(() => expect(state.leagueCalls).toBe(0));
   });
 
-  it('keeps the club promise on the invited-member entrance', async () => {
+  it('keeps invitation copy direct without the removed slogan', async () => {
     window.history.replaceState({}, '', '/join/club-token');
     render(<App />);
 
     expect(await screen.findByRole('heading', { name: "You've been invited to join Misfits" })).toBeTruthy();
-    expect(screen.getByText('Club darts, properly settled.')).toBeTruthy();
+    expect(screen.queryByText(/properly settled/i)).toBeNull();
+    expect(screen.getByText('Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.')).toBeTruthy();
     expect(state.leagueCalls).toBe(0);
+  });
+
+  it('skips the intro overlay for visitors who prefer reduced motion', async () => {
+    const originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: true }),
+    });
+
+    try {
+      render(<App />);
+      expect(await screen.findByRole('heading', { name: 'Misfits 501' })).toBeTruthy();
+      await waitFor(() => expect(document.querySelector('[data-front-page-intro]')).toBeNull());
+      expect(document.querySelector('[data-front-page-intro-active]')?.getAttribute('data-front-page-intro-active')).toBe('false');
+    } finally {
+      if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', { configurable: true, value: originalMatchMedia });
+      else delete (window as unknown as { matchMedia?: unknown }).matchMedia;
+    }
   });
 
   it('keeps an unavailable league-shaped deep link explicit and privacy-safe', async () => {
