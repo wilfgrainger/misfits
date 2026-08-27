@@ -32,7 +32,7 @@ The public can see a deliberately chosen club table. Invited members sign in wit
 
 ## Brand Commitments
 
-Use the supplied Misfits 501 artwork at `public/brand/misfits-501.jpg` intact as a club asset, never as a low-contrast copy background. The fixed promise is: “Club darts, properly settled.” The voice is direct, restrained and slightly wrong rather than generic sport or SaaS copy.
+Use the supplied Misfits 501 artwork at `public/brand/misfits-501.jpg` intact as a club asset. It may become a very low-contrast watermark in the private admission world only when copy remains plainly readable; it is never decorative wallpaper for product data. The fixed promise is: “Club darts, properly settled.” The voice is direct, restrained and slightly wrong rather than generic sport or SaaS copy.
 
 ## Evidence on Hand
 

@@ -3,7 +3,7 @@
 **Updated:** 27 August 2026
 **Current branch:** `codex/premium-club-v2`
 **Base:** `56603ee8304955618bed870c93ad41253669ce4d` — `fix: plainer landing copy and a real favicon.ico`
-**Current focus:** Premium Club V2 deployed and live-verified; source handoff remains on the local release branch.
+**Current focus:** Premium Club V2 quality pass deployed and live-verified; source handoff remains on the local release branch.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -31,6 +31,7 @@ This branch is a presentation-led redesign of the existing Misfits 501 private-c
 | `c9c903c` | reviewed clean | Club record-book member shell: Home grouping, Record hook, desktop composition, and unchanged four-destination member navigation. |
 | `bf61697` | reviewed clean | Public fixture, table, fixture/result, and admin scorebook presentation. The deferred Task 4 review completed clean against `c9c903c..bf61697`; no Critical or Important finding. |
 | `ac18b00` | reviewed locally | Responsive safeguards: safe-area entry spacing, supplied Google-control containment, minimum navigation clearance, and focus/reduced-motion coverage. |
+| `343a70d` | deployed and live-verified | Quality pass: large subdued admission seal, approved-member entry handoff, deliberate admin desk framing, separated task controls, and mobile action-row spacing. |
 
 ### Product truth that must not change
 
@@ -39,7 +40,7 @@ This branch is a presentation-led redesign of the existing Misfits 501 private-c
 - Google Identity Services remains the only sign-in method. Do not weaken Worker authorization or change invite/session behaviour.
 - The only global approved-member destinations are `Home`, `Record`, `Leagues`, and `More`. `Table`, `Fixtures`, and `Results` are local competition tabs.
 - DartCounter scores; Misfits records and settles outcomes. Do not add live scoring, social/member marketing, payments, teams, tournaments, or public member data.
-- Use the supplied club art intact; do not use it behind text. No external font, dependency, Cloudflare service, migration, route, or API belongs in this release.
+- Use the supplied club art intact. The authorised admission-screen exception is a very low-contrast seal watermark behind clear space only; it must never compromise copy contrast. No external font, dependency, Cloudflare service, migration, route, or API belongs in this release.
 
 ## Release sequence
 
@@ -54,6 +55,7 @@ Work in this exact isolated checkout, not the original dirty checkout:
 | complete | **Bounded rendered finish.** | Signed-out private root captured at 390×844 and 1440×900 in `.impeccable/review/`; one correction pass fixed supplied Google-control sizing and true centring. |
 | complete | **Deferred minor review debt.** | Direction-comment contract tightened; motion-test title corrected; desktop ratio/mobile source order/selected `aria-current` are explicit; no product route directly mounts non-embedded `PlayerLeague`. |
 | complete | **Fresh release gate, deployment, and live check.** | `wrangler types`, client/Worker typecheck, 77-file/323-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `90e4e6f` deployed as Worker version `e568ce96-0012-419c-8ce3-41f8c8fcadc6`; live root and `/api/health` returned HTTP 200. |
+| complete | **Quality-pass release and live check.** | `wrangler types`, client/Worker typecheck, 77-file/324-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `343a70d` deployed as Worker version `9ebfffc3-f4e4-4589-a7cb-41073ba1d24e`; the live 390px admission screen was inspected. |
 
 ## Evidence already reported by completed task implementations
 
@@ -63,6 +65,7 @@ Work in this exact isolated checkout, not the original dirty checkout:
 - Rendered acceptance used the local Worker with its local D1 at 390×844 and 1440×900. The anonymous entrance displayed only the private-club promise and Google sign-in, with no member, fixture, result, or table data mounted.
 - Google Identity Services sizing now uses the actual sign-in slot, not its padded parent card; its supported logo alignment is `center`. The source regression test proves the narrower slot wins. The live Google sign-in journey was not performed.
 - The deployed custom domain `https://darts.graingers.agency/` served the new `index-BRH1UTI9.js` and `index-B8ZTN2TB.css` asset hashes, returned the V2 direction contract, and rendered the signed-out 390px entrance with the Google mark and label centred. `https://darts.graingers.agency/api/health` returned `{"ok":true}`.
+- The quality-pass deployment serves `index-GF72nVFt.js` and `index-Bal_ro4S.css`. The live 390px entrance retains readable copy and the centred Google control over a large subdued club seal; root and `/api/health` both returned HTTP 200. Authenticated member/admin browser acceptance remains covered by component contracts and supplied capture review, not a live signed-in journey.
 
 These are local task, browser, and production checks. They do not establish a live Google journey, CI, a push, or a pull request.
 
@@ -72,12 +75,12 @@ These are local task, browser, and production checks. They do not establish a li
 - Plan: `docs/superpowers/plans/2026-08-27-premium-club-v2.md`
 - SDD ledger/reports/packages: `.superpowers/sdd/2026-08-27-premium-club-v2/`
 - Use explicit staging paths; do not use `git add -A`, reset, or overwrite unrelated files.
-- The V2 source branch is local only. The production Worker was deployed from committed source `90e4e6f`; no push, PR, CI, merge, or D1 mutation was performed.
+- The V2 source branch is local only. The latest production Worker was deployed from committed source `343a70d`; no push, PR, CI, merge, or D1 mutation was performed.
 - No schema, migration, Cloudflare service, dependency, API, authorization, or data-visibility change is included.
 
 ## Next action
 
-The requested release is complete. If a source-hosted review is wanted next, push `codex/premium-club-v2` and open a PR as a separate, explicitly verified handoff; the runtime deployed from `90e4e6f` is already live.
+The requested quality pass is complete. If a source-hosted review is wanted next, push `codex/premium-club-v2` and open a PR as a separate, explicitly verified handoff; the runtime deployed from `343a70d` is already live.
 
 ## Historical evidence
 
