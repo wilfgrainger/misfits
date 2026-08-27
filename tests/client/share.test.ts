@@ -11,8 +11,8 @@ describe('league sharing', () => {
 
   it('uses the native share sheet when the browser provides it', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
-    await expect(shareLeague({ share }, 'Misfits 501', 'misfits-501', 'https://darts.example')).resolves.toBe('shared');
-    expect(share).toHaveBeenCalledWith({ title: 'Misfits 501', text: 'Join the Misfits 501 league.', url: 'https://darts.example/league/misfits-501' });
+    await expect(shareLeague({ share }, 'Premier', 'premier', 'https://darts.example')).resolves.toBe('shared');
+    expect(share).toHaveBeenCalledWith({ title: 'Premier — Misfits 501', text: 'See the Premier table.', url: 'https://darts.example/league/premier' });
   });
 
   it('copies a public league link when native sharing is unavailable', async () => {

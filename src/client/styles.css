@@ -45,6 +45,21 @@ body {
   background: var(--bg);
 }
 button, input, select, textarea { font: inherit; }
+
+/* Without JavaScript no club UI mounts, so the shell must still explain itself. */
+noscript {
+  display: block;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem;
+  color: #eeeae0;
+  text-align: center;
+}
+noscript p {
+  margin: 0 0 .8rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
 button {
   min-height: 44px;
   border-radius: 6px;
@@ -594,6 +609,50 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   align-items: center;
   gap: .6rem;
   margin-top: .5rem;
+}
+
+/* ─── Read failure recovery ───────────────────────────────────────────────── */
+.load-failure {
+  display: grid;
+  justify-items: start;
+  gap: .6rem;
+  margin: .75rem 0;
+  padding: .9rem 1rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+}
+.load-failure strong {
+  font-size: .93rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+/* ─── Public club table address ───────────────────────────────────────────── */
+.public-table-share {
+  display: grid;
+  gap: .4rem;
+  margin: .85rem 0 0;
+  padding: .9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.public-table-share h4 { margin: 0; font-size: .95rem; }
+.public-table-address {
+  margin: .15rem 0 0;
+  overflow-wrap: anywhere;
+}
+.public-table-address code {
+  color: var(--text);
+  font-size: .82rem;
+}
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 .public-league-actions { justify-content: flex-end; }
 @media (max-width: 680px) { .public-league-actions { justify-content: flex-start; } }

@@ -41,12 +41,22 @@ describe('private signed-out UX', () => {
     render(<App />);
 
     expect(await screen.findByRole('heading', { name: 'Welcome to Misfits' })).toBeTruthy();
+    expect(screen.getByText('Club darts, properly settled.')).toBeTruthy();
     expect(screen.getByText('Existing members can sign in with Google. New members need a private club invitation.')).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
     expect(screen.getByText(/League tables, results and member details stay private/)).toBeTruthy();
     expect(screen.queryByText('Standings')).toBeNull();
     expect(screen.queryByText('Latest results')).toBeNull();
     await waitFor(() => expect(state.leagueCalls).toBe(0));
+  });
+
+  it('keeps the club promise on the invited-member entrance', async () => {
+    window.history.replaceState({}, '', '/join/club-token');
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: "You've been invited to join Misfits" })).toBeTruthy();
+    expect(screen.getByText('Club darts, properly settled.')).toBeTruthy();
+    expect(state.leagueCalls).toBe(0);
   });
 
   it('keeps an unavailable league-shaped deep link explicit and privacy-safe', async () => {

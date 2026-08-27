@@ -1,0 +1,3 @@
+## Misfits 501 is one private members club. Nothing here is intended for search indexing.
+User-agent: *
+Disallow: /
