@@ -1,12 +1,24 @@
 # Misfits 501 Progress
 
 **Updated:** 28 August 2026
-**Current branch:** `fix/mobile-admin-overflow-ui-sharpen`
-**Base integrated:** `origin/main` at `1c8c43c`
-**Pull request:** #187
-**Current focus:** PR #187 fixes the mobile admin overflow, is locally verified, and is ready for review.
+**Current branch:** `codex/mobile-admin-sharp-v2`
+**Base integrated:** `origin/main` at `72fa336`
+**Pull request:** pending
+**Current focus:** Mobile admin sharpness pass is locally complete and verified; branch handoff and remote CI are pending.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
+
+## 28 August 2026 mobile-admin sharpness pass
+
+`main` was re-audited after PRs #187 and #188. The release was healthy, but the 550px authenticated capture still presented seven equally weighted task buttons as a large dashboard keypad, including an orphan full-width final row. That navigator consumed the first useful viewport, amplified nested card borders, and pushed the primary save action below the fold.
+
+This branch keeps the existing seven tasks and desktop tab semantics while replacing the phone-only button wall with one labelled native task switcher. Mobile panels now use separators instead of nested cards, count/current metadata is quieter, refresh becomes a compact secondary control, and season/league save actions sit in a safe-area-aware sticky action band. No admin capability, API, authorization rule, route, dependency, schema, or D1 behavior changes.
+
+Behavioral coverage proves that the task switcher contains all seven jobs and can reach Club access. Responsive source coverage proves that the switcher replaces the rail at 680px and below, preserves the rail above that boundary, and keeps hidden task panels hidden.
+
+Rendered authenticated-state testing used the real React application with isolated browser API responses at **320, 390, 550, 680, 681, 768 and 1024px**. At every width, `document.documentElement.scrollWidth` equalled the viewport width. The switcher rendered through 680px and the rail returned at 681px. The 390px switcher reached Club access, hid Season, and showed only the selected access workspace. The 550px season view kept the labelled task control, two-column season fields, normal 17.6px checkbox and visible Save season action in the first viewport. Browser console errors: **0**.
+
+Fresh local gate: Wrangler types GREEN; client and Worker TypeScript GREEN; **77 test files / 328 tests GREEN**; production Vite build GREEN; `git diff --check` GREEN. Commit, push, pull request and remote CI remain pending.
 
 ## 28 August 2026 mobile-admin visual maintenance
 

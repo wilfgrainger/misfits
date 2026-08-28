@@ -723,29 +723,37 @@
   }
 }
 
+.admin-task-switcher {
+  display: none;
+}
 
-/* Phone admin: every task stays visible—no horizontal drag rail. */
+/* Phone admin: one clear task control replaces the dashboard-like button wall. */
 @media (max-width: 680px) {
-  .admin-competition-desk .admin-rail {
+  .admin-competition-desk .admin-task-switcher {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
-    overflow: visible;
-    scroll-padding-inline: 0;
-    scroll-snap-type: none;
+    gap: 0.38rem;
+    margin-top: 0.9rem;
+    color: var(--club-muted, var(--text-3));
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
-  .admin-competition-desk .admin-rail .content-tab {
+  .admin-competition-desk .admin-task-switcher select {
     width: 100%;
-    min-width: 0;
-    min-height: 52px;
-    padding: 0.5rem;
-    overflow-wrap: anywhere;
-    text-align: center;
-    white-space: normal;
+    min-height: 48px;
+    padding-inline: 0.85rem 2.5rem;
+    color: var(--club-text, var(--text));
+    background-color: #111715;
+    border-color: var(--club-border, var(--border-mid));
+    font-size: 0.95rem;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
-  .admin-competition-desk .admin-rail .content-tab:last-child {
-    grid-column: 1 / -1;
+  .admin-competition-desk .admin-rail {
+    display: none;
   }
 }

@@ -98,11 +98,17 @@ describe('responsive acceptance widths', () => {
     expect(mobile).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
   });
 
-  it('keeps every admin task visible in a phone grid instead of a horizontal drag rail', () => {
+  it('replaces the admin drag rail with one compact phone task switcher', () => {
     const memberShell = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
+    const privateEntry = readFileSync(resolve(clientRoot, 'private-club.css'), 'utf8');
+    const base = readFileSync(resolve(clientRoot, 'styles.css'), 'utf8');
 
-    expect(memberShell).toMatch(/@media\s*\(max-width:\s*680px\)\s*\{[\s\S]*?\.admin-competition-desk\s+\.admin-rail\s*\{[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[\s\S]*?overflow:\s*visible/s);
-    expect(memberShell).toMatch(/\.admin-competition-desk\s+\.admin-rail\s+\.content-tab:last-child\s*\{[\s\S]*?grid-column:\s*1\s*\/\s*-1/s);
+    expect(memberShell).toMatch(/\.admin-task-switcher\s*\{\s*display:\s*none/);
+    expect(memberShell).toMatch(/@media\s*\(max-width:\s*680px\)\s*\{[\s\S]*?\.admin-competition-desk\s+\.admin-task-switcher\s*\{[\s\S]*?display:\s*grid/s);
+    expect(memberShell).toMatch(/\.admin-competition-desk\s+\.admin-rail\s*\{\s*display:\s*none/s);
+    expect(privateEntry).toMatch(/\.club-access-panel\[hidden\]\s*\{\s*display:\s*none/);
+    expect(base).toMatch(/\.stack-form\s+\.check-row\s+input\[type="checkbox"\]\s*\{[^}]*width:\s*1\.1rem[^}]*min-height:\s*0/s);
+    expect(privateEntry).toMatch(/@media\s*\(min-width:\s*681px\)[\s\S]*?\.admin-form-actions\s*>\s*\.primary-button,[\s\S]*?width:\s*auto[\s\S]*?min-width:\s*10rem/s);
   });
 
   it('keeps Home intentionally two-column only when desktop width is available', () => {

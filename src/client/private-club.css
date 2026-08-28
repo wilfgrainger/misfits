@@ -463,6 +463,17 @@
   border-color: var(--club-red-line);
 }
 
+.private-club-shell .admin-refresh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+}
+
+.admin-refresh-mark {
+  line-height: 1;
+}
+
 .private-club-shell .league-hero-card,
 .private-club-shell .player-league-hero {
   background:
@@ -822,6 +833,10 @@
   gap: 1rem;
 }
 
+.club-access-panel[hidden] {
+  display: none;
+}
+
 .club-access-priority {
   border-color: var(--club-red-line) !important;
   box-shadow: none;
@@ -871,6 +886,11 @@
 }
 
 @media (min-width: 681px) {
+  .private-club-shell .admin-competition-desk .stack-form.admin-block .admin-form-actions {
+    justify-self: end;
+  }
+
+  .private-club-shell .admin-competition-desk .stack-form.admin-block .admin-form-actions > .primary-button,
   .private-club-shell .admin-competition-desk .stack-form.admin-block > .primary-button,
   .private-club-shell .admin-results-workflow > .stack-form.admin-block > .primary-button {
     width: auto;
@@ -969,6 +989,70 @@
     flex: 0 0 auto;
   }
 
+  .private-club-shell .admin-refresh-button {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    color: var(--club-muted);
+    background: transparent;
+    border-color: var(--club-border);
+    font-size: 1.15rem;
+  }
+
+  .admin-refresh-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .admin-desk [role="tabpanel"] > .admin-block {
+    margin-top: 0.95rem;
+    padding: 0.95rem 0 0;
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--club-border);
+    border-radius: 0;
+  }
+
+  .private-club-shell .admin-competition-desk .stack-form.admin-block {
+    padding: 0.95rem 0 0;
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--club-border);
+    border-radius: 0;
+  }
+
+  .private-club-shell .admin-competition-desk .count-label,
+  .private-club-shell .admin-competition-desk .status-label {
+    padding-inline: 0;
+    color: var(--club-muted);
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .private-club-shell .admin-competition-desk .status-open {
+    color: var(--club-success);
+  }
+
+  .admin-settings-form .admin-form-actions {
+    position: sticky;
+    z-index: 3;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    margin: 0.15rem -0.15rem -0.1rem;
+    padding: 0.45rem;
+    background: var(--club-ink);
+    border-top: 1px solid var(--club-border);
+  }
+
+  .admin-settings-form .admin-form-actions .primary-button {
+    margin-top: 0;
+  }
+
   .admin-desk .admin-list li {
     flex-direction: column;
     align-items: stretch;
@@ -997,6 +1081,37 @@
 @media (max-width: 400px) {
   .admin-desk .form-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 360px) {
+  .private-club-shell .admin-workbench-entry {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .75rem;
+  }
+
+  .private-club-shell .admin-back-button {
+    width: fit-content;
+  }
+}
+
+@media (min-width: 430px) and (max-width: 680px) {
+  .private-club-shell .admin-season-settings-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .admin-season-settings-form > .section-heading {
+    grid-column: 1 / -1;
+  }
+
+  .admin-season-settings-form .admin-form-actions {
+    position: static;
+    align-self: end;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-top: 0;
   }
 }
 

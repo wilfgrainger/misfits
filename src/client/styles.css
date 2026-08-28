@@ -395,6 +395,21 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   font-size: .85rem;
   font-weight: 700;
 }
+.stack-form .check-row {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 44px;
+}
+.stack-form .check-row input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  min-height: 0;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--red);
+}
 .onboarding-form input,
 .stack-form input,
 .compact-form input,
