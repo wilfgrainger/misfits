@@ -98,6 +98,13 @@ describe('responsive acceptance widths', () => {
     expect(mobile).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
   });
 
+  it('keeps every admin task visible in a phone grid instead of a horizontal drag rail', () => {
+    const memberShell = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
+
+    expect(memberShell).toMatch(/@media\s*\(max-width:\s*680px\)\s*\{[\s\S]*?\.admin-competition-desk\s+\.admin-rail\s*\{[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[\s\S]*?overflow:\s*visible/s);
+    expect(memberShell).toMatch(/\.admin-competition-desk\s+\.admin-rail\s+\.content-tab:last-child\s*\{[\s\S]*?grid-column:\s*1\s*\/\s*-1/s);
+  });
+
   it('keeps Home intentionally two-column only when desktop width is available', () => {
     const memberShell = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
 
