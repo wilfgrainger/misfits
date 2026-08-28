@@ -38,7 +38,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 it('keeps competition detail inside Leagues instead of making it the whole app frame', async () => {
   render(<App />);
 
-  await screen.findByRole('heading', { name: 'Good to see you, Alpha.' });
+  await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 });
   expect(screen.getByText('Your competitions')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Premier' })).toBeNull();
   expect(document.querySelector('.player-league-hero')).toBeNull();

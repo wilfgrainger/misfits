@@ -251,7 +251,7 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
         <div className="inline-actions">
           {result.status !== 'CONFIRMED' && <button className="action-button" type="button" aria-label={`Confirm ${result.status === 'DISPUTED' ? 'disputed ' : ''}result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={() => void confirmResult(result)}>Confirm result</button>}
           <button className="action-button" type="button" aria-label={`Edit result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={(event) => { editTriggerRef.current = event.currentTarget; setEditing({ ...result }); }}>Edit result</button>
-          <button className="action-button" type="button" aria-label={`Delete result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={(event) => { deleteTriggerRef.current = event.currentTarget; setDeleteTarget(result); }}>Delete result</button>
+          <button className="action-button danger-button" type="button" aria-label={`Delete result ${displayName(result, 'A')} vs ${displayName(result, 'B')}`} onClick={(event) => { deleteTriggerRef.current = event.currentTarget; setDeleteTarget(result); }}>Delete result</button>
         </div>
       </li>)}
     </ul>}
@@ -295,7 +295,7 @@ export function AdminResultsWorkflow({ leagueId }: Props) {
       <button className="dialog-close icon-action" type="button" aria-label="Close delete confirmation" onClick={() => setDeleteTarget(null)}>×</button>
       <h3 id="delete-result-title">Delete result?</h3>
       <p id="delete-result-message">This removes the official result and restores its fixture for correction. The audit history remains intact.</p>
-      <div className="inline-actions"><button className="secondary-button" type="button" onClick={() => setDeleteTarget(null)}>Cancel</button><button className="primary-button" type="button" onClick={() => void deleteResult()}>Confirm</button></div>
+      <div className="inline-actions"><button className="secondary-button" type="button" onClick={() => setDeleteTarget(null)}>Cancel</button><button className="primary-button danger-button" type="button" onClick={() => void deleteResult()}>Confirm</button></div>
     </div></div>}
   </div>;
 }

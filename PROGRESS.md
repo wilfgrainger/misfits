@@ -1,9 +1,9 @@
 # Misfits 501 Progress
 
-**Updated:** 27 August 2026
+**Updated:** 28 August 2026
 **Current branch:** `codex/premium-club-v2`
 **Base:** `56603ee8304955618bed870c93ad41253669ce4d` — `fix: plainer landing copy and a real favicon.ico`
-**Current focus:** Premium Club V2 quality pass deployed and live-verified; source handoff remains on the local release branch.
+**Current focus:** Approved premium crispness pass in progress across admission, member, and admin surfaces. Cave Pony review is preserving every explicit admin job while removing generic card treatment and clarifying action hierarchy.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -56,6 +56,7 @@ Work in this exact isolated checkout, not the original dirty checkout:
 | complete | **Deferred minor review debt.** | Direction-comment contract tightened; motion-test title corrected; desktop ratio/mobile source order/selected `aria-current` are explicit; no product route directly mounts non-embedded `PlayerLeague`. |
 | complete | **Fresh release gate, deployment, and live check.** | `wrangler types`, client/Worker typecheck, 77-file/323-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `90e4e6f` deployed as Worker version `e568ce96-0012-419c-8ce3-41f8c8fcadc6`; live root and `/api/health` returned HTTP 200. |
 | complete | **Quality-pass release and live check.** | `wrangler types`, client/Worker typecheck, 77-file/324-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `343a70d` deployed as Worker version `9ebfffc3-f4e4-4589-a7cb-41073ba1d24e`; the live 390px admission screen was inspected. |
+| in progress | **Premium crispness and admin simplicity pass.** | Scope is visual only: stricter geometry, stronger surface edges, restrained depth, explicit primary/secondary/danger actions, denser labelled admin work, and fewer unnecessary member containers. No API, auth, schema, D1, route, or dependency change. |
 
 ## Evidence already reported by completed task implementations
 
@@ -80,7 +81,7 @@ These are local task, browser, and production checks. They do not establish a li
 
 ## Next action
 
-The requested quality pass is complete. If a source-hosted review is wanted next, push `codex/premium-club-v2` and open a PR as a separate, explicitly verified handoff; the runtime deployed from `343a70d` is already live.
+Complete the visual patch, run the full release gate and bounded rendered review, commit the approved release, deploy without a D1 mutation, then replace the in-progress row with exact local and production evidence.
 
 ## Historical evidence
 

@@ -6,10 +6,13 @@
   --club-ink: #090d0c;
   --club-card: #111715;
   --club-card-raised: #17201c;
-  --club-border: #2a3630;
+  --club-border: #34423b;
   --club-text: #f3f5ef;
   --club-muted: #aab6ae;
-  --club-dim: #7e8b83;
+  --club-dim: #89968e;
+  --club-radius-control: 6px;
+  --club-radius-surface: 10px;
+  --club-radius-dialog: 12px;
   --success: var(--club-green);
 }
 
@@ -95,7 +98,7 @@ body {
   min-height: 44px;
   color: var(--club-muted);
   border-color: var(--club-border);
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
 }
 
 .public-home,

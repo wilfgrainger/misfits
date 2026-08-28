@@ -11,7 +11,7 @@
   /* Text */
   --text:        #eeeae0;
   --text-2:      #a8b0aa;
-  --text-3:      #687068;
+  --text-3:      #828c84;
 
   /* Accent */
   --red:         #d44040;
@@ -340,7 +340,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .primary-button, .secondary-button, .refresh-button, .action-button {
   min-height: 44px;
   padding: .65rem 1.25rem;
-  border-radius: 7px;
+  border-radius: var(--club-radius-control, 6px);
   font-size: .9rem;
   font-weight: 700;
   border: 1px solid transparent;
@@ -351,18 +351,28 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   color: #fff;
   background: var(--red);
   border-color: var(--red-dim);
-  box-shadow: 0 4px 14px var(--red-glow);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .22);
 }
 .primary-button:hover:not(:disabled) {
   background: #e04545;
-  box-shadow: 0 6px 20px rgba(212,64,64,.28);
+  box-shadow: 0 7px 18px rgba(0, 0, 0, .26);
   transform: translateY(-1px);
 }
 .primary-button:active:not(:disabled) { transform: translateY(0); box-shadow: 0 2px 6px var(--red-glow); }
 .secondary-button, .refresh-button, .action-button {
   color: var(--text-2);
-  background: var(--surface-2);
+  background: transparent;
   border-color: var(--border-mid);
+}
+.danger-button {
+  color: #f0b0b0;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--danger) 62%, var(--border-mid));
+}
+.danger-button:hover:not(:disabled) {
+  color: #fff0f0;
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  border-color: var(--danger);
 }
 .secondary-button:hover:not(:disabled),
 .refresh-button:hover:not(:disabled),
@@ -397,7 +407,7 @@ textarea {
   color: var(--text);
   background: var(--surface-2);
   border: 1px solid var(--border-mid);
-  border-radius: 7px;
+  border-radius: var(--club-radius-control, 6px);
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 .onboarding-form input:focus,
@@ -740,18 +750,23 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
 .season-health-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: .65rem;
+  gap: 0;
   margin: 0;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--club-radius-surface, 10px);
+  overflow: hidden;
 }
 .season-health-grid > div {
   display: grid;
   gap: .25rem;
   min-width: 0;
-  padding: .85rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border-mid);
-  border-radius: 7px;
+  padding: .75rem .85rem;
+  background: transparent;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
+.season-health-grid > div:nth-child(2n) { border-right: 0; }
+.season-health-grid > div:nth-last-child(-n + 2) { border-bottom: 0; }
 .season-health-grid dt { color: var(--text-3); font-size: .76rem; font-weight: 700; }
 .season-health-grid dd { margin: 0; color: var(--text); font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .fixture-readiness-block {

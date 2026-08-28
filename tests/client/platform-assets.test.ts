@@ -102,7 +102,7 @@ describe('Misfits platform assets', () => {
     expect(direction).toMatch(/^premium-club-v2\s+THESIS:[\s\S]*OWN-WORLD:[\s\S]*STORY:[\s\S]*FIRST VIEWPORT:[\s\S]*FINISH:/);
     expect(direction?.trim().endsWith('unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance')).toBe(true);
     expect(styles).toMatch(/\.private-entry-state\.private-entry-v2\s*\{[\s\S]*min-height:\s*100dvh[\s\S]*padding:\s*max\(clamp\(1\.25rem, 5vw, 3\.5rem\), env\(safe-area-inset-top\)\)[\s\S]*radial-gradient/);
-    expect(styles).toMatch(/\.private-admission-card\s*\{[\s\S]*width:\s*100%[\s\S]*box-shadow:\s*0 24px 64px/);
+    expect(styles).toMatch(/\.private-admission-card\s*\{[\s\S]*width:\s*100%[\s\S]*border:\s*1px solid[\s\S]*border-radius:\s*var\(--club-radius-surface\)[\s\S]*box-shadow:\s*0 \d+px \d+px/);
     expect(styles).toMatch(/@media \(min-width:\s*768px\)[\s\S]*\.private-entry-state\.private-entry-v2[\s\S]*grid-template-columns:/);
     expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.private-entry-v2::before\s*\{[\s\S]*animation:\s*none[\s\S]*transform:\s*none/);
     expect(styles).not.toMatch(/front-page-intro|front-page-entry-arrive|front-page-intro-curtain/);
