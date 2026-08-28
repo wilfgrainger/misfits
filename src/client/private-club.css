@@ -883,6 +883,133 @@
   margin-top: 0.8rem;
 }
 
+/* Admin is a peer of the member area, so it owns the same mobile-safe frame. */
+.admin-workbench {
+  width: 100%;
+  min-width: 0;
+  margin-top: 0;
+  padding: 1.15rem max(1rem, env(safe-area-inset-right)) calc(6.8rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  border-top: 0;
+}
+
+.admin-workbench-entry {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--club-border);
+}
+
+.admin-workbench-entry .form-help {
+  margin: 0;
+}
+
+.admin-desk {
+  width: min(100%, 72rem);
+  min-width: 0;
+  margin: 0 auto;
+  padding: 1.15rem 0 0;
+}
+
+.admin-desk .workspace-heading > div,
+.admin-desk .section-heading > div,
+.admin-desk .admin-list li > div:first-child,
+.admin-desk .inline-actions,
+.admin-desk .form-grid,
+.admin-desk .rules-panel {
+  min-width: 0;
+}
+
+.admin-desk .workspace-heading h2,
+.admin-desk .section-heading h3,
+.admin-desk .admin-list small,
+.admin-desk [role="tabpanel"] .inline-actions button {
+  overflow-wrap: anywhere;
+}
+
+.admin-desk .admin-tabs {
+  min-width: 0;
+  margin-top: 1rem;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-desk [role="tabpanel"] > .admin-block {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--club-card);
+  border: 1px solid var(--club-border);
+  border-radius: var(--club-radius-surface);
+}
+
+.admin-desk .admin-list li {
+  min-width: 0;
+}
+
+.admin-desk .inline-actions > button,
+.admin-desk .inline-actions > select,
+.admin-desk input,
+.admin-desk select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-desk .form-grid > label {
+  align-self: start;
+}
+
+@media (max-width: 680px) {
+  .admin-desk .workspace-heading {
+    gap: 0.75rem;
+  }
+
+  .admin-desk .workspace-heading .refresh-button {
+    flex: 0 0 auto;
+  }
+
+  .admin-desk .admin-list li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-desk .admin-list li > div:first-child,
+  .admin-desk [role="tabpanel"] .inline-actions {
+    width: 100%;
+  }
+
+  .admin-desk [role="tabpanel"] .inline-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .private-club-shell .admin-desk [role="tabpanel"] .inline-actions > button,
+  .private-club-shell .admin-desk [role="tabpanel"] .inline-actions > select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 400px) {
+  .admin-desk .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 681px) {
+  .admin-workbench {
+    padding: 1.6rem 1.5rem 3rem;
+  }
+
+  .admin-desk [role="tabpanel"] > .admin-block {
+    padding: 1.2rem;
+  }
+}
+
 @media (max-width: 680px) {
   .private-brand-header .header-user .header-signout {
     display: none;

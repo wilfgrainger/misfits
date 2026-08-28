@@ -1,12 +1,22 @@
 # Misfits 501 Progress
 
 **Updated:** 28 August 2026
-**Current branch:** `codex/premium-club-v2`
-**Base integrated:** `origin/main` at `1ec406f87bf4f2b66f62afd89cea3b9e575bcc4b`
-**Pull request:** #186
-**Current focus:** PR #186 is conflict-resolved, locally verified, and reported by GitHub as mergeable/clean; awaiting review and merge decision.
+**Current branch:** `fix/mobile-admin-overflow-ui-sharpen`
+**Base integrated:** `origin/main` at `1c8c43c`
+**Pull request:** #187
+**Current focus:** PR #187 fixes the mobile admin overflow, is locally verified, and is ready for review.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
+
+## 28 August 2026 mobile-admin visual maintenance
+
+The signed-in admin workspace now has its own bounded, safe-area-aware content frame, matching the member experience rather than relying on page-level clipping. On phones, long action labels, member email addresses and inputs reflow inside the available column; action groups stack deliberately and admin form grids become one column at 400px and below. The seven-task rail remains horizontally scrollable rather than widening the document.
+
+Admin task panels use restrained bordered product surfaces, improving task separation without adding routes, state, dependencies or changing any membership, competition or result behaviour. Short fields now retain their natural height beside the taller rule panel on desktop.
+
+Rendered evidence used installed Chromium at **320, 360, 375, 390, 412, 430, 768 and 1024px**. A stress harness used production CSS and the real admin class structure with long player names, email addresses, action labels, invite URL and date input. At every width `document.documentElement.scrollWidth` equalled the viewport width: **0px page-level horizontal overflow**. The 320px mobile render and 1024px desktop render were manually inspected.
+
+Verification: client + Worker TypeScript GREEN; production Vite build GREEN; **77 test files / 326 tests GREEN**. Independent Cave Pony review approved the change with no blocking finding.
 
 ## Current approved execution
 
