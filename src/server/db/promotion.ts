@@ -187,6 +187,17 @@ export async function listSeasonMovements(db: D1Database, fromSeasonId: string, 
   return result.results;
 }
 
+export async function listUserSeasonMovements(db: D1Database, userId: string): Promise<SeasonMovementRecord[]> {
+  const result = await db.prepare(
+    `SELECT id, from_season_id, to_season_id, user_id, from_league_id, to_league_id,
+            from_position, kind, status, reason, decided_by, created_at, updated_at
+       FROM season_movements
+      WHERE user_id = ?
+      ORDER BY created_at DESC, from_season_id DESC`,
+  ).bind(userId).all<SeasonMovementRecord>();
+  return result.results;
+}
+
 async function getSeasonMovement(db: D1Database, fromSeasonId: string, userId: string): Promise<SeasonMovementRecord | null> {
   return (await db.prepare(
     `SELECT id, from_season_id, to_season_id, user_id, from_league_id, to_league_id,
@@ -306,7 +317,9 @@ async function listSourceMemberships(db: D1Database, seasonId: string): Promise<
     `SELECT lp.league_id, lp.season_id, lp.user_id, lp.active, lp.joined_at, l.hierarchy_position
        FROM league_players lp
        JOIN leagues l ON l.id = lp.league_id
+       JOIN users u ON u.id = lp.user_id
       WHERE lp.season_id = ? AND lp.active = 1
+        AND u.status = 'ACTIVE' AND u.club_status = 'APPROVED' AND u.role = 'PLAYER'
       ORDER BY l.hierarchy_position, lp.user_id`,
   ).bind(seasonId).all<SeasonMembershipPlacement>();
   return result.results;
@@ -357,6 +370,10 @@ export async function applyPromotionProposal(
   const targetByHierarchy = requireMatchingTargetStructure(sourceLeagues, targetLeagues);
   const sourceMembers = await listSourceMemberships(db, fromSeasonId);
   const movements = await listSeasonMovements(db, fromSeasonId, toSeasonId);
+  const sourceUserIds = new Set(sourceMembers.map((member) => member.user_id));
+  if (movements.some((movement) => !sourceUserIds.has(movement.user_id))) {
+    throw new AppError('VALIDATION_ERROR', 'Promotion proposal contains a participant who is no longer an active, approved player', 409);
+  }
   const movementByUser = new Map(movements.map((movement) => [movement.user_id, movement]));
   const targetById = new Map(targetLeagues.map((league) => [league.id, league]));
 
@@ -383,7 +400,6 @@ export async function applyPromotionProposal(
     }
   }
 
-  const sourceUserIds = new Set(sourceMembers.map((member) => member.user_id));
   validatePlacementCapacity(placements, targetLeagues, existingTarget, sourceUserIds);
 
   const timestamp = at(now);

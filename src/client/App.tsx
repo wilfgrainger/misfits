@@ -2,10 +2,12 @@ import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
 import { AppIcon } from './components/AppIcons';
 import { MemberApp } from './components/MemberApp';
+import { PublicLeagueView } from './components/PublicLeagueView';
 import { ApiClient, ApiClientError, type AuthPayload, type LeagueSummary, type UserSummary } from './api';
 import { GoogleAuth } from './auth/GoogleAuth';
+import { publicLeagueKey as readPublicLeagueKey } from './share';
 
-type ViewState = 'loading' | 'signed-out' | 'pending' | 'rejected' | 'onboarding' | 'signed-in';
+type ViewState = 'loading' | 'public' | 'signed-out' | 'suspended' | 'pending' | 'rejected' | 'onboarding' | 'admitting' | 'signed-in';
 const CLUB_INVITE_KEY = 'misfits_pending_club_invite';
 const api = new ApiClient();
 
@@ -54,7 +56,11 @@ export default function App() {
   const [adminMode, setAdminMode] = useState(false);
   const [clubLoadError, setClubLoadError] = useState('');
   const [profileRequestKey, setProfileRequestKey] = useState(0);
+  const [publicLeague, setPublicLeague] = useState<LeagueSummary | null>(null);
+  const [publicLeaguePathKey, setPublicLeaguePathKey] = useState<string | null>(null);
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  const clubLoadRequest = useRef(0);
+  const admissionTimer = useRef<number | null>(null);
 
   const clearClubData = () => {
     setClubLeagues([]);
@@ -63,19 +69,23 @@ export default function App() {
     setClubLoadError('');
   };
 
-  const loadApprovedClub = async () => {
-    setClubLoadError('');
+  const loadApprovedClub = async (isActive: () => boolean = () => true) => {
+    const request = ++clubLoadRequest.current;
+    if (isActive()) setClubLoadError('');
     try {
       const [clubPayload, personalPayload] = await Promise.all([api.leagues(), api.myLeagues()]);
+      if (!isActive() || request !== clubLoadRequest.current) return;
       setClubLeagues(clubPayload.leagues);
       setMyLeagues(personalPayload.leagues);
     } catch (cause) {
+      if (!isActive() || request !== clubLoadRequest.current) return;
       clearClubData();
       setClubLoadError(messageFor(cause, 'Your private club workspace could not be loaded.'));
     }
   };
 
-  const mapAuthenticatedUser = async (payload: AuthPayload) => {
+  const mapAuthenticatedUser = async (payload: AuthPayload, isActive: () => boolean = () => true) => {
+    if (!isActive()) return;
     setSigningIn(false);
     setUser(payload.user);
     clearClubData();
@@ -97,25 +107,63 @@ export default function App() {
       return;
     }
 
-    setView('signed-in');
+    if (admissionTimer.current !== null) window.clearTimeout(admissionTimer.current);
+    setView('admitting');
     setMessage('');
-    await loadApprovedClub();
+    admissionTimer.current = window.setTimeout(() => {
+      setView('signed-in');
+      void loadApprovedClub();
+    }, 420);
   };
 
   useEffect(() => {
     let active = true;
-    api.me().then((payload) => {
-      if (!active || !payload?.user) return;
-      void mapAuthenticatedUser(payload);
-    }).catch((error: unknown) => {
-      if (!active) return;
-      setUser(null);
-      clearClubData();
-      setView('signed-out');
-      if (error instanceof ApiClientError && error.status === 401) setMessage('Private club access');
-      else setMessage('Misfits could not be reached. Try signing in again.');
-    });
-    return () => { active = false; };
+    const checkPrivateEntry = () => {
+      api.me().then((payload) => {
+        if (!active || !payload?.user) return;
+        void mapAuthenticatedUser(payload, () => active);
+      }).catch((error: unknown) => {
+        if (!active) return;
+        setUser(null);
+        clearClubData();
+        if (error instanceof ApiClientError && error.code === 'ACCOUNT_SUSPENDED') {
+          setView('suspended');
+          setMessage('This account is suspended. Contact a club administrator.');
+        } else {
+          setView('signed-out');
+          if (error instanceof ApiClientError && error.status === 401) setMessage('Private club access');
+          else setMessage('Misfits could not be reached. Try signing in again.');
+        }
+      });
+    };
+    const pathKey = typeof window === 'undefined' ? null : readPublicLeagueKey(window.location.pathname);
+    if (!pathKey) {
+      checkPrivateEntry();
+    } else {
+      Promise.resolve().then(() => {
+        if (typeof api.publicOpenLeague !== 'function') throw new Error('Public league view is unavailable');
+        return api.publicOpenLeague(pathKey);
+      }).then((payload) => {
+        if (!active) return;
+        setPublicLeague(payload.league);
+        setPublicLeaguePathKey(pathKey);
+        setView('public');
+        setMessage('');
+      }).catch(() => {
+        if (!active) return;
+        setUser(null);
+        clearClubData();
+        setPublicLeague(null);
+        setPublicLeaguePathKey(pathKey);
+        setView('signed-out');
+        setMessage('Private club access');
+      });
+    }
+    return () => { active = false; clubLoadRequest.current += 1; };
+  }, []);
+
+  useEffect(() => () => {
+    if (admissionTimer.current !== null) window.clearTimeout(admissionTimer.current);
   }, []);
 
   useEffect(() => {
@@ -135,11 +183,14 @@ export default function App() {
           setClubInviteToken(null);
           window.history.replaceState({}, '', '/');
         }
-        void mapAuthenticatedUser(payload);
+        void mapAuthenticatedUser(payload, () => active);
       }).catch((error: unknown) => {
         if (!active) return;
         setSigningIn(false);
-        if (error instanceof ApiClientError && error.code === 'INVITE_REQUIRED') setMessage('A club invitation is required');
+        if (error instanceof ApiClientError && error.code === 'ACCOUNT_SUSPENDED') {
+          setView('suspended');
+          setMessage('This account is suspended. Contact a club administrator.');
+        } else if (error instanceof ApiClientError && error.code === 'INVITE_REQUIRED') setMessage('A club invitation is required');
         else setMessage(messageFor(error, 'Google sign-in could not be completed.'));
       });
     }, () => {
@@ -172,11 +223,15 @@ export default function App() {
 
   const logout = async () => {
     await api.logout().catch(() => undefined);
+    if (admissionTimer.current !== null) window.clearTimeout(admissionTimer.current);
+    clubLoadRequest.current += 1;
     setSigningIn(false);
     setUser(null);
     clearClubData();
     setAdminMode(false);
     setProfileRequestKey(0);
+    setPublicLeague(null);
+    setPublicLeaguePathKey(null);
     setView('signed-out');
     setMessage('Private club access');
   };
@@ -191,21 +246,35 @@ export default function App() {
     setMyLeagues((current) => current.map((item) => item.id === league.id ? league : item));
   };
   const googleSlot = <div className="google-button-slot" ref={googleButtonRef} aria-busy={signingIn} />;
+  const unavailablePublicLeague = Boolean(publicLeaguePathKey && !publicLeague);
 
   if (view === 'loading') {
     return <ClubShell><section className="private-entry-state private-entry-loading" aria-live="polite"><span className="private-entry-icon"><AppIcon name="lock" /></span><h1>Misfits</h1><p>Private members club</p><div className="private-loading-line" aria-hidden="true" /><small>{message}</small></section></ClubShell>;
   }
 
   if (view === 'signed-out') {
-    return <ClubShell><section className="private-entry-state private-signin-state">
-      <span className="private-entry-icon"><AppIcon name="lock" /></span>
-      <p className="entry-kicker">Private members club</p>
-      <h1>{clubInviteToken ? "You've been invited to join Misfits" : 'Welcome to Misfits'}</h1>
-      <p className="entry-copy">{clubInviteToken ? 'Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.' : 'Existing members can sign in with Google. New members need a private club invitation.'}</p>
-      <div className="private-google-card" role="group" aria-label="Sign in with Google">{googleSlot}</div>
+    return <ClubShell><section className="private-entry-state private-signin-state private-entry-v2">
+      <div className="private-entry-masthead">
+        <p className="entry-kicker">Private members club</p>
+        <h1>Misfits 501</h1>
+        <p className="entry-promise">Club darts, properly settled.</p>
+      </div>
+      <div className="private-admission-card" role="group" aria-label="Sign in with Google">
+        <h2>{unavailablePublicLeague ? 'League unavailable' : clubInviteToken ? "You've been invited to join Misfits" : 'Welcome to Misfits'}</h2>
+        <p className="entry-copy">{unavailablePublicLeague ? 'This shared league is private or unavailable. Sign in with Google to continue to Misfits if you are a member.' : clubInviteToken ? 'Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.' : 'Existing members can sign in with Google. New members need a private club invitation.'}</p>
+        {googleSlot}
+      </div>
       {message && message !== 'Private club access' && <p className={message === 'A club invitation is required' ? 'error-message entry-message' : 'form-help entry-message'} role={message === 'A club invitation is required' ? 'alert' : 'status'}>{message}</p>}
       <p className="privacy-note"><AppIcon name="lock" /> League tables, results and member details stay private until membership is approved.</p>
     </section></ClubShell>;
+  }
+
+  if (view === 'public' && publicLeague && publicLeaguePathKey) {
+    return <ClubShell><PublicLeagueView league={publicLeague} leagueKey={publicLeaguePathKey} /></ClubShell>;
+  }
+
+  if (view === 'suspended') {
+    return <ClubShell><section className="private-entry-state membership-state suspended-account-state" aria-labelledby="suspended-account-title"><span className="private-entry-icon"><AppIcon name="lock" /></span><p className="entry-kicker">Private club access</p><h1 id="suspended-account-title">Account suspended</h1><p className="entry-copy">This account cannot access Misfits club data right now.</p><p className="form-help">Contact a club administrator if you think this is a mistake.</p><button className="secondary-button private-signout-button" type="button" onClick={() => void logout()}>Sign out</button></section></ClubShell>;
   }
 
   if (view === 'pending' && user) {
@@ -220,10 +289,17 @@ export default function App() {
     return <ClubShell user={user} onSignOut={() => void logout()}><form className="onboarding-form private-onboarding-card" onSubmit={submitUsername}><div className="form-heading"><p className="entry-kicker">Membership approved</p><h1>Set your player nickname</h1><p className="form-help">This is how your name will appear to other approved club members on tables and results.</p></div><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. Bullseye Billy" autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Enter Misfits</button>{message && message !== 'Choose the name your club will see.' && <p className="form-help" role="status">{message}</p>}</form></ClubShell>;
   }
 
+  if (view === 'admitting' && user) {
+    return <ClubShell user={user}><section className="private-entry-state private-admission-handoff" aria-live="polite">
+      <img className="private-admission-mark" src="/brand/misfits-501.jpg" alt="" aria-hidden="true" />
+      <div className="private-admission-copy"><p className="entry-kicker">Membership confirmed</p><h1>Entering Misfits</h1><p>Your club record is opening.</p></div>
+    </section></ClubShell>;
+  }
+
   return <ClubShell user={user} wide onProfile={() => setProfileRequestKey((current) => current + 1)}>
     {view === 'signed-in' && user && <div className="account-panel signed-in-experience private-member-app">
       {clubLoadError && <div className="experience-empty experience-error" role="alert"><strong>{clubLoadError}</strong><button className="secondary-button" type="button" onClick={() => void loadApprovedClub()}>Retry club workspace</button></div>}
-      {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><p className="form-help">Club administration</p></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
+      {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><div><p className="admin-workbench-kicker">Club administration</p><h1>Keep the season straight.</h1><p className="form-help">Set up competition, settle fixtures and protect club access.</p></div></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
       {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area"><MemberApp user={user} clubLeagues={clubLeagues} myLeagues={myLeagues} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} profileRequestKey={profileRequestKey} /></div>}
     </div>}
   </ClubShell>;

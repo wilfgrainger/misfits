@@ -39,7 +39,12 @@ const result = {
   confirmedBy: 'u2', disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: '2026-08-20T12:05:00.000Z',
 };
 
-interface FixtureConfig { closed?: boolean }
+interface FixtureConfig {
+  closed?: boolean;
+  ambiguity?: boolean;
+  readyForFixtures?: boolean;
+  onHealthRequest?: (seasonId: string) => Promise<Response>;
+}
 
 function installApi(config: FixtureConfig = {}) {
   const sourceSeason = config.closed ? { ...season1, status: 'CLOSED', closed_at: '2026-08-21T00:00:00.000Z' } : season1;
@@ -54,6 +59,12 @@ function installApi(config: FixtureConfig = {}) {
 
     if (path === '/api/admin/seasons/s1/leagues' && method === 'GET') return new Response(JSON.stringify({ leagues: [l1, l2] }), { status: 200 });
     if (path === '/api/admin/seasons/s2/leagues' && method === 'GET') return new Response(JSON.stringify({ leagues: [n1, n2] }), { status: 200 });
+    if ((path === '/api/admin/seasons/s1/health' || path === '/api/admin/seasons/s2/health') && method === 'GET') {
+      const seasonId = path.split('/')[4];
+      if (config.onHealthRequest) return config.onHealthRequest(seasonId);
+      const health = seasonId === 's1' ? { unassignedPlayers: config.readyForFixtures ? 0 : 1, outstandingFixtures: 2, pendingConfirmations: 3, disputes: 4 } : { unassignedPlayers: 5, outstandingFixtures: 6, pendingConfirmations: 7, disputes: 8 };
+      return new Response(JSON.stringify({ health: config.readyForFixtures ? { ...health, readyForFixtures: true } : { ...health, invalidPlayers: 0, duplicatePlacements: 0, readyForFixtures: false } }), { status: 200 });
+    }
     if (path === '/api/admin/seasons/s1/leagues' && method === 'POST') {
       const body = JSON.parse(String(init?.body));
       return new Response(JSON.stringify({ league: { ...l2, id: 'l3', name: body.name, hierarchy_position: body.hierarchyPosition ?? 3 } }), { status: 201 });
@@ -79,7 +90,8 @@ function installApi(config: FixtureConfig = {}) {
 
     if (path === '/api/admin/seasons/s1/promotion/preview') return new Response(JSON.stringify({ preview: {
       seasonId: 's1', provisional: !config.closed, unresolvedCount: 0,
-      movements: [{ userId: 'u1', fromLeagueId: 'l2', toLeagueId: 'l1', fromPosition: 1, kind: 'PROMOTED' }], ambiguities: [],
+      movements: [{ userId: 'u1', fromLeagueId: 'l2', toLeagueId: 'l1', fromPosition: 1, kind: 'PROMOTED' }],
+      ambiguities: config.ambiguity ? [{ leagueId: 'l2', boundary: 'PROMOTION', position: 1, tiedUserIds: ['u1', 'u2'] }] : [],
     } }), { status: 200 });
     if (path === '/api/admin/seasons/s1/promotion/proposal' && method === 'POST') return new Response(JSON.stringify({ movements: [{
       id: 'm1', from_season_id: 's1', to_season_id: 's2', user_id: 'u1', from_league_id: 'l2', to_league_id: 'n1', from_position: 1,
@@ -124,6 +136,9 @@ describe('administrator competition workspace', () => {
   it('presents seven accessible admin tasks and creates a new durable season', async () => {
     const { fetchMock } = renderDesk();
     const tabs = await screen.findByRole('tablist', { name: 'Competition administration tasks' });
+    const desk = document.querySelector('[data-admin-layout="control-room"]');
+    expect(desk).toBeTruthy();
+    expect(desk?.querySelector('[data-layout-region="rail"]')).toBe(tabs);
     expect(within(tabs).getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
       'Season', 'Leagues', 'Season members', 'Fixtures', 'Results', 'Promotion', 'Club access',
     ]);
@@ -135,6 +150,59 @@ describe('administrator competition workspace', () => {
     await screen.findByText('Season created.');
     const create = fetchMock.mock.calls.find(([input, init]) => String(input) === '/api/admin/seasons' && init?.method === 'POST');
     expect(JSON.parse(String(create?.[1]?.body))).toEqual({ name: '2028/29', status: 'DRAFT', isCurrent: false });
+  });
+
+  it('shows concise health for the selected season', async () => {
+    renderDesk();
+
+    const health = await screen.findByRole('region', { name: 'Season health' });
+    expect(within(health).getByText('Unassigned players')).toBeTruthy();
+    expect(within(health).getByText('Outstanding fixtures')).toBeTruthy();
+    expect(within(health).getByText('Pending confirmations')).toBeTruthy();
+    expect(within(health).getByText('Disputes')).toBeTruthy();
+    expect(within(health).getByText('1')).toBeTruthy();
+    expect(within(health).getByText('2')).toBeTruthy();
+    expect(within(health).getByText('3')).toBeTruthy();
+    expect(within(health).getByText('4')).toBeTruthy();
+  });
+
+  it('keeps health tied to the newest selected season response', async () => {
+    const resolvers: Record<string, (response: Response) => void> = {};
+    renderDesk({
+      onHealthRequest: (seasonId) => new Promise((resolve) => {
+        resolvers[seasonId] = resolve;
+      }),
+    });
+    await waitFor(() => expect(resolvers.s1).toBeTruthy());
+
+    fireEvent.click(await screen.findByRole('button', { name: /2027\/28/ }));
+    await waitFor(() => expect(resolvers.s2).toBeTruthy());
+    resolvers.s2(new Response(JSON.stringify({ health: { unassignedPlayers: 20, outstandingFixtures: 21, pendingConfirmations: 22, disputes: 23 } }), { status: 200 }));
+
+    const health = await screen.findByRole('region', { name: 'Season health' });
+    await waitFor(() => expect(within(health).getByText('20')).toBeTruthy());
+    resolvers.s1(new Response(JSON.stringify({ health: { unassignedPlayers: 1, outstandingFixtures: 2, pendingConfirmations: 3, disputes: 4 } }), { status: 200 }));
+
+    await waitFor(() => expect(within(health).getByText('20')).toBeTruthy());
+    expect(within(health).queryByText('1')).toBeNull();
+  });
+
+  it('reloads season health when Refresh keeps the same season selected', async () => {
+    let healthCalls = 0;
+    const { fetchMock } = renderDesk({
+      onHealthRequest: async () => {
+        healthCalls += 1;
+        const offset = healthCalls === 1 ? 0 : 10;
+        return new Response(JSON.stringify({ health: { unassignedPlayers: 1 + offset, outstandingFixtures: 2 + offset, pendingConfirmations: 3 + offset, disputes: 4 + offset } }), { status: 200 });
+      },
+    });
+    const health = await screen.findByRole('region', { name: 'Season health' });
+    await waitFor(() => expect(within(health).getByText('1')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/admin/seasons/s1/health')).toHaveLength(2));
+    await waitFor(() => expect(within(health).getByText('11')).toBeTruthy());
   });
 
   it('shows ordered league structure and saves hierarchy, rules and movement places', async () => {
@@ -176,8 +244,8 @@ describe('administrator competition workspace', () => {
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/invites'))).toBe(false);
   });
 
-  it('previews, commits, filters and voids persisted fixtures with visible health counts', async () => {
-    const { fetchMock } = renderDesk();
+  it('previews, commits, filters and confirms fixture voiding before mutation', async () => {
+    const { fetchMock } = renderDesk({ readyForFixtures: true });
     fireEvent.click(await screen.findByRole('tab', { name: 'Fixtures' }));
     await screen.findByText('Outstanding 1');
     expect(screen.getByText('Pending 0')).toBeTruthy();
@@ -188,8 +256,39 @@ describe('administrator competition workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Commit fixtures' }));
     await screen.findByText('Fixtures committed.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/leagues/l1/fixtures' && init?.method === 'POST')).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Void Alpha vs Bravo' }));
+    const voidFixture = screen.getByRole('button', { name: 'Void Alpha vs Bravo' });
+    expect(voidFixture.classList.contains('danger-button')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Reset before play' }).classList.contains('danger-button')).toBe(true);
+    voidFixture.focus();
+    fireEvent.click(voidFixture);
+    const dialog = await screen.findByRole('dialog', { name: 'Void fixture?' });
+    const cancel = within(dialog).getByRole('button', { name: 'Cancel' });
+    const confirm = within(dialog).getByRole('button', { name: 'Confirm' });
+    expect(document.activeElement).toBe(cancel);
+    fireEvent.keyDown(cancel, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(confirm);
+    fireEvent.keyDown(confirm, { key: 'Tab' });
+    expect(document.activeElement).toBe(cancel);
+    expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/fixtures/f1' && init?.method === 'PATCH')).toBe(false);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(voidFixture));
+
+    fireEvent.click(voidFixture);
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
     await screen.findByText('Fixture voided.');
+    expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/fixtures/f1' && init?.method === 'PATCH')).toBe(true);
+  });
+
+  it('blocks fixture generation in the desktop control room until the whole season is ready', async () => {
+    const { fetchMock } = renderDesk();
+    fireEvent.click(await screen.findByRole('tab', { name: 'Fixtures' }));
+
+    expect(await screen.findByRole('alert', { name: 'Fixture readiness' })).toBeTruthy();
+    expect(screen.getByText(/Fixture generation is blocked until season placement is resolved/)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Preview fixtures' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Commit fixtures' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(fetchMock.mock.calls.some(([input, init]) => String(input).includes('/fixtures/preview') && init?.method !== 'GET')).toBe(false);
   });
 
   it('reviews final movements, records an explicit override, then applies the next-season plan', async () => {
@@ -207,6 +306,14 @@ describe('administrator competition workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply to next season' }));
     await screen.findByText('Next-season placements applied.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/seasons/s1/promotion/apply' && init?.method === 'POST')).toBe(true);
+  });
+
+  it('shows tied promotion boundaries as unresolved before movement is applied', async () => {
+    renderDesk({ ambiguity: true });
+    fireEvent.click(await screen.findByRole('tab', { name: 'Promotion' }));
+
+    expect(await screen.findByText('Promotion boundary in Division One is tied')).toBeTruthy();
+    expect((await screen.findByText('Position 1: Alpha and Bravo are tied.')).textContent).toBe('Position 1: Alpha and Bravo are tied.');
   });
 
   it('keeps result correction and club-access operations inside the unified admin task rail', async () => {

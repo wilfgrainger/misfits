@@ -102,7 +102,12 @@ function pairLimitReached(): AppError {
 
 async function requireActiveMember(db: D1Database, leagueId: string, userId: string): Promise<void> {
   const member = await getMembership(db, leagueId, userId);
-  if (!member || member.active !== 1) throw new AppError('FORBIDDEN', 'Both players must be active members of this league', 403);
+  if (
+    !member || member.active !== 1
+    || (member.role !== undefined && member.role !== 'PLAYER')
+    || (member.status !== undefined && member.status !== 'ACTIVE')
+    || (member.club_status !== undefined && member.club_status !== 'APPROVED')
+  ) throw new AppError('FORBIDDEN', 'Both players must be active members of this league', 403);
 }
 
 function normalizedResult(input: ResultInput): ResultInput {
@@ -347,10 +352,22 @@ async function getStandingResults(db: D1Database, leagueId: string): Promise<Res
 export async function getLeagueStandings(db: D1Database, leagueId: string): Promise<StandingRow[]> {
   const league = await getLeagueById(db, leagueId);
   if (!league) throw new AppError('LEAGUE_NOT_FOUND', 'League was not found', 404);
-  const members = (await listLeagueMembers(db, leagueId)).filter((member) => member.active === 1 && member.username);
+  const members = await listLeagueMembers(db, leagueId);
   const results = await getStandingResults(db, leagueId);
+  const players = new Map<string, string>();
+  for (const member of members) {
+    if (
+      member.active === 1 && member.username
+      && (member.status === undefined || member.status === 'ACTIVE')
+      && (member.club_status === undefined || member.club_status === 'APPROVED')
+    ) players.set(member.user_id, member.username);
+  }
+  for (const result of results) {
+    if (result.player_a_username) players.set(result.player_a_id, result.player_a_username);
+    if (result.player_b_username) players.set(result.player_b_id, result.player_b_username);
+  }
   return calculateStandings(
-    members.map((member) => ({ id: member.user_id, username: member.username! })),
+    [...players].map(([id, username]) => ({ id, username })),
     results.map((result) => ({
       playerAId: result.player_a_id,
       playerBId: result.player_b_id,

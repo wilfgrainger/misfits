@@ -90,7 +90,7 @@
   max-width: 20ch;
   font-size: clamp(1.75rem, 8vw, 2.65rem);
   line-height: 1.02;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.025em;
 }
 
 .club-page-kicker,
@@ -105,20 +105,41 @@
 }
 
 .club-home-section,
+.club-home-primary,
+.club-home-attention,
 .record-competition-picker,
 .club-more > .player-more-panel,
 .competition-workspace,
+.competition-record,
 .record-competition-workspace {
   min-width: 0;
 }
 
 .club-home-section,
-.record-competition-picker,
-.club-more > .player-more-panel {
+.record-competition-picker {
   padding: 1rem;
   background: var(--club-card);
   border: 1px solid var(--club-border);
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
+}
+
+.club-more > .player-more-panel {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.club-home-primary,
+.club-home-attention {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+}
+
+.club-home-primary .club-section-heading,
+.club-home-attention .club-section-heading {
+  margin-bottom: 0;
 }
 
 .club-section-heading {
@@ -134,7 +155,25 @@
 .record-competition-picker h2 {
   margin-top: 0.15rem;
   font-size: clamp(1.25rem, 5vw, 1.65rem);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em;
+}
+
+.text-button {
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  color: var(--club-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--club-radius-control);
+  font-size: 0.82rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.text-button:hover {
+  color: var(--club-text);
+  background: var(--club-red-soft);
+  border-color: var(--club-red-line);
 }
 
 .club-section-heading .text-button,
@@ -166,7 +205,7 @@
   color: var(--club-text);
   background: #0d1311;
   border: 1px solid #28332e;
-  border-radius: 12px;
+  border-radius: var(--club-radius-surface);
   box-shadow: none;
 }
 
@@ -206,7 +245,7 @@
   color: var(--club-text);
   background: var(--club-red-soft);
   border: 1px solid var(--club-red-line);
-  border-radius: 12px;
+  border-radius: var(--club-radius-surface);
 }
 
 .attention-row:hover {
@@ -254,7 +293,7 @@
   color: var(--club-muted);
   background: #0d1311;
   border: 1px dashed #33413a;
-  border-radius: 12px;
+  border-radius: var(--club-radius-surface);
   line-height: 1.5;
 }
 
@@ -275,6 +314,10 @@
 .competition-workspace {
   display: grid;
   gap: 0.8rem;
+}
+
+.competition-record {
+  width: 100%;
 }
 
 .competition-back {
@@ -316,6 +359,14 @@
   padding: 0;
 }
 
+.embedded-league-experience .embedded-rules-card {
+  padding: 0.75rem 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--club-border);
+  border-radius: 0;
+}
+
 .competition-heading {
   display: flex;
   min-width: 0;
@@ -342,7 +393,7 @@
 .embedded-league-experience .result-feed,
 .competition-fixtures {
   margin: 0;
-  border-radius: 14px;
+  border-radius: var(--club-radius-surface);
 }
 
 .competition-fixtures {
@@ -360,6 +411,7 @@
 .fixture-browser-list li {
   display: flex;
   min-width: 0;
+  min-height: 3.75rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -393,12 +445,56 @@
   color: var(--club-text);
   background: var(--club-card);
   border-color: var(--club-border);
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
 }
 
 .club-more-menu .player-more-action:hover {
   background: var(--club-card-raised);
   border-color: var(--club-red-line);
+}
+
+.history-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.history-heading {
+  display: grid;
+  gap: .2rem;
+}
+
+.history-heading h2 { margin: 0; }
+.history-heading span { color: var(--club-muted); font-size: .85rem; }
+
+.history-season-list {
+  display: grid;
+  gap: .85rem;
+}
+
+.history-season-card {
+  display: grid;
+  gap: .75rem;
+  padding: 1rem;
+  background: var(--club-card-raised);
+  border: 1px solid var(--club-border);
+  border-radius: 10px;
+}
+
+.history-season-card .section-heading { align-items: center; }
+.history-season-card .section-heading > div { display: grid; gap: .2rem; }
+.history-season-card .section-heading small { color: var(--club-muted); }
+.history-season-card .form-help { margin: 0; }
+
+.history-league-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: .5rem;
+}
+
+.history-league-list .picker-item {
+  min-height: 3.5rem;
+  border: 1px solid var(--club-border);
+  border-radius: 8px;
 }
 
 .club-more .club-player-list {
@@ -514,9 +610,9 @@
   }
 
   .club-home {
-    grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.75fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
     align-items: start;
-    gap: 1.15rem;
+    gap: 1.25rem;
   }
 
   .club-home > .club-page-heading {
@@ -548,5 +644,81 @@
   .competition-tab,
   .header-avatar-button {
     transition: none !important;
+  }
+}
+.embedded-league-experience .standings-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.club-more .player-more-panel h2 {
+  font-size: clamp(1.35rem, 4vw, 1.65rem);
+}
+
+.admin-competition-desk .admin-rail {
+  scroll-padding-inline: 0.75rem;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  background: rgba(4, 7, 6, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.confirm-dialog {
+  position: relative;
+  display: grid;
+  width: min(100%, 36rem);
+  max-height: calc(100dvh - 2rem);
+  gap: 1rem;
+  overflow: auto;
+  padding: 1.35rem;
+  color: var(--club-text);
+  background: var(--club-card);
+  border: 1px solid var(--club-border);
+  border-radius: var(--club-radius-dialog);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+}
+
+.confirm-dialog h3 {
+  margin: 0;
+  padding-right: 2.75rem;
+}
+
+.confirm-dialog > p {
+  margin: 0;
+  color: var(--club-muted);
+  line-height: 1.55;
+}
+
+.confirm-dialog .dialog-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  color: var(--club-red-strong);
+  background: transparent;
+  border-color: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.confirm-dialog .dialog-close:hover {
+  color: var(--club-text);
+  background: var(--club-red-soft);
+  border-color: var(--club-red-line);
+}
+
+@media (max-width: 959px) {
+  .admin-competition-desk .admin-rail {
+    scroll-snap-type: x proximity;
+  }
+
+  .admin-competition-desk .admin-rail .content-tab {
+    scroll-snap-align: start;
   }
 }

@@ -21,12 +21,13 @@ export function matchFormatDescription(maxLegs: number): string {
   return `Best of ${maxLegs}: first to ${target} wins; no draw.`;
 }
 
-export function leagueScoringSummary(league: Pick<LeagueSummary, 'maxLegs' | 'targetLegs' | 'pointsPerWin' | 'pointsPerDraw' | 'pointsPerLoss'>): string {
+export function leagueScoringSummary(league: Pick<LeagueSummary, 'maxLegs' | 'targetLegs' | 'pointsPerWin' | 'pointsPerDraw' | 'pointsPerLoss'> & Partial<Pick<LeagueSummary, 'matchesPerPair'>>): string {
   const maxLegs = effectiveMaxLegs(league);
   const win = Number.isFinite(league.pointsPerWin) ? league.pointsPerWin : 2;
   const draw = Number.isFinite(league.pointsPerDraw) ? league.pointsPerDraw : 0;
   const loss = Number.isFinite(league.pointsPerLoss) ? league.pointsPerLoss : 0;
-  return `Best of ${maxLegs} · Win ${win} · Draw ${draw} · Loss ${loss}`;
+  const matchesPerPair = Number.isFinite(league.matchesPerPair) ? league.matchesPerPair! : 1;
+  return `Best of ${maxLegs} · first to ${legsToWin(maxLegs)} · ${matchesPerPair} match${matchesPerPair === 1 ? '' : 'es'} per opponent · Win ${win} · Draw ${draw} · Loss ${loss}`;
 }
 
 export function resultOutcomeLabel(

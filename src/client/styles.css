@@ -11,7 +11,7 @@
   /* Text */
   --text:        #eeeae0;
   --text-2:      #a8b0aa;
-  --text-3:      #687068;
+  --text-3:      #828c84;
 
   /* Accent */
   --red:         #d44040;
@@ -23,8 +23,8 @@
   --gold-dim:    #7a6640;
 
   /* Semantic */
-  --success:     #4a9b6a;
-  --danger:      #c04040;
+  --success:     #63c978;
+  --danger:      #c84a4a;
   --warning:     #b5882a;
 
   color: var(--text);
@@ -45,6 +45,21 @@ body {
   background: var(--bg);
 }
 button, input, select, textarea { font: inherit; }
+
+/* Without JavaScript no club UI mounts, so the shell must still explain itself. */
+noscript {
+  display: block;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem;
+  color: #eeeae0;
+  text-align: center;
+}
+noscript p {
+  margin: 0 0 .8rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
 button {
   min-height: 44px;
   border-radius: 6px;
@@ -189,7 +204,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   color: var(--text-2);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--club-radius-pill, 999px);
   font-size: .75rem;
   font-weight: 700;
 }
@@ -215,7 +230,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   border-radius: 8px;
 }
 .segmented-tab {
-  min-height: 36px;
+  min-height: 44px;
   padding: .3rem 1.1rem;
   color: var(--text-2);
   background: transparent;
@@ -325,7 +340,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .primary-button, .secondary-button, .refresh-button, .action-button {
   min-height: 44px;
   padding: .65rem 1.25rem;
-  border-radius: 7px;
+  border-radius: var(--club-radius-control, 6px);
   font-size: .9rem;
   font-weight: 700;
   border: 1px solid transparent;
@@ -336,18 +351,28 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   color: #fff;
   background: var(--red);
   border-color: var(--red-dim);
-  box-shadow: 0 4px 14px var(--red-glow);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .22);
 }
 .primary-button:hover:not(:disabled) {
   background: #e04545;
-  box-shadow: 0 6px 20px rgba(212,64,64,.28);
+  box-shadow: 0 7px 18px rgba(0, 0, 0, .26);
   transform: translateY(-1px);
 }
 .primary-button:active:not(:disabled) { transform: translateY(0); box-shadow: 0 2px 6px var(--red-glow); }
 .secondary-button, .refresh-button, .action-button {
   color: var(--text-2);
-  background: var(--surface-2);
+  background: transparent;
   border-color: var(--border-mid);
+}
+.danger-button {
+  color: #f0b0b0;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--danger) 62%, var(--border-mid));
+}
+.danger-button:hover:not(:disabled) {
+  color: #fff0f0;
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  border-color: var(--danger);
 }
 .secondary-button:hover:not(:disabled),
 .refresh-button:hover:not(:disabled),
@@ -382,7 +407,7 @@ textarea {
   color: var(--text);
   background: var(--surface-2);
   border: 1px solid var(--border-mid);
-  border-radius: 7px;
+  border-radius: var(--club-radius-control, 6px);
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 .onboarding-form input:focus,
@@ -473,6 +498,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   text-transform: uppercase;
   text-align: right;
 }
+.standings-table thead th { border-bottom: 1px solid var(--border-mid); }
 .standings-table th:nth-child(2), .standings-table th[scope="row"] { text-align: left; }
 .standings-table td {
   padding: .85rem .6rem;
@@ -482,6 +508,8 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
 }
 .standings-table tbody tr:last-child td { border-bottom: 0; }
 .standings-table tbody tr:hover td { background: var(--surface-2); }
+.standings-table tbody th[scope="row"],
+.standings-table tbody td { font-variant-numeric: tabular-nums; }
 
 /* Rank column */
 .standings-table td:first-child {
@@ -513,7 +541,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   padding-right: .85rem;
   letter-spacing: -.01em;
 }
-.standings-table tbody tr:first-child td:last-child { color: var(--red); }
+.standings-table tbody tr:first-child td:last-child { color: var(--text); }
 
 /* You row */
 .standing-row-you td, .standing-row-you th {
@@ -543,6 +571,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   gap: .5rem;
   padding: 1rem 0;
   border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
   transition: background .12s ease;
 }
 .result-row:last-child { border-bottom: 0; }
@@ -594,6 +623,50 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
   align-items: center;
   gap: .6rem;
   margin-top: .5rem;
+}
+
+/* ─── Read failure recovery ───────────────────────────────────────────────── */
+.load-failure {
+  display: grid;
+  justify-items: start;
+  gap: .6rem;
+  margin: .75rem 0;
+  padding: .9rem 1rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+}
+.load-failure strong {
+  font-size: .93rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+/* ─── Public club table address ───────────────────────────────────────────── */
+.public-table-share {
+  display: grid;
+  gap: .4rem;
+  margin: .85rem 0 0;
+  padding: .9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.public-table-share h4 { margin: 0; font-size: .95rem; }
+.public-table-address {
+  margin: .15rem 0 0;
+  overflow-wrap: anywhere;
+}
+.public-table-address code {
+  color: var(--text);
+  font-size: .82rem;
+}
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 .public-league-actions { justify-content: flex-end; }
 @media (max-width: 680px) { .public-league-actions { justify-content: flex-start; } }
@@ -669,7 +742,102 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
 .admin-list { margin-top: 1rem; }
 .admin-list li { justify-content: space-between; }
 .admin-list li > div:first-child { display: grid; min-width: 0; gap: .2rem; }
-.admin-list .action-button { width: auto; min-height: 38px; flex: 0 0 auto; }
+.admin-list .action-button { width: auto; min-height: 44px; flex: 0 0 auto; }
+.admin-competition-desk,
+.admin-results-workflow,
+.fixture-browser-list,
+.public-fixture-list { font-variant-numeric: tabular-nums; }
+.season-health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--club-radius-surface, 10px);
+  overflow: hidden;
+}
+.season-health-grid > div {
+  display: grid;
+  gap: .25rem;
+  min-width: 0;
+  padding: .75rem .85rem;
+  background: transparent;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.season-health-grid > div:nth-child(2n) { border-right: 0; }
+.season-health-grid > div:nth-last-child(-n + 2) { border-bottom: 0; }
+.season-health-grid dt { color: var(--text-3); font-size: .76rem; font-weight: 700; }
+.season-health-grid dd { margin: 0; color: var(--text); font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fixture-readiness-block {
+  display: grid;
+  gap: .6rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--danger) 9%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+  border-radius: 8px;
+}
+.fixture-readiness-block strong { color: var(--danger); }
+.fixture-readiness-block .form-help { margin: 0; }
+.fixture-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .5rem;
+  margin: 0;
+}
+.fixture-readiness-grid > div { display: grid; gap: .15rem; }
+.fixture-readiness-grid dt { color: var(--text-3); font-size: .72rem; font-weight: 700; }
+.fixture-readiness-grid dd { margin: 0; color: var(--text); font-weight: 800; font-variant-numeric: tabular-nums; }
+.compact-message { margin-top: 1rem; }
+.movement-card {
+  display: grid;
+  gap: .75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+}
+.movement-card .experience-section-heading { margin: 0; }
+.movement-route { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; margin: 0; color: var(--text-2); }
+.movement-route strong { color: var(--text); }
+.movement-route small { flex-basis: 100%; color: var(--text-3); }
+.movement-warning { margin: 0; color: var(--danger); }
+.movement-legend { margin: .75rem 0 0; }
+.standing-rank { vertical-align: top; }
+.movement-zone { display: block; margin-top: .2rem; font-size: .62rem; line-height: 1.1; white-space: nowrap; }
+.movement-zone-promotion { color: var(--success); }
+.movement-zone-relegation { color: var(--danger); }
+
+@media (min-width: 960px) {
+  .admin-competition-desk {
+    max-width: 88rem;
+    padding-inline: clamp(1rem, 2vw, 2.5rem);
+  }
+  .admin-competition-desk[data-admin-layout="control-room"] {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    column-gap: clamp(2rem, 4vw, 4rem);
+    align-items: start;
+  }
+  .admin-competition-desk[data-admin-layout="control-room"] .admin-rail {
+    padding: .35rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .admin-competition-desk[data-admin-layout="control-room"] > [role="tabpanel"] {
+    padding: clamp(1rem, 2vw, 2rem);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .admin-competition-desk .workspace-heading h2 { letter-spacing: -.025em; }
+  .admin-competition-desk > [role="tabpanel"] { min-width: 0; }
+  .admin-competition-desk .admin-list li { gap: 1.25rem; }
+  .admin-competition-desk .inline-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .admin-competition-desk .fixture-readiness-block { max-width: 46rem; }
+}
 .invite-box {
   display: grid;
   gap: .5rem;
@@ -790,7 +958,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
     width: min(100%, 72rem);
     min-height: calc(100dvh - 3rem);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--club-radius-dialog, 12px);
     overflow: hidden;
   }
   .shell-panel-wide { width: min(100%, 80rem); }
@@ -901,7 +1069,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
     width: min(100%, 84rem);
     min-height: calc(100dvh - 4rem);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--club-radius-dialog, 12px);
   }
 }
 

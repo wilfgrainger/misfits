@@ -13,9 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "vite build",
-    "deploy": "npm run build && wrangler deploy --keep-vars",
-    "db:migrate:local": "wrangler d1 migrations apply misfits --local",
-    "db:migrate:remote": "wrangler d1 migrations apply misfits --remote"
+    "db:migrate:local": "wrangler d1 migrations apply misfits --local"
   },
   "repository": {
     "type": "git",

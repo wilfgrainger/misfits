@@ -10,7 +10,7 @@ declare global {
             size: 'large';
             text: 'signin_with';
             shape: 'rectangular';
-            logo_alignment: 'left';
+            logo_alignment: 'left' | 'center';
             locale: string;
             width: string;
             click_listener: () => void;
@@ -63,7 +63,7 @@ export class GoogleAuth {
         if (active && credential) onCredential(credential);
       },
     });
-    const width = Math.max(200, Math.min(400, parent.parentElement?.clientWidth || 400));
+    const width = Math.max(200, Math.min(400, parent.clientWidth || parent.parentElement?.clientWidth || 400));
     parent.replaceChildren();
     window.google!.accounts.id.renderButton(parent, {
       type: 'standard',
@@ -71,7 +71,7 @@ export class GoogleAuth {
       size: 'large',
       text: 'signin_with',
       shape: 'rectangular',
-      logo_alignment: 'left',
+      logo_alignment: 'center',
       locale: 'en',
       width: String(width),
       click_listener: onClick,

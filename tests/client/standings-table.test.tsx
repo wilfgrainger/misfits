@@ -17,6 +17,7 @@ describe('StandingsTable', () => {
     expect(screen.getByRole('cell', { name: '2-1-1' })).toBeTruthy();
     expect(screen.getByRole('cell', { name: '12' }).classList.contains('standing-cell-secondary')).toBe(true);
     expect(screen.getByRole('cell', { name: '47.25' }).classList.contains('standing-cell-secondary')).toBe(true);
+    expect(screen.getByRole('cell', { name: '7' }).classList.contains('standing-points')).toBe(true);
     expect(screen.getByRole('columnheader', { name: 'Legs' }).classList.contains('standing-cell-secondary')).toBe(true);
     expect(screen.getByRole('columnheader', { name: 'Avg' }).classList.contains('standing-cell-secondary')).toBe(true);
     expect(screen.getByRole('rowheader', { name: 'Wilf' }).parentElement?.className).toBe('standing-row-you');

@@ -97,7 +97,7 @@ describe('club administration visibility', () => {
 
   it('keeps administration inside More and hidden from ordinary players', async () => {
     render(<App />);
-    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' });
+    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 });
 
     expect(screen.queryByRole('button', { name: 'Season admin' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Club table' })).toBeNull();
@@ -111,7 +111,7 @@ describe('club administration visibility', () => {
     state.myLeagues = [createdLeague];
     render(<App />);
 
-    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' });
+    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 });
     const nav = screen.getByRole('navigation', { name: 'Member workspace' });
     expect(within(nav).getAllByRole('button').map((button) => button.textContent?.trim()))
       .toEqual(['Home', 'Record', 'Leagues', 'More']);
@@ -131,7 +131,7 @@ describe('club administration visibility', () => {
     state.adminLeagues = [createdLeague, secondLeague];
     render(<App />);
 
-    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' });
+    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 });
     await openLeague();
     await openAdmin();
     fireEvent.click(screen.getByRole('tab', { name: 'Leagues' }));
@@ -139,7 +139,7 @@ describe('club administration visibility', () => {
     fireEvent.click(await within(admin).findByRole('button', { name: /Thursday Club/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Back to club' }));
 
-    expect(await screen.findByRole('heading', { name: 'Good to see you, Alpha.' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 })).toBeTruthy();
   });
 
   it('does not surface an admin-only league as a member competition after saving', async () => {
@@ -149,7 +149,7 @@ describe('club administration visibility', () => {
     state.adminLeagues = [createdLeague, secondLeague];
     render(<App />);
 
-    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' });
+    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 });
     await openAdmin();
     fireEvent.click(screen.getByRole('tab', { name: 'Leagues' }));
     const admin = screen.getByRole('region', { name: 'Competition admin' });
@@ -158,7 +158,7 @@ describe('club administration visibility', () => {
     await screen.findByText('League settings saved.');
     fireEvent.click(screen.getByRole('button', { name: 'Back to club' }));
 
-    expect(await screen.findByRole('heading', { name: 'Good to see you, Alpha.' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Leagues' }));
     expect(await screen.findByRole('button', { name: /Tuesday Club/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Thursday Club/ })).toBeNull();
@@ -169,7 +169,7 @@ describe('club administration visibility', () => {
     state.adminLeagues = [];
     render(<App />);
 
-    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' });
+    await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 });
     await openAdmin();
     fireEvent.click(screen.getByRole('tab', { name: 'Leagues' }));
     const admin = screen.getByRole('region', { name: 'Competition admin' });

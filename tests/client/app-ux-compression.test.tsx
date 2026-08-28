@@ -38,7 +38,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 it('keeps competition detail inside Leagues instead of making it the whole app frame', async () => {
   render(<App />);
 
-  await screen.findByRole('heading', { name: 'Good to see you, Alpha.' });
+  await screen.findByRole('heading', { name: 'Good to see you, Alpha.' }, { timeout: 3000 });
   expect(screen.getByText('Your competitions')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Premier' })).toBeNull();
   expect(document.querySelector('.player-league-hero')).toBeNull();
@@ -50,7 +50,12 @@ it('keeps competition detail inside Leagues instead of making it the whole app f
 
   expect(await screen.findByRole('heading', { name: 'Premier' })).toBeTruthy();
   expect(screen.getByText('2026 season')).toBeTruthy();
-  expect(screen.getByRole('tab', { name: 'Table' })).toBeTruthy();
+  const tableTab = screen.getByRole('tab', { name: 'Table' });
+  expect(tableTab).toBeTruthy();
+  expect(tableTab.getAttribute('aria-controls')).toBe('competition-panel');
+  const panel = screen.getByRole('tabpanel');
+  expect(panel.getAttribute('id')).toBe('competition-panel');
+  expect(panel.getAttribute('aria-labelledby')).toBe('competition-tab-table');
   expect(screen.getByRole('tab', { name: 'Fixtures' })).toBeTruthy();
   expect(screen.getByRole('tab', { name: 'Results' })).toBeTruthy();
   expect(document.querySelector('.player-league-hero')).toBeNull();

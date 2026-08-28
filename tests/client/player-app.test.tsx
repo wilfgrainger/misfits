@@ -42,6 +42,8 @@ function installReadApi({
     if (path.endsWith(`/api/public/leagues/${currentLeague.id}`)) return new Response(JSON.stringify({ league: currentLeague, players: leaguePlayers }), { status: 200 });
     if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: myResults }), { status: 200 });
     if (path.endsWith(`/api/admin/competition/leagues/${currentLeague.id}/fixtures`)) return new Response(JSON.stringify({ fixtures }), { status: 200 });
+    if (path.endsWith(`/api/leagues/${currentLeague.id}/fixtures`)) return new Response(JSON.stringify({ fixtures }), { status: 200 });
+    if (path.endsWith(`/api/me/leagues/${currentLeague.id}/fixtures`)) return new Response(JSON.stringify({ fixtures }), { status: 200 });
     throw new Error(`Unexpected fetch: ${path}`);
   });
 }
@@ -72,15 +74,18 @@ describe('mobile league workspaces', () => {
     expect(table.querySelector('tr.standing-row-you')?.textContent).toContain('Alpha');
   });
 
-  it('submits a player result with both players and averages', async () => {
-    const resultPayload = { result: { id: 'result-1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5, submittedBy: 'player-a', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null } };
+  it('submits a player result only for a published fixture', async () => {
+    const fixturePayload = { fixtures: [{ id: 'f1', seasonId: 's1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', pairKey: 'player-a:player-b', round: 1, meetingNumber: 1, status: 'OUTSTANDING', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: 'Bravo', resultId: null }] };
+    const resultPayload = { result: { id: 'result-1', fixtureId: 'f1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5, submittedBy: 'player-a', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null } };
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input);
       if (path.endsWith('/api/public/leagues/league-1/standings')) return new Response(JSON.stringify({ standings: [] }), { status: 200 });
       if (path.endsWith('/api/public/leagues/league-1/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
       if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players }), { status: 200 });
       if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
-      if (path.endsWith('/api/admin/competition/leagues/league-1/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
+      if (path.endsWith('/api/admin/competition/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
+      if (path.endsWith('/api/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
+      if (path.endsWith('/api/me/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
       if (path.endsWith('/api/leagues/league-1/results') && init?.method === 'POST') return new Response(JSON.stringify(resultPayload), { status: 201 });
       throw new Error(`Unexpected fetch: ${path}`);
     });
@@ -88,7 +93,9 @@ describe('mobile league workspaces', () => {
     renderParticipant();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Record' }));
-    await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-b'));
+    expect(screen.queryByLabelText('Opponent')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Record this fixture' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Record your result' })).toBeTruthy());
     fireEvent.change(screen.getByLabelText('Your legs'), { target: { value: '3' } });
     fireEvent.change(screen.getByLabelText('Their legs'), { target: { value: '1' } });
     fireEvent.change(screen.getByLabelText('Your average'), { target: { value: '61.2' } });
@@ -98,7 +105,38 @@ describe('mobile league workspaces', () => {
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Result sent to your opponent.'));
     const resultCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith('/api/leagues/league-1/results') && init?.method === 'POST');
     expect(resultCall).toBeTruthy();
-    expect(JSON.parse(String(resultCall?.[1]?.body))).toEqual({ playerAId: 'player-a', playerBId: 'player-b', playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5 });
+    expect(JSON.parse(String(resultCall?.[1]?.body))).toEqual({ fixtureId: 'f1', playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5 });
+  });
+
+  it('maps Your and Their values back to the persisted fixture sides when the player is fixture B', async () => {
+    const playerB: UserSummary = { id: 'player-b', username: 'Bravo', role: 'PLAYER', status: 'ACTIVE', clubStatus: 'APPROVED', profileImageUrl: null, dartsCounterUrl: null, isMasterAdmin: false };
+    const fixturePayload = { fixtures: [{ id: 'f-b', seasonId: 's1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', pairKey: 'player-a:player-b', round: 1, meetingNumber: 1, status: 'OUTSTANDING', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: 'Bravo', resultId: null }] };
+    const resultPayload = { result: { id: 'result-b', fixtureId: 'f-b', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 1, playerBLegs: 3, playerAAverage: 48.2, playerBAverage: 62.4, submittedBy: 'player-b', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null } };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith('/api/public/leagues/league-1/standings')) return new Response(JSON.stringify({ standings: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players }), { status: 200 });
+      if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      if (path.endsWith('/api/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
+      if (path.endsWith('/api/me/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
+      if (path.endsWith('/api/leagues/league-1/results') && init?.method === 'POST') return new Response(JSON.stringify(resultPayload), { status: 201 });
+      throw new Error(`Unexpected fetch: ${path}`);
+    });
+
+    render(<PlayerLeague user={playerB} league={league} isParticipant onUserSaved={vi.fn()} onSignOut={vi.fn()} />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Record this fixture' }));
+    fireEvent.change(screen.getByLabelText('Your legs'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Their legs'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Your average'), { target: { value: '62.4' } });
+    fireEvent.change(screen.getByLabelText('Their average'), { target: { value: '48.2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send for confirmation' }));
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Result sent to your opponent.'));
+    const resultCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith('/api/leagues/league-1/results') && init?.method === 'POST');
+    expect(JSON.parse(String(resultCall?.[1]?.body))).toEqual({ fixtureId: 'f-b', playerALegs: 1, playerBLegs: 3, playerAAverage: 48.2, playerBAverage: 62.4 });
   });
 
   it('keeps result-dispute focus inside a named dialog and restores its opener', async () => {
@@ -123,6 +161,21 @@ describe('mobile league workspaces', () => {
     expect(document.activeElement).toBe(dispute);
   });
 
+  it('shows a submitted pending result without offering self-confirmation', async () => {
+    const pendingResult = { id: 'result-1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', playerAUsername: 'Alpha', playerBUsername: 'Bravo', playerALegs: 3, playerBLegs: 1, playerAAverage: 51.24, playerBAverage: 47.1, submittedBy: 'player-a', status: 'PENDING', confirmedBy: null, disputeNote: null, createdAt: '2026-08-20T12:00:00.000Z', confirmedAt: null };
+    installReadApi({ myResults: [pendingResult] });
+    renderParticipant();
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Results' }));
+
+    expect(await screen.findByText('Alpha')).toBeTruthy();
+    expect(screen.getByText('Bravo')).toBeTruthy();
+    expect(screen.getByText('PENDING')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Dispute' })).toBeNull();
+  });
+
   it('saves the signed-in player profile through the More panel', async () => {
     const onUserSaved = vi.fn();
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -132,6 +185,8 @@ describe('mobile league workspaces', () => {
       if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players }), { status: 200 });
       if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
       if (path.endsWith('/api/admin/competition/leagues/league-1/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
+      if (path.endsWith('/api/leagues/league-1/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
+      if (path.endsWith('/api/me/leagues/league-1/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
       if (path.endsWith('/api/me/profile') && init?.method === 'PATCH') return new Response(JSON.stringify({ profile: { ...user, username: 'Alpha Prime', dartsCounterUrl: 'https://dartcounter.net/alpha', profileImageUrl: null } }), { status: 200 });
       throw new Error(`Unexpected fetch: ${path}`);
     });
@@ -160,7 +215,9 @@ describe('mobile league workspaces', () => {
       if (path.includes('/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
       if (path.includes('/api/public/leagues/')) return new Response(JSON.stringify({ league: current, players: [{ id: user.id, username: 'Alpha', profileImageUrl: null }, { id: current.id === 'league-2' ? 'player-c' : 'player-b', username: current.id === 'league-2' ? 'Charlie' : 'Bravo', profileImageUrl: null }] }), { status: 200 });
       if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
-      if (path.includes('/api/admin/competition/leagues/') && path.endsWith('/fixtures')) return new Response(JSON.stringify({ fixtures: [] }), { status: 200 });
+      if (path.includes('/api/admin/competition/leagues/') && path.endsWith('/fixtures')) return new Response(JSON.stringify({ fixtures: [{ id: current.id === 'league-2' ? 'f2' : 'f1', seasonId: 's1', leagueId: current.id, playerAId: 'player-a', playerBId: current.id === 'league-2' ? 'player-c' : 'player-b', pairKey: `player-a:${current.id === 'league-2' ? 'player-c' : 'player-b'}`, round: 1, meetingNumber: 1, status: 'OUTSTANDING', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: current.id === 'league-2' ? 'Charlie' : 'Bravo', resultId: null }] }), { status: 200 });
+      if (path.includes('/api/leagues/') && path.endsWith('/fixtures')) return new Response(JSON.stringify({ fixtures: [{ id: current.id === 'league-2' ? 'f2' : 'f1', seasonId: 's1', leagueId: current.id, playerAId: 'player-a', playerBId: current.id === 'league-2' ? 'player-c' : 'player-b', pairKey: `player-a:${current.id === 'league-2' ? 'player-c' : 'player-b'}`, round: 1, meetingNumber: 1, status: 'OUTSTANDING', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: current.id === 'league-2' ? 'Charlie' : 'Bravo', resultId: null }] }), { status: 200 });
+      if (path.includes('/api/me/leagues/') && path.endsWith('/fixtures')) return new Response(JSON.stringify({ fixtures: [{ id: current.id === 'league-2' ? 'f2' : 'f1', seasonId: 's1', leagueId: current.id, playerAId: 'player-a', playerBId: current.id === 'league-2' ? 'player-c' : 'player-b', pairKey: `player-a:${current.id === 'league-2' ? 'player-c' : 'player-b'}`, round: 1, meetingNumber: 1, status: 'OUTSTANDING', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: current.id === 'league-2' ? 'Charlie' : 'Bravo', resultId: null }] }), { status: 200 });
       throw new Error(`Unexpected fetch: ${path}`);
     });
 
@@ -169,12 +226,13 @@ describe('mobile league workspaces', () => {
     const { rerender } = render(<PlayerLeague user={user} league={league} isParticipant onUserSaved={onUserSaved} onSignOut={onSignOut} />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Record' }));
-    await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-b'));
+    await waitFor(() => expect(screen.getByText('Alpha vs Bravo')).toBeTruthy());
 
     rerender(<PlayerLeague user={user} league={secondLeague} isParticipant onUserSaved={onUserSaved} onSignOut={onSignOut} />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Thursday Club' })).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Record' }));
-    await waitFor(() => expect((screen.getByLabelText('Opponent') as HTMLSelectElement).value).toBe('player-c'));
+    await waitFor(() => expect(screen.getByText('Alpha vs Charlie')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Record this fixture' }));
     expect((screen.getByLabelText('Your legs') as HTMLInputElement).value).toBe('');
   });
 
@@ -188,6 +246,8 @@ describe('mobile league workspaces', () => {
       if (path.endsWith('/api/public/leagues/league-1')) return new Response(JSON.stringify({ league, players }), { status: 200 });
       if (path.endsWith('/api/me/results')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
       if (path.endsWith('/api/admin/competition/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
+      if (path.endsWith('/api/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
+      if (path.endsWith('/api/me/leagues/league-1/fixtures')) return new Response(JSON.stringify(fixturePayload), { status: 200 });
       if (path.endsWith('/api/leagues/league-1/results') && init?.method === 'POST') return new Response(JSON.stringify(resultPayload), { status: 201 });
       throw new Error(`Unexpected fetch: ${path}`);
     });
@@ -213,6 +273,21 @@ describe('mobile league workspaces', () => {
     expect(JSON.parse(String(resultCall?.[1]?.body))).toEqual({ fixtureId: 'f1', playerALegs: 3, playerBLegs: 1, playerAAverage: 60.5, playerBAverage: 52 });
   });
 
+  it('shows pending and disputed fixture context in the league progress board', async () => {
+    const fixtures = [
+      { id: 'pending', seasonId: 's1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-b', pairKey: 'player-a:player-b', round: 1, meetingNumber: 1, status: 'PENDING_CONFIRMATION', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: 'Bravo', resultId: 'r1', resultStatus: 'PENDING', playerALegs: 3, playerBLegs: 1, playerAAverage: 61.2, playerBAverage: 55.5, submittedBy: 'player-a', disputeNote: null, confirmedAt: null },
+      { id: 'disputed', seasonId: 's1', leagueId: 'league-1', playerAId: 'player-a', playerBId: 'player-c', pairKey: 'player-a:player-c', round: 2, meetingNumber: 1, status: 'DISPUTED', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: null, playerAUsername: 'Alpha', playerBUsername: 'Charlie', resultId: 'r2', resultStatus: 'DISPUTED', playerALegs: 2, playerBLegs: 3, playerAAverage: 49.8, playerBAverage: 58.1, submittedBy: 'player-a', disputeNote: 'Check the leg count', confirmedAt: null },
+      { id: 'void', seasonId: 's1', leagueId: 'league-1', playerAId: 'player-b', playerBId: 'player-c', pairKey: 'player-b:player-c', round: 3, meetingNumber: 1, status: 'VOID', createdAt: '2026-08-20T00:00:00.000Z', updatedAt: '2026-08-20T00:00:00.000Z', voidedAt: '2026-08-21T00:00:00.000Z', playerAUsername: 'Bravo', playerBUsername: 'Charlie', resultId: null, resultStatus: null, playerALegs: null, playerBLegs: null, playerAAverage: null, playerBAverage: null, submittedBy: null, disputeNote: null, confirmedAt: null },
+    ];
+    installReadApi({ fixtures });
+    render(<PlayerLeague user={user} league={league} isParticipant onUserSaved={vi.fn()} onSignOut={vi.fn()} embedded embeddedView="fixtures" />);
+
+    expect(await screen.findByText(/Your progress: 0 confirmed of 2 active fixtures · 0 outstanding · 1 pending · 1 disputed · 1 void/)).toBeTruthy();
+    expect(screen.getByText(/Submitted score: 3-1 · 61.20 \/ 55.50 avg. Waiting for your opponent to confirm\./)).toBeTruthy();
+    expect(screen.getByText(/Submitted score: 2-3 · 49.80 \/ 58.10 avg. Disputed: Check the leg count/)).toBeTruthy();
+    expect(screen.getByText('Void fixture; it does not affect the table and cannot receive a result.')).toBeTruthy();
+  });
+
   it('makes result entry unavailable when the league is closed', async () => {
     const closedLeague: LeagueSummary = { ...league, status: 'CLOSED' };
     installReadApi({ currentLeague: closedLeague });
@@ -221,6 +296,8 @@ describe('mobile league workspaces', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Misfits 501' })).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Record' }));
     expect(screen.getByText('Result entry is unavailable while this league is closed.')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'League closed' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('No fixtures have been published for this league yet.')).toBeTruthy();
+    expect(screen.queryByLabelText('Opponent')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Send for confirmation' })).toBeNull();
   });
 });

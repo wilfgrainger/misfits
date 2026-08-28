@@ -20,6 +20,7 @@ class MemoryD1 {
   leagues = new Map<string, League>();
   memberships: Membership[] = [];
   audits: string[] = [];
+  healthUnassignedUserIds = new Set<string>(['player']);
 
   prepare(sql: string) {
     return {
@@ -93,6 +94,21 @@ class MemoryD1 {
     }
     if (sql.includes('FROM seasons WHERE id')) return (this.seasons.get(String(values[0])) ?? null) as T;
     if (sql.includes('FROM leagues WHERE id')) return (this.leagues.get(String(values[0])) ?? null) as T;
+    if (sql.includes('AS unassigned_players')) {
+      const requiresApprovedClub = sql.includes("u.club_status = 'APPROVED'");
+      const unassignedPlayers = [...this.healthUnassignedUserIds].filter((id) => {
+        const user = this.users.get(id);
+        return user?.status === 'ACTIVE' && (!requiresApprovedClub || user.club_status === 'APPROVED');
+      }).length;
+      return {
+      unassigned_players: unassignedPlayers,
+      invalid_players: 0,
+      duplicate_placements: 0,
+      outstanding_fixtures: 2,
+      pending_confirmations: 3,
+      disputes: 4,
+      } as T;
+    }
     if (sql.includes('COUNT(*)') && sql.includes('FROM league_players lp') && sql.includes('JOIN users u')) {
       const leagueId = String(values[0]);
       const seasonId = String(values[1]);
@@ -164,6 +180,36 @@ describe('competition administration routes', () => {
     const response = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', mutation(await cookieFor(db, 'admin'), { name: '2026/27', status: 'OPEN', isCurrent: true })), env, {} as never);
     expect(response.status).toBe(409);
     expect(db.seasons.size).toBe(0);
+  });
+
+  it('returns concise season health to an administrator', async () => {
+    const { db, env, routes } = setup();
+    const cookie = await cookieFor(db, 'admin');
+    const seasonResponse = await routes.fetch(new Request('https://misfits.test/api/admin/seasons', mutation(cookie, { name: '2026/27', status: 'DRAFT', isCurrent: false })), env, {} as never);
+    const season = (await seasonResponse.json() as { season: Season }).season;
+
+    const response = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}/health`, { headers: { Cookie: cookie } }), env, {} as never);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await response.json()).toEqual({ health: { unassignedPlayers: 1, invalidPlayers: 0, duplicatePlacements: 0, readyForFixtures: false, outstandingFixtures: 2, pendingConfirmations: 3, disputes: 4 } });
+
+    const playerResponse = await routes.fetch(new Request(`https://misfits.test/api/admin/seasons/${season.id}/health`, { headers: { Cookie: await cookieFor(db, 'player') } }), env, {} as never);
+    expect(playerResponse.status).toBe(403);
+  });
+
+  it('counts only active approved club members as unassigned', async () => {
+    const { db, env, routes } = setup();
+    db.users.set('pending', { id: 'pending', username: 'Pending', role: 'PLAYER', status: 'ACTIVE', club_status: 'PENDING', is_master_admin: 0 });
+    db.users.set('rejected', { id: 'rejected', username: 'Rejected', role: 'PLAYER', status: 'ACTIVE', club_status: 'REJECTED', is_master_admin: 0 });
+    db.healthUnassignedUserIds.add('pending');
+    db.healthUnassignedUserIds.add('rejected');
+    db.seasons.set('s1', { id: 's1', name: '2026/27', status: 'OPEN', is_current: 1, created_at: now.toISOString(), updated_at: now.toISOString(), closed_at: null });
+
+    const response = await routes.fetch(new Request('https://misfits.test/api/admin/seasons/s1/health', { headers: { Cookie: await cookieFor(db, 'admin') } }), env, {} as never);
+
+    expect(response.status).toBe(200);
+    expect((await response.json() as { health: { unassignedPlayers: number } }).health.unassignedPlayers).toBe(1);
   });
 
   it('creates ordered leagues inside a season and persists promotion/relegation settings', async () => {

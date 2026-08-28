@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const publicRoot = resolve(process.cwd(), 'public');
+const clientRoot = resolve(process.cwd(), 'src/client');
 
 function lastHexDeclaration(styles: string, selector: string, property: string): string {
   const blocks = /([^{}]+)\{([^{}]*)\}/g;
@@ -51,10 +52,125 @@ describe('Misfits platform assets', () => {
     expect(scriptSource).not.toContain("'unsafe-inline'");
   });
 
-  it('describes a luxury private-club experience in the document metadata', () => {
+  it('keeps the shared preview and install metadata free of the retired slogan', () => {
     const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as { description?: string };
+    const meta = Object.fromEntries([...document.matchAll(/<meta property="(og:[^"]+)" content="([^"]+)"/g)].map((match) => [match[1], match[2]]));
 
-    expect(document).toContain('luxury private-club darts league');
+    expect(meta['og:type']).toBe('website');
+    expect(meta['og:site_name']).toBe('Misfits 501');
+    expect(meta['og:title']).toBe('Misfits 501 — Private club darts.');
+    expect(meta['og:description']).toContain('private');
+    expect(meta['og:image']).toBe('https://darts.graingers.agency/brand/misfits-501.jpg');
+    expect(meta['og:url']).toBe('https://darts.graingers.agency/');
+    expect(document).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    expect(document).toContain('private darts club');
+    expect(manifest.description).toContain('private darts club');
+    expect(document).not.toMatch(/luxury/i);
+    expect(manifest.description).not.toMatch(/luxury/i);
+    expect(document).not.toMatch(/properly settled/i);
+    expect(manifest.description).not.toMatch(/properly settled/i);
+  });
+
+  it('declares a real tab icon and an installable home-screen icon', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const iconHrefs = [...document.matchAll(/<link rel="icon"[^>]*href="([^"]+)"/g)].map((match) => match[1]);
+    const touchHref = document.match(/<link rel="apple-touch-icon"[^>]*href="([^"]+)"/)?.[1];
+
+    expect(iconHrefs).toContain('/favicon.ico');
+    expect(iconHrefs).toContain('/brand/misfits-501-mark.svg');
+    expect(touchHref).toBe('/brand/misfits-501.jpg');
+    expect(document).toContain('type="image/svg+xml"');
+    expect(readFileSync(resolve(publicRoot, 'brand/misfits-501-mark.svg'), 'utf8')).toContain('<svg');
+  });
+
+  it('ships a real /favicon.ico asset instead of falling through to the SPA shell', () => {
+    const ico = readFileSync(resolve(publicRoot, 'favicon.ico'));
+    // ICO header: reserved(0) type(1=icon) count(>=1), little-endian.
+    expect(ico.readUInt16LE(0)).toBe(0);
+    expect(ico.readUInt16LE(2)).toBe(1);
+    expect(ico.readUInt16LE(4)).toBeGreaterThanOrEqual(1);
+    expect(ico.length).toBeGreaterThan(100);
+  });
+
+  it('defines a static private threshold with reduced-motion-safe decoration', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const styles = readFileSync(resolve(clientRoot, 'private-club.css'), 'utf8');
+    const direction = document.match(/<body>\s*<!--\s*(premium-club-v2[\s\S]*?)\s*-->/)?.[1];
+
+    expect(direction).toBeTruthy();
+    expect(direction).toMatch(/^premium-club-v2\s+THESIS:[\s\S]*OWN-WORLD:[\s\S]*STORY:[\s\S]*FIRST VIEWPORT:[\s\S]*FINISH:/);
+    expect(direction?.trim().endsWith('unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance')).toBe(true);
+    expect(styles).toMatch(/\.private-entry-state\.private-entry-v2\s*\{[\s\S]*min-height:\s*100dvh[\s\S]*padding:\s*max\(clamp\(1\.25rem, 5vw, 3\.5rem\), env\(safe-area-inset-top\)\)[\s\S]*radial-gradient/);
+    expect(styles).toMatch(/\.private-admission-card\s*\{[\s\S]*width:\s*100%[\s\S]*border:\s*1px solid[\s\S]*border-radius:\s*var\(--club-radius-surface\)[\s\S]*box-shadow:\s*0 \d+px \d+px/);
+    expect(styles).toMatch(/@media \(min-width:\s*768px\)[\s\S]*\.private-entry-state\.private-entry-v2[\s\S]*grid-template-columns:/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.private-entry-v2::before\s*\{[\s\S]*animation:\s*none[\s\S]*transform:\s*none/);
+    expect(styles).not.toMatch(/front-page-intro|front-page-entry-arrive|front-page-intro-curtain/);
+  });
+
+  it('keeps non-circular club geometry on the shared radius scale', () => {
+    const visualStyles = [
+      'styles.css',
+      'mobile-experience.css',
+      'member-experience.css',
+      'private-club.css',
+      'club-app.css',
+    ].map((file) => readFileSync(resolve(clientRoot, file), 'utf8')).join('\n');
+
+    expect(visualStyles).toContain('--club-radius-control: 6px');
+    expect(visualStyles).toContain('--club-radius-surface: 10px');
+    expect(visualStyles).toContain('--club-radius-dialog: 12px');
+    expect(visualStyles).toContain('--club-radius-pill: 999px');
+    expect(visualStyles).not.toMatch(/border-radius:\s*(?:1[2-9]|[2-9]\d)px/);
+  });
+
+  it('reserves cards and gradients for earned member surfaces', () => {
+    const memberStyles = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
+    const sharedStyles = readFileSync(resolve(clientRoot, 'mobile-experience.css'), 'utf8');
+
+    expect(memberStyles).toMatch(/\.club-more > \.player-more-panel\s*\{[\s\S]*background:\s*transparent[\s\S]*border:\s*0/);
+    expect(memberStyles).toMatch(/\.embedded-league-experience \.embedded-rules-card\s*\{[\s\S]*background:\s*transparent[\s\S]*border-bottom:\s*1px solid var\(--club-border\)/);
+    expect(sharedStyles).toMatch(/\.rules-card,[\s\S]*\.signin-action-card\s*\{[\s\S]*background:\s*var\(--club-card\)/);
+    expect(sharedStyles).toMatch(/\.standings-card,[\s\S]*\.results-card\s*\{[\s\S]*background:\s*var\(--club-card\)/);
+  });
+
+  it('offers a maskable install icon so the club mark is not cropped on a phone', () => {
+    const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as {
+      icons?: Array<{ src?: string; sizes?: string; type?: string; purpose?: string }>;
+    };
+    const maskable = manifest.icons?.find((candidate) => candidate.purpose === 'maskable');
+
+    expect(maskable).toMatchObject({ src: '/brand/misfits-501-mark.svg', type: 'image/svg+xml', purpose: 'maskable' });
+  });
+
+  it('tells crawlers the club is private instead of relying on the SPA fallback', () => {
+    const robots = readFileSync(resolve(publicRoot, 'robots.txt'), 'utf8');
+
+    expect(robots).toMatch(/^User-agent: \*$/m);
+    expect(robots).toMatch(/^Disallow: \/$/m);
+  });
+
+  it('explains the club without JavaScript instead of rendering a blank shell', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const noscript = document.match(/<noscript>([\s\S]*?)<\/noscript>/)?.[1] ?? '';
+
+    expect(noscript).toContain('Misfits 501');
+    expect(noscript).toContain('JavaScript');
+  });
+
+  it('keeps the no-JavaScript message readable on the dark club ground', () => {
+    const styles = readFileSync(resolve(clientRoot, 'styles.css'), 'utf8');
+    const noscriptColor = styles.match(/noscript\s*\{[^}]*color:\s*(#[0-9a-f]{6})/i)?.[1];
+    if (!noscriptColor) throw new Error('The noscript block declares no explicit color');
+    const clubInk = readFileSync(resolve(clientRoot, 'mobile-experience.css'), 'utf8').match(/--club-ink:\s*(#[0-9a-f]{6})/i)?.[1]
+      ?? styles.match(/--club-ink:\s*(#[0-9a-f]{6})/i)?.[1]
+      ?? '#0d1110';
+    const baseBackground = styles.match(/--bg:\s*(#[0-9a-f]{6})/i)?.[1] ?? '#0d1110';
+
+    expect(styles).toMatch(/noscript\s*\{[^}]*display:\s*block/);
+    for (const background of [baseBackground, clubInk]) {
+      expect(contrastRatio(noscriptColor, background)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it('keeps rendered text at WCAG AA contrast on the remaining dark surfaces', () => {

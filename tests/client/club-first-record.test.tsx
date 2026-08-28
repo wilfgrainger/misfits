@@ -65,7 +65,7 @@ function renderMember(myLeagues: LeagueSummary[], clubLeagues = myLeagues) {
   );
 }
 
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe('club-first Record', () => {
   it('asks which competition is being recorded when more than one open assignment is eligible', async () => {
@@ -94,5 +94,58 @@ describe('club-first Record', () => {
 
     expect(screen.getByText('No result to record here yet')).toBeTruthy();
     expect(screen.queryByTestId('record-workspace')).toBeNull();
+  });
+
+  it('surfaces opponent-submitted pending reviews and opens that competition Results view', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      if (String(input).endsWith('/api/me/results')) {
+        return new Response(JSON.stringify({ results: [{
+          id: 'result-review',
+          leagueId: tuesday.id,
+          playerAId: user.id,
+          playerBId: 'player-b',
+          playerAUsername: user.username,
+          playerBUsername: 'Bravo',
+          playerALegs: 1,
+          playerBLegs: 3,
+          playerAAverage: 48,
+          playerBAverage: 57,
+          submittedBy: 'player-b',
+          status: 'PENDING',
+          confirmedBy: null,
+          disputeNote: null,
+          createdAt: '',
+          confirmedAt: null,
+        }] }), { status: 200 });
+      }
+      throw new Error(`Unexpected fetch: ${String(input)}`);
+    });
+    renderMember([tuesday], [tuesday]);
+
+    const review = await screen.findByRole('button', { name: /1 result awaiting your review/ });
+    fireEvent.click(review);
+
+    expect((await screen.findByTestId('record-workspace')).textContent).toBe('Tuesday Club:results');
+  });
+
+  it('keeps current placement empty-state explicit and exposes season-linked history under More', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({
+      seasons: [
+        { season: { id: 'current', name: '2026/27', status: 'OPEN', isCurrent: true, createdAt: '', updatedAt: '', closedAt: null }, leagues: [tuesday], placedLeagueIds: [] },
+        { season: { id: 'old', name: '2025/26', status: 'CLOSED', isCurrent: false, createdAt: '', updatedAt: '', closedAt: '' }, leagues: [closed], placedLeagueIds: ['league-closed'] },
+      ],
+      movements: [{ id: 'm1', fromSeasonId: 'old', toSeasonId: 'current', userId: user.id, fromLeagueId: 'league-closed', toLeagueId: 'league-tuesday', fromPosition: 1, kind: 'PROMOTED', status: 'APPLIED', toLeagueName: 'Tuesday Club', toSeasonName: '2026/27' }],
+    }), { status: 200 }));
+    renderMember([], [tuesday]);
+
+    expect(screen.getByText('You are currently unassigned. A club administrator will place you before fixtures are generated.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Past seasons' }));
+
+    expect(await screen.findByRole('heading', { name: 'Past seasons' })).toBeTruthy();
+    expect(screen.getByText('Placement pending for this season. No league has been assumed.')).toBeTruthy();
+    expect(screen.getByText('Confirmed movement: Tuesday Club · 2026/27 season.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Winter Cup/ }));
+    expect((await screen.findByTestId('record-workspace')).textContent).toBe('Winter Cup:table');
   });
 });
