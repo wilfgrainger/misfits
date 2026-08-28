@@ -108,6 +108,32 @@ describe('Misfits platform assets', () => {
     expect(styles).not.toMatch(/front-page-intro|front-page-entry-arrive|front-page-intro-curtain/);
   });
 
+  it('keeps non-circular club geometry on the shared radius scale', () => {
+    const visualStyles = [
+      'styles.css',
+      'mobile-experience.css',
+      'member-experience.css',
+      'private-club.css',
+      'club-app.css',
+    ].map((file) => readFileSync(resolve(clientRoot, file), 'utf8')).join('\n');
+
+    expect(visualStyles).toContain('--club-radius-control: 6px');
+    expect(visualStyles).toContain('--club-radius-surface: 10px');
+    expect(visualStyles).toContain('--club-radius-dialog: 12px');
+    expect(visualStyles).toContain('--club-radius-pill: 999px');
+    expect(visualStyles).not.toMatch(/border-radius:\s*(?:1[2-9]|[2-9]\d)px/);
+  });
+
+  it('reserves cards and gradients for earned member surfaces', () => {
+    const memberStyles = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
+    const sharedStyles = readFileSync(resolve(clientRoot, 'mobile-experience.css'), 'utf8');
+
+    expect(memberStyles).toMatch(/\.club-more > \.player-more-panel\s*\{[\s\S]*background:\s*transparent[\s\S]*border:\s*0/);
+    expect(memberStyles).toMatch(/\.embedded-league-experience \.embedded-rules-card\s*\{[\s\S]*background:\s*transparent[\s\S]*border-bottom:\s*1px solid var\(--club-border\)/);
+    expect(sharedStyles).toMatch(/\.rules-card,[\s\S]*\.signin-action-card\s*\{[\s\S]*background:\s*var\(--club-card\)/);
+    expect(sharedStyles).toMatch(/\.standings-card,[\s\S]*\.results-card\s*\{[\s\S]*background:\s*var\(--club-card\)/);
+  });
+
   it('offers a maskable install icon so the club mark is not cropped on a phone', () => {
     const manifest = JSON.parse(readFileSync(resolve(publicRoot, 'manifest.webmanifest'), 'utf8')) as {
       icons?: Array<{ src?: string; sizes?: string; type?: string; purpose?: string }>;

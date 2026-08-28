@@ -13,6 +13,7 @@
   --club-radius-control: 6px;
   --club-radius-surface: 10px;
   --club-radius-dialog: 12px;
+  --club-radius-pill: 999px;
   --success: var(--club-green);
 }
 
@@ -133,7 +134,7 @@ body {
 .public-load-state,
 .experience-empty {
   min-width: 0;
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
 }
 
 .league-hero-card {
@@ -226,7 +227,7 @@ body {
   color: var(--club-red-strong, #e35454);
   background: rgba(212, 64, 64, 0.08);
   border: 1px solid var(--club-red-line, rgba(212, 64, 64, 0.34));
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
 }
 
 .icon-action svg {
@@ -310,7 +311,7 @@ body {
   align-items: center;
   gap: 0.9rem;
   padding: 1rem;
-  background: linear-gradient(145deg, #171d1a, #111614);
+  background: var(--club-card);
   border: 1px solid var(--club-border);
 }
 
@@ -323,7 +324,7 @@ body {
   color: var(--club-red-strong, #e35454);
   background: var(--club-red-soft, rgba(212, 64, 64, 0.14));
   border: 1px solid var(--club-red-line, rgba(212, 64, 64, 0.34));
-  border-radius: 13px;
+  border-radius: var(--club-radius-control);
 }
 
 .surface-icon svg { width: 1.35rem; height: 1.35rem; }
@@ -347,7 +348,7 @@ body {
 .standings-card,
 .results-card {
   padding: 1rem;
-  background: linear-gradient(150deg, #141a17 0%, #0f1412 100%);
+  background: var(--club-card);
   border: 1px solid var(--club-border);
 }
 
@@ -521,7 +522,7 @@ body {
   padding: 0.85rem;
   background: #17201c;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
+  border-radius: var(--club-radius-surface);
 }
 
 .experience-result-list .result-main { grid-column: 1 / -1; }
@@ -587,7 +588,7 @@ body {
   color: #8f9a93;
   background: transparent;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
   font-size: 0.68rem;
   font-weight: 650;
 }
@@ -612,7 +613,7 @@ body {
   color: var(--club-muted);
   background: #111715;
   border: 1px solid var(--club-border);
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
 }
 
 .experience-panel .league-tab-active {
@@ -644,9 +645,9 @@ body {
   align-items: flex-start;
   padding: 1.2rem;
   overflow: hidden;
-  background: linear-gradient(145deg, #211514 0%, #0f0d0c 100%);
+  background: var(--club-card);
   border: 1px solid var(--club-red-line, rgba(212, 64, 64, 0.34));
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
 }
 
 .player-workspace > .league-heading::after {
@@ -675,7 +676,7 @@ body {
   color: var(--club-red-strong, #e35454);
   background: rgba(212, 64, 64, 0.08);
   border-color: var(--club-red-line, rgba(212, 64, 64, 0.34));
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
 }
 
 .player-workspace .season-rules-stack {
@@ -684,7 +685,7 @@ body {
   padding: 1rem;
   background: #151b18;
   border: 1px solid var(--club-border);
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
 }
 
 .player-workspace .season-rules-stack .season-rules { color: var(--club-text); font-weight: 750; }
@@ -707,7 +708,7 @@ body {
   color: var(--club-muted);
   background: #111715;
   border: 1px solid var(--club-border);
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
 }
 
 .player-workspace .content-tab-active,
@@ -725,7 +726,7 @@ body {
 .player-workspace .club-player-list {
   background: #111715;
   border-color: var(--club-border);
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
 }
 
 @media (max-width: 680px) {
@@ -809,7 +810,7 @@ body {
     transform: translateX(-50%);
     border: 1px solid #253129;
     border-bottom: 0;
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--club-radius-dialog) var(--club-radius-dialog) 0 0;
   }
 }
 

@@ -37,7 +37,7 @@
   color: #8f9a93;
   background: transparent;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
   font-size: 0.68rem;
   font-weight: 650;
 }
@@ -57,14 +57,14 @@
   color: var(--club-muted);
   background: #111715;
   border: 1px solid var(--club-border);
-  border-radius: 14px;
+  border-radius: var(--club-radius-control);
   font-weight: 700;
 }
 
 .player-more-action svg { width: 1.25rem; height: 1.25rem; }
 .player-more-action-active { color: var(--club-text); background: var(--club-red-soft); border-color: var(--club-red-line); }
 .player-workspace .club-player-list { padding: 0.65rem; }
-.player-workspace .club-player-list li { min-height: 54px; border-radius: 12px; }
+.player-workspace .club-player-list li { min-height: 54px; border-radius: var(--club-radius-surface); }
 
 .player-workspace .result-feed,
 .player-workspace .result-form,

@@ -299,7 +299,7 @@
   margin: 0.5rem 0;
   overflow: hidden;
   background: #222b27;
-  border-radius: 99px;
+  border-radius: var(--club-radius-pill);
 }
 
 .private-loading-line::after {
@@ -419,7 +419,7 @@
   padding: .9rem 1rem;
   background: var(--club-card);
   border: 1px solid var(--club-border);
-  border-radius: 12px;
+  border-radius: var(--club-radius-surface);
 }
 .public-league-rules strong { color: var(--club-text); font-size: .84rem; }
 .public-league-rules span { color: var(--club-muted); font-size: .88rem; line-height: 1.45; }
@@ -429,7 +429,7 @@
   padding: 1rem;
   background: var(--club-card);
   border: 1px solid var(--club-border);
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
 }
 .public-fixture-section .section-heading { align-items: center; }
 .public-fixture-section h2 { margin: 0; color: var(--club-text); }
@@ -604,7 +604,7 @@
   padding: 1rem;
   background: var(--club-card);
   border: 1px solid var(--club-border);
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
 }
 
 .private-club-shell .result-feed h3 {

@@ -204,7 +204,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   color: var(--text-2);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--club-radius-pill, 999px);
   font-size: .75rem;
   font-weight: 700;
 }
@@ -958,7 +958,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
     width: min(100%, 72rem);
     min-height: calc(100dvh - 3rem);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--club-radius-dialog, 12px);
     overflow: hidden;
   }
   .shell-panel-wide { width: min(100%, 80rem); }
@@ -1069,7 +1069,7 @@ details.create-season-disclosure summary:focus-visible { outline: 2px solid var(
     width: min(100%, 84rem);
     min-height: calc(100dvh - 4rem);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--club-radius-dialog, 12px);
   }
 }
 

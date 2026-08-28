@@ -116,12 +116,18 @@
 }
 
 .club-home-section,
-.record-competition-picker,
-.club-more > .player-more-panel {
+.record-competition-picker {
   padding: 1rem;
   background: var(--club-card);
   border: 1px solid var(--club-border);
   border-radius: var(--club-radius-surface);
+}
+
+.club-more > .player-more-panel {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .club-home-primary,
@@ -353,6 +359,14 @@
   padding: 0;
 }
 
+.embedded-league-experience .embedded-rules-card {
+  padding: 0.75rem 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--club-border);
+  border-radius: 0;
+}
+
 .competition-heading {
   display: flex;
   min-width: 0;
@@ -431,7 +445,7 @@
   color: var(--club-text);
   background: var(--club-card);
   border-color: var(--club-border);
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
 }
 
 .club-more-menu .player-more-action:hover {
