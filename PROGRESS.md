@@ -2,7 +2,7 @@
 
 **Updated:** 28 August 2026
 **Current branch:** `fix/mobile-admin-overflow-ui-sharpen`
-**PR:** not opened
+**PR:** #187 `fix: mobile admin overflow and layout`
 **Current focus:** mobile-admin visual maintenance → final Cave Pony review → pull request
 
 ## 28 August 2026 visual maintenance
