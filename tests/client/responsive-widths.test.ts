@@ -82,4 +82,26 @@ describe('responsive acceptance widths', () => {
     }
     expect(allStyles).toMatch(/padding-bottom:\s*calc\([^)]*env\(safe-area-inset-bottom\)\)|padding:[^;]*env\(safe-area-inset-bottom\)/);
   });
+
+  it('makes the private-club safeguards real on cutout phones and for keyboard users', () => {
+    const entry = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const privateEntry = readFileSync(resolve(clientRoot, 'private-club.css'), 'utf8');
+    const memberShell = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
+    const mobile = readFileSync(resolve(clientRoot, 'mobile-experience.css'), 'utf8');
+
+    expect(entry).toMatch(/<meta\s+name="viewport"\s+content="[^"\n]*viewport-fit=cover[^"\n]*"\s*\/>/);
+    expect(privateEntry).toMatch(/\.private-entry-state\.private-entry-v2\s*\{[^}]*padding:\s*max\(clamp\([^;]*env\(safe-area-inset-top\)[^;]*env\(safe-area-inset-right\)[^;]*env\(safe-area-inset-bottom\)[^;]*env\(safe-area-inset-left\)/s);
+    expect(privateEntry).toMatch(/\.private-admission-card\s+\.google-button-slot[\s\S]*?\.private-admission-card iframe\s*\{[^}]*width:\s*100%\s*!important/);
+    expect(memberShell).toMatch(/\.club-member-content\s*\{[^}]*padding:[^;]*env\(safe-area-inset-bottom\)/);
+    expect(memberShell).toMatch(/\.club-member-nav\s+\.member-app-nav-item\s*\{[^}]*min-height:\s*54px/);
+    expect(privateEntry + memberShell).toMatch(/:focus-visible\s*\{[^}]*outline:\s*3px\s+solid\s+var\(--club-red-strong\)/);
+    expect(mobile).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
+  });
+
+  it('keeps Home intentionally two-column only when desktop width is available', () => {
+    const memberShell = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
+
+    expect(memberShell).toMatch(/@media\s*\(min-width:\s*960px\)\s*\{[\s\S]*?\.club-home\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1\.2fr\)\s+minmax\(18rem,\s*0\.8fr\)/);
+    expect(memberShell).toMatch(/\.club-home-primary,[\s\S]*?\.club-home-attention\s*\{[\s\S]*?align-content:\s*start/);
+  });
 });

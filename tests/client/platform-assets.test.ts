@@ -93,15 +93,45 @@ describe('Misfits platform assets', () => {
     expect(ico.length).toBeGreaterThan(100);
   });
 
-  it('defines a centered logo reveal and an immediate reduced-motion composition', () => {
+  it('defines a static private threshold with reduced-motion-safe decoration', () => {
+    const document = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const styles = readFileSync(resolve(clientRoot, 'private-club.css'), 'utf8');
+    const direction = document.match(/<body>\s*<!--\s*(premium-club-v2[\s\S]*?)\s*-->/)?.[1];
 
-    expect(styles).toMatch(/\.front-page-intro\s*\{[\s\S]*position:\s*fixed[\s\S]*place-items:\s*center[\s\S]*animation:\s*front-page-intro-curtain/);
-    expect(styles).toMatch(/\.front-page-intro-content\s*\{[\s\S]*animation:\s*front-page-entry-arrive/);
-    expect(styles).toMatch(/\.front-page-intro-logo\s*\{[\s\S]*transform/);
-    expect(styles).toMatch(/@keyframes front-page-intro-logo[\s\S]*opacity:\s*0;\s*\n\s*transform:\s*scale\(1\.3\)/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.front-page-intro,[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.front-page-entry-content[\s\S]*pointer-events:\s*auto/);
+    expect(direction).toBeTruthy();
+    expect(direction).toMatch(/^premium-club-v2\s+THESIS:[\s\S]*OWN-WORLD:[\s\S]*STORY:[\s\S]*FIRST VIEWPORT:[\s\S]*FINISH:/);
+    expect(direction?.trim().endsWith('unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance')).toBe(true);
+    expect(styles).toMatch(/\.private-entry-state\.private-entry-v2\s*\{[\s\S]*min-height:\s*100dvh[\s\S]*padding:\s*max\(clamp\(1\.25rem, 5vw, 3\.5rem\), env\(safe-area-inset-top\)\)[\s\S]*radial-gradient/);
+    expect(styles).toMatch(/\.private-admission-card\s*\{[\s\S]*width:\s*100%[\s\S]*border:\s*1px solid[\s\S]*border-radius:\s*var\(--club-radius-surface\)[\s\S]*box-shadow:\s*0 \d+px \d+px/);
+    expect(styles).toMatch(/@media \(min-width:\s*768px\)[\s\S]*\.private-entry-state\.private-entry-v2[\s\S]*grid-template-columns:/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.private-entry-v2::before\s*\{[\s\S]*animation:\s*none[\s\S]*transform:\s*none/);
+    expect(styles).not.toMatch(/front-page-intro|front-page-entry-arrive|front-page-intro-curtain/);
+  });
+
+  it('keeps non-circular club geometry on the shared radius scale', () => {
+    const visualStyles = [
+      'styles.css',
+      'mobile-experience.css',
+      'member-experience.css',
+      'private-club.css',
+      'club-app.css',
+    ].map((file) => readFileSync(resolve(clientRoot, file), 'utf8')).join('\n');
+
+    expect(visualStyles).toContain('--club-radius-control: 6px');
+    expect(visualStyles).toContain('--club-radius-surface: 10px');
+    expect(visualStyles).toContain('--club-radius-dialog: 12px');
+    expect(visualStyles).toContain('--club-radius-pill: 999px');
+    expect(visualStyles).not.toMatch(/border-radius:\s*(?:1[2-9]|[2-9]\d)px/);
+  });
+
+  it('reserves cards and gradients for earned member surfaces', () => {
+    const memberStyles = readFileSync(resolve(clientRoot, 'club-app.css'), 'utf8');
+    const sharedStyles = readFileSync(resolve(clientRoot, 'mobile-experience.css'), 'utf8');
+
+    expect(memberStyles).toMatch(/\.club-more > \.player-more-panel\s*\{[\s\S]*background:\s*transparent[\s\S]*border:\s*0/);
+    expect(memberStyles).toMatch(/\.embedded-league-experience \.embedded-rules-card\s*\{[\s\S]*background:\s*transparent[\s\S]*border-bottom:\s*1px solid var\(--club-border\)/);
+    expect(sharedStyles).toMatch(/\.rules-card,[\s\S]*\.signin-action-card\s*\{[\s\S]*background:\s*var\(--club-card\)/);
+    expect(sharedStyles).toMatch(/\.standings-card,[\s\S]*\.results-card\s*\{[\s\S]*background:\s*var\(--club-card\)/);
   });
 
   it('offers a maskable install icon so the club mark is not cropped on a phone', () => {

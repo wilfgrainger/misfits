@@ -90,7 +90,7 @@
   max-width: 20ch;
   font-size: clamp(1.75rem, 8vw, 2.65rem);
   line-height: 1.02;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.025em;
 }
 
 .club-page-kicker,
@@ -105,20 +105,41 @@
 }
 
 .club-home-section,
+.club-home-primary,
+.club-home-attention,
 .record-competition-picker,
 .club-more > .player-more-panel,
 .competition-workspace,
+.competition-record,
 .record-competition-workspace {
   min-width: 0;
 }
 
 .club-home-section,
-.record-competition-picker,
-.club-more > .player-more-panel {
+.record-competition-picker {
   padding: 1rem;
   background: var(--club-card);
   border: 1px solid var(--club-border);
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
+}
+
+.club-more > .player-more-panel {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.club-home-primary,
+.club-home-attention {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+}
+
+.club-home-primary .club-section-heading,
+.club-home-attention .club-section-heading {
+  margin-bottom: 0;
 }
 
 .club-section-heading {
@@ -134,7 +155,7 @@
 .record-competition-picker h2 {
   margin-top: 0.15rem;
   font-size: clamp(1.25rem, 5vw, 1.65rem);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em;
 }
 
 .text-button {
@@ -143,7 +164,7 @@
   color: var(--club-muted);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--club-radius-control);
   font-size: 0.82rem;
   font-weight: 750;
   white-space: nowrap;
@@ -184,7 +205,7 @@
   color: var(--club-text);
   background: #0d1311;
   border: 1px solid #28332e;
-  border-radius: 12px;
+  border-radius: var(--club-radius-surface);
   box-shadow: none;
 }
 
@@ -224,7 +245,7 @@
   color: var(--club-text);
   background: var(--club-red-soft);
   border: 1px solid var(--club-red-line);
-  border-radius: 12px;
+  border-radius: var(--club-radius-surface);
 }
 
 .attention-row:hover {
@@ -272,7 +293,7 @@
   color: var(--club-muted);
   background: #0d1311;
   border: 1px dashed #33413a;
-  border-radius: 12px;
+  border-radius: var(--club-radius-surface);
   line-height: 1.5;
 }
 
@@ -293,6 +314,10 @@
 .competition-workspace {
   display: grid;
   gap: 0.8rem;
+}
+
+.competition-record {
+  width: 100%;
 }
 
 .competition-back {
@@ -334,6 +359,14 @@
   padding: 0;
 }
 
+.embedded-league-experience .embedded-rules-card {
+  padding: 0.75rem 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--club-border);
+  border-radius: 0;
+}
+
 .competition-heading {
   display: flex;
   min-width: 0;
@@ -360,7 +393,7 @@
 .embedded-league-experience .result-feed,
 .competition-fixtures {
   margin: 0;
-  border-radius: 14px;
+  border-radius: var(--club-radius-surface);
 }
 
 .competition-fixtures {
@@ -412,7 +445,7 @@
   color: var(--club-text);
   background: var(--club-card);
   border-color: var(--club-border);
-  border-radius: 12px;
+  border-radius: var(--club-radius-control);
 }
 
 .club-more-menu .player-more-action:hover {
@@ -577,9 +610,9 @@
   }
 
   .club-home {
-    grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.75fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
     align-items: start;
-    gap: 1.15rem;
+    gap: 1.25rem;
   }
 
   .club-home > .club-page-heading {
@@ -648,7 +681,7 @@
   color: var(--club-text);
   background: var(--club-card);
   border: 1px solid var(--club-border);
-  border-radius: 16px;
+  border-radius: var(--club-radius-dialog);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
 }
 

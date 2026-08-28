@@ -152,12 +152,12 @@ export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdm
         {destination === 'home' && <section className="club-home" aria-labelledby="club-home-title">
           <header className="club-page-heading"><p className="club-page-kicker">Misfits</p><h1 id="club-home-title">Good to see you, {user.username}.</h1></header>
 
-          <section className="club-home-section" aria-labelledby="your-competitions-title">
+          <section className="club-home-section club-home-primary" aria-labelledby="your-competitions-title">
             <div className="club-section-heading"><div><p className="club-section-kicker">Playing now</p><h2 id="your-competitions-title">Your competitions</h2></div>{clubLeagues.length > 0 && <button type="button" className="text-button" onClick={() => selectDestination('leagues')}>See all</button>}</div>
             {myLeagues.length > 0 ? <div className="competition-list">{myLeagues.map((league) => <CompetitionButton key={league.id} league={league} onOpen={() => openCompetition(league)} />)}</div> : <div className="club-empty-state"><strong>No current competition placement</strong><span>You are currently unassigned. A club administrator will place you before fixtures are generated.</span></div>}
           </section>
 
-          <section className="club-home-section club-needs-you" aria-labelledby="needs-you-title">
+          <section className="club-home-section club-home-attention club-needs-you" aria-labelledby="needs-you-title">
             <div className="club-section-heading"><div><p className="club-section-kicker">Attention</p><h2 id="needs-you-title">Needs you</h2></div></div>
             {pendingReviewCount > 0 && pendingReviewLeagueId && <button type="button" className="attention-row" onClick={openPendingReview}><span className="attention-icon"><AppIcon name="results" /></span><span><strong>{pendingReviewCount} result{pendingReviewCount === 1 ? '' : 's'} awaiting your review</strong><small>Confirm or dispute an opponent's score before the table settles.</small></span><span aria-hidden="true">›</span></button>}
             {eligibleRecordLeagues.length > 0 && <button type="button" className="attention-row" onClick={() => selectDestination('record')}><span className="attention-icon"><AppIcon name="record" /></span><span><strong>Have a result to settle?</strong><small>Record it here after your match.</small></span><span aria-hidden="true">›</span></button>}
@@ -169,7 +169,7 @@ export function MemberApp({ user, clubLeagues, myLeagues, onUserSaved, onOpenAdm
           <header className="club-page-heading"><p className="club-page-kicker">Settle a match</p><h1 id="club-record-title">Record</h1></header>
           {eligibleRecordLeagues.length === 0 && <div className="club-empty-state"><strong>No result to record here yet</strong><span>You need to be assigned to an open competition before you can submit a result.</span></div>}
           {eligibleRecordLeagues.length > 1 && !recordLeague && <section className="record-competition-picker" aria-labelledby="record-competition-title"><h2 id="record-competition-title">What are you recording?</h2><div className="competition-list">{eligibleRecordLeagues.map((league) => <CompetitionButton key={league.id} league={league} onOpen={() => setRecordLeagueId(league.id)} />)}</div></section>}
-          {recordLeague && <div className="record-competition-workspace">{eligibleRecordLeagues.length > 1 && <button type="button" className="text-button competition-back" onClick={() => setRecordLeagueId(null)}>Choose another competition</button>}<PlayerLeague user={user} league={recordLeague} isParticipant onUserSaved={onUserSaved} onSignOut={onSignOut} embedded embeddedView="record" /></div>}
+          {recordLeague && <div className="record-competition-workspace competition-record">{eligibleRecordLeagues.length > 1 && <button type="button" className="text-button competition-back" onClick={() => setRecordLeagueId(null)}>Choose another competition</button>}<PlayerLeague user={user} league={recordLeague} isParticipant onUserSaved={onUserSaved} onSignOut={onSignOut} embedded embeddedView="record" /></div>}
         </section>}
 
         {destination === 'leagues' && <section className="club-leagues" aria-label="Leagues">

@@ -112,6 +112,22 @@ describe('private club entry', () => {
     expect(calls.leagues).toBe(0);
   });
 
+  it('presents the club promise and admission card without mounting protected club data', async () => {
+    meResult = () => Promise.reject(new ApiClientError(401, 'Unauthenticated'));
+    render(<App />);
+
+    const title = await screen.findByRole('heading', { name: 'Misfits 501' });
+    expect(title.closest('.private-entry-masthead')).toBeTruthy();
+    expect(await screen.findByText('Club darts, properly settled.')).toBeTruthy();
+    const admissionCard = screen.getByRole('group', { name: 'Sign in with Google' });
+    expect(admissionCard.classList.contains('private-admission-card')).toBe(true);
+    expect(admissionCard.closest('.private-entry-v2')).toBeTruthy();
+    expect(screen.getByText(/League tables, results and member details stay private/i)).toBeTruthy();
+    expect(screen.queryByText('Your competitions')).toBeNull();
+    expect(calls.leagues).toBe(0);
+    expect(calls.myLeagues).toBe(0);
+  });
+
   it('carries a club invitation only into Google admission and removes the raw token after sign-in', async () => {
     window.history.replaceState({}, '', '/join/club-secret-token');
     meResult = () => unauthenticated();
@@ -182,5 +198,20 @@ describe('private club entry', () => {
       .toEqual(['Home', 'Record', 'Leagues', 'More']);
     expect(screen.getByRole('button', { name: 'Home' }).getAttribute('aria-current')).toBe('page');
     expect(screen.queryByText('Your Misfits 501 club workspace is ready.')).toBeNull();
+  });
+
+  it('holds a successful Google sign-in in a brief branded handoff before opening Home', async () => {
+    meResult = () => unauthenticated();
+    signInResult = () => Promise.resolve({ user: approvedUser, requiresOnboarding: false });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Google test sign-in' }));
+
+    expect(await screen.findByRole('heading', { name: 'Entering Misfits' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Home' })).toBeNull();
+    expect(screen.getByText('Your club record is opening.')).toBeTruthy();
+    expect(document.querySelector('.private-admission-handoff .private-admission-mark')).toBeTruthy();
+
+    expect(await screen.findByRole('button', { name: 'Home' }, { timeout: 1000 })).toBeTruthy();
   });
 });

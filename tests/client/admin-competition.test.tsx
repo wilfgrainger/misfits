@@ -257,6 +257,8 @@ describe('administrator competition workspace', () => {
     await screen.findByText('Fixtures committed.');
     expect(fetchMock.mock.calls.some(([input, init]) => String(input) === '/api/admin/competition/leagues/l1/fixtures' && init?.method === 'POST')).toBe(true);
     const voidFixture = screen.getByRole('button', { name: 'Void Alpha vs Bravo' });
+    expect(voidFixture.classList.contains('danger-button')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Reset before play' }).classList.contains('danger-button')).toBe(true);
     voidFixture.focus();
     fireEvent.click(voidFixture);
     const dialog = await screen.findByRole('dialog', { name: 'Void fixture?' });

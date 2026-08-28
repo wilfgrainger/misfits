@@ -1,6 +1,8 @@
 /** @vitest-environment jsdom */
+import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemberApp } from '../../src/client/components/MemberApp';
 import { PlayerLeague } from '../../src/client/components/PlayerLeague';
 import type { LeagueSummary, UserSummary } from '../../src/client/api';
 
@@ -37,6 +39,36 @@ function mockLeagueLoad(withFixture = true) {
 describe('private member navigation', () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
+  it('groups the approved member home and Record surfaces as a club record book', async () => {
+    mockLeagueLoad(true);
+    render(<MemberApp
+      user={player}
+      clubLeagues={[league]}
+      myLeagues={[league]}
+      onUserSaved={vi.fn()}
+      onSignOut={vi.fn()}
+    />);
+
+    expect(screen.getByRole('navigation', { name: 'Member workspace' })).toHaveClass('club-member-nav');
+    expect(screen.getByRole('heading', { name: /Good to see you/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Your competitions' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Needs you' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Your competitions' }).closest('section')).toHaveClass('club-home-primary');
+    expect(screen.getByRole('heading', { name: 'Needs you' }).closest('section')).toHaveClass('club-home-attention');
+    const home = screen.getByRole('heading', { name: /Good to see you/i }).closest('.club-home');
+    const competitions = screen.getByRole('heading', { name: 'Your competitions' });
+    const attention = screen.getByRole('heading', { name: 'Needs you' });
+    expect(home?.contains(competitions)).toBe(true);
+    expect(home?.contains(attention)).toBe(true);
+    expect(competitions.compareDocumentPosition(attention) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Record' })).not.toHaveAttribute('aria-current');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    await screen.findByRole('heading', { name: 'Record your result' });
+    expect(document.querySelector('.record-competition-workspace')).toHaveClass('competition-record');
+  });
+
   it('keeps the primary navigation fixed to League, Record, Results and More even when fixtures exist', async () => {
     mockLeagueLoad(true);
     render(<PlayerLeague user={player} league={league} isParticipant onUserSaved={vi.fn()} onSignOut={vi.fn()} />);
@@ -46,6 +78,26 @@ describe('private member navigation', () => {
     expect(labels).toEqual(['League', 'Record', 'Results', 'More']);
     expect(within(nav).queryByRole('button', { name: 'Fixtures' })).toBeNull();
     expect(within(nav).queryByRole('button', { name: 'Players' })).toBeNull();
+  });
+
+  it('keeps global destinations club-first and competition views local to the selected league', async () => {
+    mockLeagueLoad(false);
+    render(<MemberApp
+      user={player}
+      clubLeagues={[league]}
+      myLeagues={[league]}
+      onUserSaved={vi.fn()}
+      onSignOut={vi.fn()}
+    />);
+
+    expect(screen.getAllByRole('button', { name: /^(Home|Record|Leagues|More)$/ })
+      .map((button) => button.textContent))
+      .toEqual(['Home', 'Record', 'Leagues', 'More']);
+    expect(screen.queryByRole('button', { name: 'Fixtures' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Leagues' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Misfits 501/i }));
+    expect(screen.getByRole('tablist', { name: /Misfits 501 views/i })).toBeTruthy();
   });
 
   it('puts outstanding fixture selection inside Record rather than a Fixtures destination', async () => {

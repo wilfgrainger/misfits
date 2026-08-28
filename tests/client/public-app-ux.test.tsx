@@ -37,34 +37,35 @@ describe('private signed-out UX', () => {
 
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-  it('shows the centered decorative logo intro and the existing private entry content', async () => {
+  it('shows the static premium private threshold without a decorative curtain', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Misfits 501' })).toBeTruthy();
-    await waitFor(() => expect(document.querySelector('[data-front-page-intro]')).toBeTruthy());
-    const intro = document.querySelector('[data-front-page-intro]');
-    expect(intro?.getAttribute('aria-hidden')).toBe('true');
-    expect(intro?.querySelector('img')?.getAttribute('alt')).toBe('');
+    const title = await screen.findByRole('heading', { name: 'Misfits 501' });
+    expect(title.closest('.private-entry-masthead')).toBeTruthy();
+    expect(document.querySelector('[data-front-page-intro]')).toBeNull();
+    expect(document.querySelector('[data-front-page-intro-active]')).toBeNull();
     expect(screen.getByText('Existing members can sign in with Google. New members need a private club invitation.')).toBeTruthy();
-    expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
-    expect(screen.queryByText(/properly settled/i)).toBeNull();
+    expect(screen.getByRole('group', { name: 'Sign in with Google' }).classList.contains('private-admission-card')).toBe(true);
+    expect(screen.getByText('Club darts, properly settled.')).toBeTruthy();
     expect(screen.getByText(/League tables, results and member details stay private/)).toBeTruthy();
     expect(screen.queryByText('Standings')).toBeNull();
     expect(screen.queryByText('Latest results')).toBeNull();
     await waitFor(() => expect(state.leagueCalls).toBe(0));
   });
 
-  it('keeps invitation copy direct without the removed slogan', async () => {
+  it('keeps invitation copy direct within the static club threshold', async () => {
     window.history.replaceState({}, '', '/join/club-token');
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: "You've been invited to join Misfits" })).toBeTruthy();
-    expect(screen.queryByText(/properly settled/i)).toBeNull();
+    const invitationHeading = await screen.findByRole('heading', { name: "You've been invited to join Misfits" });
+    expect(invitationHeading.closest('.private-admission-card')).toBeTruthy();
+    expect(screen.getByText('Club darts, properly settled.')).toBeTruthy();
     expect(screen.getByText('Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.')).toBeTruthy();
+    expect(document.querySelector('[data-front-page-intro]')).toBeNull();
     expect(state.leagueCalls).toBe(0);
   });
 
-  it('skips the intro overlay for visitors who prefer reduced motion', async () => {
+  it('keeps the static threshold available when reduced motion is requested', async () => {
     const originalMatchMedia = window.matchMedia;
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
@@ -74,8 +75,13 @@ describe('private signed-out UX', () => {
     try {
       render(<App />);
       expect(await screen.findByRole('heading', { name: 'Misfits 501' })).toBeTruthy();
-      await waitFor(() => expect(document.querySelector('[data-front-page-intro]')).toBeNull());
-      expect(document.querySelector('[data-front-page-intro-active]')?.getAttribute('data-front-page-intro-active')).toBe('false');
+      expect(screen.getByText('Club darts, properly settled.')).toBeTruthy();
+      expect(screen.getByRole('group', { name: 'Sign in with Google' })).toBeTruthy();
+      expect(screen.getByText(/League tables, results and member details stay private/)).toBeTruthy();
+      expect(document.querySelector('[data-front-page-intro]')).toBeNull();
+      expect(document.querySelector('[data-front-page-intro-active]')).toBeNull();
+      expect(screen.queryByText('Standings')).toBeNull();
+      expect(state.leagueCalls).toBe(0);
     } finally {
       if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', { configurable: true, value: originalMatchMedia });
       else delete (window as unknown as { matchMedia?: unknown }).matchMedia;
@@ -98,9 +104,15 @@ describe('private signed-out UX', () => {
     window.history.replaceState({}, '', '/league/tuesday-club');
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Tuesday Club' })).toBeTruthy();
+    const heading = await screen.findByRole('heading', { name: 'Tuesday Club' });
+    expect(heading).toBeTruthy();
+    expect(heading.closest('header')?.classList.contains('record-header')).toBe(true);
+    expect(screen.getByText('Public fixture board')).toBeTruthy();
     expect(await screen.findByText('Alpha vs Bravo')).toBeTruthy();
+    expect(document.querySelector('.record-rules')).toBeTruthy();
+    expect(document.querySelector('.record-list')).toBeTruthy();
     expect(screen.getByText('Only the club\'s deliberately public fixture schedule is shown here. Private account and member details stay protected.')).toBeTruthy();
+    expect(screen.queryByText('Join the')).toBeNull();
     expect(state.leagueCalls).toBe(0);
   });
 });

@@ -49,7 +49,7 @@ describe('Google Identity Services client', () => {
       size: 'large',
       text: 'signin_with',
       shape: 'rectangular',
-      logo_alignment: 'left',
+      logo_alignment: 'center',
       locale: 'en',
       width: '320',
     }));
@@ -84,5 +84,20 @@ describe('Google Identity Services client', () => {
       expect(google.accounts.id.renderButton).toHaveBeenLastCalledWith(slot, expect.objectContaining({ width: expectedWidth }));
       entry.remove();
     }
+  });
+
+  it('uses the actual sign-in slot when admission-card padding makes it narrower than its parent', async () => {
+    const google = window.google!;
+    const entry = document.createElement('div');
+    const slot = document.createElement('div');
+    Object.defineProperty(entry, 'clientWidth', { configurable: true, value: 320 });
+    Object.defineProperty(slot, 'clientWidth', { configurable: true, value: 240 });
+    entry.append(slot);
+    document.body.append(entry);
+
+    await new GoogleAuth('client-id').mountButton(slot, vi.fn(), vi.fn());
+
+    expect(google.accounts.id.renderButton).toHaveBeenLastCalledWith(slot, expect.objectContaining({ width: '240' }));
+    entry.remove();
   });
 });

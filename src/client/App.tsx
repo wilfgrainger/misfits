@@ -1,4 +1,4 @@
-import { FormEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminCompetitionDesk } from './components/AdminCompetitionDesk';
 import { AppIcon } from './components/AppIcons';
 import { MemberApp } from './components/MemberApp';
@@ -7,9 +7,8 @@ import { ApiClient, ApiClientError, type AuthPayload, type LeagueSummary, type U
 import { GoogleAuth } from './auth/GoogleAuth';
 import { publicLeagueKey as readPublicLeagueKey } from './share';
 
-type ViewState = 'loading' | 'public' | 'signed-out' | 'suspended' | 'pending' | 'rejected' | 'onboarding' | 'signed-in';
+type ViewState = 'loading' | 'public' | 'signed-out' | 'suspended' | 'pending' | 'rejected' | 'onboarding' | 'admitting' | 'signed-in';
 const CLUB_INVITE_KEY = 'misfits_pending_club_invite';
-const FRONT_PAGE_INTRO_DURATION = 1500;
 const api = new ApiClient();
 
 function messageFor(error: unknown, fallback: string): string {
@@ -61,9 +60,7 @@ export default function App() {
   const [publicLeaguePathKey, setPublicLeaguePathKey] = useState<string | null>(null);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const clubLoadRequest = useRef(0);
-  const frontPageIntroSeen = useRef(false);
-  const [frontPageIntroActive, setFrontPageIntroActive] = useState(false);
-  const isFrontPageSignedOut = view === 'signed-out' && !clubInviteToken && !publicLeaguePathKey;
+  const admissionTimer = useRef<number | null>(null);
 
   const clearClubData = () => {
     setClubLeagues([]);
@@ -110,9 +107,13 @@ export default function App() {
       return;
     }
 
-    setView('signed-in');
+    if (admissionTimer.current !== null) window.clearTimeout(admissionTimer.current);
+    setView('admitting');
     setMessage('');
-    await loadApprovedClub(isActive);
+    admissionTimer.current = window.setTimeout(() => {
+      setView('signed-in');
+      void loadApprovedClub();
+    }, 420);
   };
 
   useEffect(() => {
@@ -161,24 +162,9 @@ export default function App() {
     return () => { active = false; clubLoadRequest.current += 1; };
   }, []);
 
-  useLayoutEffect(() => {
-    if (!isFrontPageSignedOut || frontPageIntroSeen.current) {
-      if (!isFrontPageSignedOut) setFrontPageIntroActive(false);
-      return;
-    }
-
-    frontPageIntroSeen.current = true;
-    const reducedMotion = typeof window !== 'undefined'
-      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) {
-      setFrontPageIntroActive(false);
-      return;
-    }
-
-    setFrontPageIntroActive(true);
-    const timer = window.setTimeout(() => setFrontPageIntroActive(false), FRONT_PAGE_INTRO_DURATION);
-    return () => window.clearTimeout(timer);
-  }, [isFrontPageSignedOut]);
+  useEffect(() => () => {
+    if (admissionTimer.current !== null) window.clearTimeout(admissionTimer.current);
+  }, []);
 
   useEffect(() => {
     if (view !== 'signed-out' || !googleButtonRef.current) return;
@@ -237,6 +223,7 @@ export default function App() {
 
   const logout = async () => {
     await api.logout().catch(() => undefined);
+    if (admissionTimer.current !== null) window.clearTimeout(admissionTimer.current);
     clubLoadRequest.current += 1;
     setSigningIn(false);
     setUser(null);
@@ -266,17 +253,19 @@ export default function App() {
   }
 
   if (view === 'signed-out') {
-    return <ClubShell><section className="private-entry-state private-signin-state front-page-entry" aria-busy={frontPageIntroActive} data-front-page-intro-active={frontPageIntroActive ? 'true' : 'false'}>
-      {isFrontPageSignedOut && frontPageIntroActive && <div className="front-page-intro" data-front-page-intro aria-hidden="true"><img className="front-page-intro-logo" src="/brand/misfits-501.jpg" alt="" /></div>}
-      <div className={isFrontPageSignedOut ? 'front-page-entry-content front-page-intro-content' : 'front-page-entry-content'}>
-        <span className="private-entry-icon"><AppIcon name="lock" /></span>
-        <p className="entry-kicker">{unavailablePublicLeague ? 'Private club access' : 'Private members club'}</p>
-        <h1>{unavailablePublicLeague ? 'League unavailable' : clubInviteToken ? "You've been invited to join Misfits" : 'Misfits 501'}</h1>
-        <p className="entry-copy">{unavailablePublicLeague ? 'This shared league is private or unavailable. Sign in with Google to continue to Misfits if you are a member.' : clubInviteToken ? 'Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.' : 'Existing members can sign in with Google. New members need a private club invitation.'}</p>
-        <div className="private-google-card" role="group" aria-label="Sign in with Google">{googleSlot}</div>
-        {message && message !== 'Private club access' && <p className={message === 'A club invitation is required' ? 'error-message entry-message' : 'form-help entry-message'} role={message === 'A club invitation is required' ? 'alert' : 'status'}>{message}</p>}
-        <p className="privacy-note"><AppIcon name="lock" /> League tables, results and member details stay private until membership is approved.</p>
+    return <ClubShell><section className="private-entry-state private-signin-state private-entry-v2">
+      <div className="private-entry-masthead">
+        <p className="entry-kicker">Private members club</p>
+        <h1>Misfits 501</h1>
+        <p className="entry-promise">Club darts, properly settled.</p>
       </div>
+      <div className="private-admission-card" role="group" aria-label="Sign in with Google">
+        <h2>{unavailablePublicLeague ? 'League unavailable' : clubInviteToken ? "You've been invited to join Misfits" : 'Welcome to Misfits'}</h2>
+        <p className="entry-copy">{unavailablePublicLeague ? 'This shared league is private or unavailable. Sign in with Google to continue to Misfits if you are a member.' : clubInviteToken ? 'Sign in with Google to send your membership request. A club admin will approve access before any league data becomes available.' : 'Existing members can sign in with Google. New members need a private club invitation.'}</p>
+        {googleSlot}
+      </div>
+      {message && message !== 'Private club access' && <p className={message === 'A club invitation is required' ? 'error-message entry-message' : 'form-help entry-message'} role={message === 'A club invitation is required' ? 'alert' : 'status'}>{message}</p>}
+      <p className="privacy-note"><AppIcon name="lock" /> League tables, results and member details stay private until membership is approved.</p>
     </section></ClubShell>;
   }
 
@@ -300,10 +289,17 @@ export default function App() {
     return <ClubShell user={user} onSignOut={() => void logout()}><form className="onboarding-form private-onboarding-card" onSubmit={submitUsername}><div className="form-heading"><p className="entry-kicker">Membership approved</p><h1>Set your player nickname</h1><p className="form-help">This is how your name will appear to other approved club members on tables and results.</p></div><label htmlFor="username">Nickname</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. Bullseye Billy" autoComplete="nickname" maxLength={24} required /><button className="primary-button" type="submit">Enter Misfits</button>{message && message !== 'Choose the name your club will see.' && <p className="form-help" role="status">{message}</p>}</form></ClubShell>;
   }
 
+  if (view === 'admitting' && user) {
+    return <ClubShell user={user}><section className="private-entry-state private-admission-handoff" aria-live="polite">
+      <img className="private-admission-mark" src="/brand/misfits-501.jpg" alt="" aria-hidden="true" />
+      <div className="private-admission-copy"><p className="entry-kicker">Membership confirmed</p><h1>Entering Misfits</h1><p>Your club record is opening.</p></div>
+    </section></ClubShell>;
+  }
+
   return <ClubShell user={user} wide onProfile={() => setProfileRequestKey((current) => current + 1)}>
     {view === 'signed-in' && user && <div className="account-panel signed-in-experience private-member-app">
       {clubLoadError && <div className="experience-empty experience-error" role="alert"><strong>{clubLoadError}</strong><button className="secondary-button" type="button" onClick={() => void loadApprovedClub()}>Retry club workspace</button></div>}
-      {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><p className="form-help">Club administration</p></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
+      {user.role === 'ADMIN' && adminMode && <div className="admin-workbench"><div className="admin-workbench-entry"><button className="secondary-button admin-back-button" type="button" onClick={() => setAdminMode(false)}>Back to club</button><div><p className="admin-workbench-kicker">Club administration</p><h1>Keep the season straight.</h1><p className="form-help">Set up competition, settle fixtures and protect club access.</p></div></div><AdminCompetitionDesk user={user} selectedLeagueId={adminSelectedLeagueId} onLeagueCreated={handleLeagueCreated} onLeagueChanged={handleLeagueChanged} onLeagueSelected={(league) => setAdminSelectedLeagueId(league?.id ?? null)} /></div>}
       {(!adminMode || user.role !== 'ADMIN') && !clubLoadError && <div className="member-workbench member-area"><MemberApp user={user} clubLeagues={clubLeagues} myLeagues={myLeagues} onUserSaved={saveUser} onOpenAdmin={user.role === 'ADMIN' ? () => setAdminMode(true) : undefined} onSignOut={() => void logout()} profileRequestKey={profileRequestKey} /></div>}
     </div>}
   </ClubShell>;

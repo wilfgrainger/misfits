@@ -1,9 +1,10 @@
 # Misfits 501 Progress
 
-**Updated:** 27 August 2026
-**Current release:** `main` at `a3a34250a78c6978630fdd3981917583a6ed508b`
-**PR #183:** merged at 2026-08-27T08:16:47Z; front-page logo reveal and copy update
-**Current focus:** post-deploy front-page handoff complete
+**Updated:** 28 August 2026
+**Current branch:** `codex/premium-club-v2`
+**Base integrated:** `origin/main` at `1ec406f87bf4f2b66f62afd89cea3b9e575bcc4b`
+**Pull request:** #186
+**Current focus:** PR #186 is conflict-resolved, locally verified, and reported by GitHub as mergeable/clean; awaiting review and merge decision.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -18,72 +19,76 @@ Read, in order:
 5. `DESIGN.md`
 6. affected client code, tests and `public/` assets
 
-This branch finishes the shipped website rather than adding product scope.
+This branch is a presentation-led redesign of the existing Misfits 501 private-club product. It must preserve the existing admission, Google identity, result, fixture, table, public-share, and administration behaviour.
 
-### Already merged — club member workflows (PR #181)
+## What is committed on this branch
 
-- Active approved administrators are included in assigned competition rosters and standings.
-- Club bootstrap is hardened against stale responses after logout, unmount or competing loads.
-- Admin result dialogs have Escape handling, focus containment, initial focus, visible close controls and focus restoration.
-- Pending opponent-result reviews surface on the member Home screen and route to the relevant Results workspace.
-- Competition tab/tabpanel associations are stable, with responsive touch-target and modal polish.
+| Commit | Status | Scope |
+| --- | --- | --- |
+| `3a8ec5e` | committed | Approved Premium Club V2 design specification. |
+| `576346b` | committed | Task-by-task implementation plan, including V2 visual-contract correction. |
+| `ef7d413` | reviewed clean | Privacy, promise, club-first navigation, and public-record regression contracts. |
+| `70aa56a` | reviewed clean | Static private-club threshold: no timed curtain, admission card, fixed promise, emitted V2 direction contract, and retained access boundaries. |
+| `c9c903c` | reviewed clean | Club record-book member shell: Home grouping, Record hook, desktop composition, and unchanged four-destination member navigation. |
+| `bf61697` | reviewed clean | Public fixture, table, fixture/result, and admin scorebook presentation. The deferred Task 4 review completed clean against `c9c903c..bf61697`; no Critical or Important finding. |
+| `ac18b00` | reviewed locally | Responsive safeguards: safe-area entry spacing, supplied Google-control containment, minimum navigation clearance, and focus/reduced-motion coverage. |
+| `343a70d` | deployed and live-verified | Quality pass: large subdued admission seal, approved-member entry handoff, deliberate admin desk framing, separated task controls, and mobile action-row spacing. |
+| `984ea84` | deployed and live-verified | Premium crispness pass: shared sharper geometry and edges, restrained depth, clearer action hierarchy, compact admin health ledger, preserved labelled admin jobs, and strengthened signed-in test timing. |
+| `0b520ba` | deployed and live-verified | Completion-audit follow-through: enforced the shared radius scale, removed routine member gradients and nested More/rules cards, and classified reset/void fixture actions as destructive without changing their protected workflows. |
 
-### Completed website completion audit
+### Product truth that must not change
 
-Each item was captured with a failing test before its fix.
+- Misfits 501 is one private darts club, not a multi-club product or generic league SaaS.
+- Anonymous, pending, rejected, and suspended visitors must never mount member, league, standings, fixture, or result data.
+- Google Identity Services remains the only sign-in method. Do not weaken Worker authorization or change invite/session behaviour.
+- The only global approved-member destinations are `Home`, `Record`, `Leagues`, and `More`. `Table`, `Fixtures`, and `Results` are local competition tabs.
+- DartCounter scores; Misfits records and settles outcomes. Do not add live scoring, social/member marketing, payments, teams, tournaments, or public member data.
+- Use the supplied club art intact. The authorised admission-screen exception is a very low-contrast seal watermark behind clear space only; it must never compromise copy contrast. No external font, dependency, Cloudflare service, migration, route, or API belongs in this release.
 
-1. **The landing promise was revised.** The earlier completion release restored "Club darts, properly settled." to the public shell and metadata. PR #183 deliberately removed that slogan from user-facing UI and metadata, leaving the club identity, private-members-club context and existing admission copy intact.
-2. **There was no favicon.** Because asset not-found handling is `single-page-application`, `/favicon.ico` answered `200 text/html` with the app shell instead of an icon. `public/brand/misfits-501-mark.svg` is a restrained `DESIGN.md`-palette bullseye, wired as `rel="icon"`, with the supplied club artwork as `apple-touch-icon`.
-3. **The install manifest had one 1254px JPEG icon.** A maskable SVG entry now prevents the club mark being cropped on a phone home screen.
-4. **There was no `robots.txt`.** A private members club now says so explicitly, reinforced by `<meta name="robots" content="noindex, nofollow">`.
-5. **There was no no-JavaScript fallback.** A `<noscript>` block now explains the club. Its first implementation would have rendered invisible, because no colour was declared and the built stylesheet paints a dark ground without JavaScript; a contrast-guarded `noscript` rule fixes that and a test holds it at WCAG AA against both dark grounds.
-6. **Shared club links had no preview.** The product shares `/join/:token` invitations and `/league/:slug` tables, so privacy-safe Open Graph and Twitter card metadata now render club identity and the promise, and no member data.
-7. **The retired white-label "League Board" mark was still deployed.** `public/brand/league-board.svg` is removed; `AGENTS.md` forbids restoring that identity.
-8. **`DESIGN.md` requires a responsive audit at 320/360/375/390/412/430/768/1024 and no test enforced it.** `tests/client/responsive-widths.test.ts` proves every required width lands in a declared band, that phone/tablet/desktop bands exist, that no layout is pinned wider than 320px, that page-level horizontal overflow is prevented, and that fixed member navigation respects the bottom safe area.
-9. **A deliberately public table had no address.** An admin could set league visibility to `PUBLIC`, `PublicLeagueView` served `/league/:slug`, and `shareLeague()` was fully tested — but nothing connected them, so the approved "publicly chosen club table" was unreachable in practice. The admin league edit form now shows the public address with an open link and a share/copy control, using the existing helper. No endpoint, dependency or migration was added.
-10. **The public share copy invited a join.** A read-only public table said "Join the X league.", which contradicts the `DESIGN.md` ban on self-service join UI. It now reads "See the X table." with the title "X — Misfits 501".
-11. **Read failures had no recovery action.** Public fixtures, member competition data, member Players/history and the admin read surfaces announced errors but left users stranded. A shared accessible `LoadFailure` surface now offers contextual retry for those reads; mutation failures remain separate so a retry never repeats a write.
-12. **The front page had no authored entrance sequence, and its slogan no longer fit the club.** The supplied Misfits 501 artwork now arrives large and centered, scales/fades as a decorative one-shot intro, then hands off to the existing private sign-in content. The normal heading is `Misfits 501`; `Club darts, properly settled.` is removed from user-facing UI, document metadata, manifest and no-JavaScript copy. Reduced-motion users receive the content immediately.
+## Release sequence
 
-## Current verification
+Work in this exact isolated checkout, not the original dirty checkout:
 
-Front-page release gate before merge on exact PR head `4b8b3ec`:
+`C:\Users\wilf6\dev\misfits\.worktrees\premium-club-v2`
 
-- `npx wrangler types`: GREEN.
-- `npm run typecheck`: GREEN.
-- Impeccable source detector for `src/client`: `[]`.
-- `vitest run`: **77 test files / 316 tests GREEN**.
-- `npm run build`: GREEN.
-- `git diff --check`: clean.
-- User-facing source/public phrase audit: no `properly settled` occurrences.
+| Status | Job | Evidence recorded |
+| --- | --- | --- |
+| complete | **Deferred Task 4 review.** Reviewed `c9c903c..bf61697` read-only. | Clean diff; public app, standings, and player focused suites: 17 tests passed. |
+| complete | **Responsive, focus, and motion safeguards.** | Safe-area/sizing source safeguards committed in `ac18b00`; focused entry and responsive suite passed. |
+| complete | **Bounded rendered finish.** | Signed-out private root captured at 390×844 and 1440×900 in `.impeccable/review/`; one correction pass fixed supplied Google-control sizing and true centring. |
+| complete | **Deferred minor review debt.** | Direction-comment contract tightened; motion-test title corrected; desktop ratio/mobile source order/selected `aria-current` are explicit; no product route directly mounts non-embedded `PlayerLeague`. |
+| complete | **Fresh release gate, deployment, and live check.** | `wrangler types`, client/Worker typecheck, 77-file/323-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `90e4e6f` deployed as Worker version `e568ce96-0012-419c-8ce3-41f8c8fcadc6`; live root and `/api/health` returned HTTP 200. |
+| complete | **Quality-pass release and live check.** | `wrangler types`, client/Worker typecheck, 77-file/324-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `343a70d` deployed as Worker version `9ebfffc3-f4e4-4589-a7cb-41073ba1d24e`; the live 390px admission screen was inspected. |
+| complete | **Premium crispness and admin simplicity pass.** | Cave Pony review kept the existing admin component and every explicit job, removed nested rules/metric-card chrome, separated destructive actions, and introduced one shared control/surface/dialog radius scale. Fresh gate: Wrangler types, both TypeScript projects, 77 files / 324 tests, production build, detector, deploy dry-run, and diff check passed. Commit `984ea84` deployed as Worker version `98426cf9-ba36-4c56-9332-29cadc594eb8`; live root and `/api/health` returned HTTP 200 and the 390px entrance was inspected. No API, auth, schema, D1, route, or dependency change. |
+| complete | **Completion-audit follow-through.** | All eight recommendations now have direct source or rendered evidence: shared radius tokens plus a no-large-one-off regression contract; stronger edge/text tokens; routine gradients removed; primary/secondary/danger contracts; refined tracking; compact labelled admin ledger/forms; flattened More and embedded rules surfaces; and a live 10px admission card. Cave Pony retained the existing seven-job admin component with no dependency or abstraction. Fresh gate: Wrangler types, both TypeScript projects, 77 files / 326 tests, production build, detector, deploy dry-run, and diff check passed. Commit `0b520ba` deployed as Worker version `eee5da65-f953-4798-96d7-8eb467c8a28f`. |
+| complete | **PR #186 base integration.** | Merge commit `fe7093f` integrates `origin/main` at `1ec406f`; retained the generated favicon assets and metadata while preserving the superseding V2 threshold, responsive contract, and privacy boundaries. Local gate: 77 files / 326 tests, both TypeScript projects, Wrangler types, build, diff check, and conflict-marker scan passed. GitHub Actions run `33156070229` passed `verify`; Deploy Worker was skipped for the pull request. GitHub reports PR #186 `MERGEABLE` / `CLEAN` at head `fe7093f`. |
 
-Post-merge GitHub Actions run `33053338107` succeeded for exact main SHA `a3a34250a78c6978630fdd3981917583a6ed508b`:
+## Evidence already reported by completed task implementations
 
-- Verify job `98453926131`: GREEN — Wrangler types, TypeScript, Impeccable, tests and build.
-- Deploy Worker job `98454111140`: GREEN — credentials check and Cloudflare deploy.
+- Task 2 report: 77 files / 319 tests, TypeScript, Wrangler types, production build, emitted V2 HTML-comment grep, detector `[]`, and diff checks passed.
+- Task 3 report: 77 files / 320 tests, client/Worker TypeScript, production build, detector `[]`, and diff checks passed.
+- Task 4 review: `git diff --check c9c903c..bf61697` was clean; `public-app-ux`, `standings-table`, and `player-app` passed (3 files / 17 tests).
+- Rendered acceptance used the local Worker with its local D1 at 390×844 and 1440×900. The anonymous entrance displayed only the private-club promise and Google sign-in, with no member, fixture, result, or table data mounted.
+- Google Identity Services sizing now uses the actual sign-in slot, not its padded parent card; its supported logo alignment is `center`. The source regression test proves the narrower slot wins. The live Google sign-in journey was not performed.
+- The deployed custom domain `https://darts.graingers.agency/` served the new `index-BRH1UTI9.js` and `index-B8ZTN2TB.css` asset hashes, returned the V2 direction contract, and rendered the signed-out 390px entrance with the Google mark and label centred. `https://darts.graingers.agency/api/health` returned `{"ok":true}`.
+- The quality-pass deployment serves `index-GF72nVFt.js` and `index-Bal_ro4S.css`. The live 390px entrance retains readable copy and the centred Google control over a large subdued club seal; root and `/api/health` both returned HTTP 200. Authenticated member/admin browser acceptance remains covered by component contracts and supplied capture review, not a live signed-in journey.
+- The premium-crispness deployment serves `index-C9qElwDu.js` and `index-DrrYaqFv.css`. The live 390px entrance has zero page-level overflow, a centred 293px Google control inside its 335px admission card, readable copy, and no mounted protected club data. Authenticated member/admin acceptance remains component-contract and supplied-capture evidence rather than a live signed-in journey.
+- The completion-audit deployment serves `index-CfnfpWh6.js` and `index-CX8aLSeI.css`. Live production at 390×844 reports a 10px admission-card radius, zero horizontal overflow, a centred 293px Google control inside the 335px card, no alerts, and no anonymous protected-data mount. Root and `/api/health` both returned HTTP 200.
 
-Privacy-safe production smoke checks after deployment:
+These are local task, browser, and production checks. They do not establish a live Google journey, CI, a push, or a pull request.
 
-- `/`: `200 text/html`; `Misfits 501 — Private club darts.` present, intro JS/CSS assets live, retired slogan absent.
-- `/brand/misfits-501.jpg`: `200 image/jpeg`.
-- `/manifest.webmanifest`: `200 application/manifest+json`; retired slogan absent.
-- `/robots.txt`: `200 text/plain`; `Disallow: /` present.
-- `/api/health`: `200 application/json`; `{"ok":true}`.
-- Signed-out `/api/me`: `401 application/json`; `UNAUTHENTICATED`, with no email/username/leagues/results fields.
+## Handoff files and operating discipline
 
-This evidence covers source, contract, CI, deployment and privacy-safe production health. It does not claim an authenticated Google journey or rendered-device pixel review.
-
-## Current blockers and decisions
-
-- No production blocker remains for this release. The code-only front-page deployment succeeded; no D1 migration was needed.
-- The supplied artwork remains intact and is used as a decorative intro; no private data is present in the animation or public shell.
-- `robots.txt` disallows all crawling, including deliberately public table paths. That follows the private-members-club positioning; reverse it only if the club decides a public table should be discoverable by search.
-- No schema, migration, Cloudflare service, dependency or authorization change is included.
-- An authenticated Google journey and rendered mobile/desktop visual walkthrough remain intentionally unclaimed because the post-deploy check used no credentials or browser surface.
+- Design: `docs/superpowers/specs/2026-08-27-premium-club-v2-design.md`
+- Plan: `docs/superpowers/plans/2026-08-27-premium-club-v2.md`
+- SDD ledger/reports/packages: `.superpowers/sdd/2026-08-27-premium-club-v2/`
+- Use explicit staging paths; do not use `git add -A`, reset, or overwrite unrelated files.
+- The latest production Worker recorded here was deployed from committed source `0b520ba`. PR #186 exists, but its integrated head, CI, merge, and any later deployment remain separate evidence gates.
+- No schema, migration, Cloudflare service, dependency, API, authorization, or data-visibility change is included.
 
 ## Next action
 
-Monitor normal club use and provider measurements. Any future change should begin from deployed `main` commit `a3a34250` and preserve the private-club, free-tier and Worker authorization boundaries.
+Review PR #186 and choose whether to merge it. This conflict-resolution job does not merge or deploy.
 
 ## Historical evidence
 
