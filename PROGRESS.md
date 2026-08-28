@@ -3,7 +3,7 @@
 **Updated:** 28 August 2026
 **Current branch:** `codex/premium-club-v2`
 **Base:** `56603ee8304955618bed870c93ad41253669ce4d` — `fix: plainer landing copy and a real favicon.ico`
-**Current focus:** Completion-audit follow-through in progress: finish the strict geometry scale, remove remaining routine card/gradient treatment, and classify protected destructive fixture actions before the final release proof.
+**Current focus:** Original eight-point premium crispness brief and Cave Pony admin review complete, deployed, and reconciled against live production evidence.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -33,6 +33,7 @@ This branch is a presentation-led redesign of the existing Misfits 501 private-c
 | `ac18b00` | reviewed locally | Responsive safeguards: safe-area entry spacing, supplied Google-control containment, minimum navigation clearance, and focus/reduced-motion coverage. |
 | `343a70d` | deployed and live-verified | Quality pass: large subdued admission seal, approved-member entry handoff, deliberate admin desk framing, separated task controls, and mobile action-row spacing. |
 | `984ea84` | deployed and live-verified | Premium crispness pass: shared sharper geometry and edges, restrained depth, clearer action hierarchy, compact admin health ledger, preserved labelled admin jobs, and strengthened signed-in test timing. |
+| `0b520ba` | deployed and live-verified | Completion-audit follow-through: enforced the shared radius scale, removed routine member gradients and nested More/rules cards, and classified reset/void fixture actions as destructive without changing their protected workflows. |
 
 ### Product truth that must not change
 
@@ -58,7 +59,7 @@ Work in this exact isolated checkout, not the original dirty checkout:
 | complete | **Fresh release gate, deployment, and live check.** | `wrangler types`, client/Worker typecheck, 77-file/323-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `90e4e6f` deployed as Worker version `e568ce96-0012-419c-8ce3-41f8c8fcadc6`; live root and `/api/health` returned HTTP 200. |
 | complete | **Quality-pass release and live check.** | `wrangler types`, client/Worker typecheck, 77-file/324-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `343a70d` deployed as Worker version `9ebfffc3-f4e4-4589-a7cb-41073ba1d24e`; the live 390px admission screen was inspected. |
 | complete | **Premium crispness and admin simplicity pass.** | Cave Pony review kept the existing admin component and every explicit job, removed nested rules/metric-card chrome, separated destructive actions, and introduced one shared control/surface/dialog radius scale. Fresh gate: Wrangler types, both TypeScript projects, 77 files / 324 tests, production build, detector, deploy dry-run, and diff check passed. Commit `984ea84` deployed as Worker version `98426cf9-ba36-4c56-9332-29cadc594eb8`; live root and `/api/health` returned HTTP 200 and the 390px entrance was inspected. No API, auth, schema, D1, route, or dependency change. |
-| in progress | **Completion-audit follow-through.** | The original eight-point brief is being checked item by item. Residual hard-coded large radii, routine member gradients/nested cards, and unclassified reset/void actions are being corrected before the goal is closed. |
+| complete | **Completion-audit follow-through.** | All eight recommendations now have direct source or rendered evidence: shared radius tokens plus a no-large-one-off regression contract; stronger edge/text tokens; routine gradients removed; primary/secondary/danger contracts; refined tracking; compact labelled admin ledger/forms; flattened More and embedded rules surfaces; and a live 10px admission card. Cave Pony retained the existing seven-job admin component with no dependency or abstraction. Fresh gate: Wrangler types, both TypeScript projects, 77 files / 326 tests, production build, detector, deploy dry-run, and diff check passed. Commit `0b520ba` deployed as Worker version `eee5da65-f953-4798-96d7-8eb467c8a28f`. |
 
 ## Evidence already reported by completed task implementations
 
@@ -70,6 +71,7 @@ Work in this exact isolated checkout, not the original dirty checkout:
 - The deployed custom domain `https://darts.graingers.agency/` served the new `index-BRH1UTI9.js` and `index-B8ZTN2TB.css` asset hashes, returned the V2 direction contract, and rendered the signed-out 390px entrance with the Google mark and label centred. `https://darts.graingers.agency/api/health` returned `{"ok":true}`.
 - The quality-pass deployment serves `index-GF72nVFt.js` and `index-Bal_ro4S.css`. The live 390px entrance retains readable copy and the centred Google control over a large subdued club seal; root and `/api/health` both returned HTTP 200. Authenticated member/admin browser acceptance remains covered by component contracts and supplied capture review, not a live signed-in journey.
 - The premium-crispness deployment serves `index-C9qElwDu.js` and `index-DrrYaqFv.css`. The live 390px entrance has zero page-level overflow, a centred 293px Google control inside its 335px admission card, readable copy, and no mounted protected club data. Authenticated member/admin acceptance remains component-contract and supplied-capture evidence rather than a live signed-in journey.
+- The completion-audit deployment serves `index-CfnfpWh6.js` and `index-CX8aLSeI.css`. Live production at 390×844 reports a 10px admission-card radius, zero horizontal overflow, a centred 293px Google control inside the 335px card, no alerts, and no anonymous protected-data mount. Root and `/api/health` both returned HTTP 200.
 
 These are local task, browser, and production checks. They do not establish a live Google journey, CI, a push, or a pull request.
 
@@ -79,12 +81,12 @@ These are local task, browser, and production checks. They do not establish a li
 - Plan: `docs/superpowers/plans/2026-08-27-premium-club-v2.md`
 - SDD ledger/reports/packages: `.superpowers/sdd/2026-08-27-premium-club-v2/`
 - Use explicit staging paths; do not use `git add -A`, reset, or overwrite unrelated files.
-- The V2 source branch is local only. The latest production Worker was deployed from committed source `984ea84`; no push, PR, CI, merge, or D1 mutation was performed.
+- The V2 source branch is local only. The latest production Worker was deployed from committed source `0b520ba`; no push, PR, CI, merge, or D1 mutation was performed.
 - No schema, migration, Cloudflare service, dependency, API, authorization, or data-visibility change is included.
 
 ## Next action
 
-Finish the completion-audit patch, run the full release gate and bounded rendered review, then commit and deploy the reconciled runtime without a D1 mutation.
+The approved eight-point crispness brief and Cave Pony admin review are complete. If a source-hosted review is wanted next, push `codex/premium-club-v2` and open a PR as a separate handoff; production is already serving runtime commit `0b520ba`.
 
 ## Historical evidence
 
