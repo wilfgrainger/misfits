@@ -3,8 +3,8 @@
 **Updated:** 28 August 2026
 **Current branch:** `codex/mobile-admin-sharp-v2`
 **Base integrated:** `origin/main` at `72fa336`
-**Pull request:** pending
-**Current focus:** Mobile admin sharpness pass is locally complete and verified; branch handoff and remote CI are pending.
+**Pull request:** #189
+**Current focus:** Mobile admin sharpness pass is locally complete, browser-verified and handed off in PR #189; remote CI is pending.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -18,7 +18,7 @@ Behavioral coverage proves that the task switcher contains all seven jobs and ca
 
 Rendered authenticated-state testing used the real React application with isolated browser API responses at **320, 390, 550, 680, 681, 768 and 1024px**. At every width, `document.documentElement.scrollWidth` equalled the viewport width. The switcher rendered through 680px and the rail returned at 681px. The 390px switcher reached Club access, hid Season, and showed only the selected access workspace. The 550px season view kept the labelled task control, two-column season fields, normal 17.6px checkbox and visible Save season action in the first viewport. Browser console errors: **0**.
 
-Fresh local gate: Wrangler types GREEN; client and Worker TypeScript GREEN; **77 test files / 328 tests GREEN**; production Vite build GREEN; `git diff --check` GREEN. Commit, push, pull request and remote CI remain pending.
+Fresh local gate: Wrangler types GREEN; client and Worker TypeScript GREEN; **77 test files / 328 tests GREEN**; production Vite build GREEN; `git diff --check` GREEN. Final independent review found no Critical or Important issue; its one minor desktop Save-width finding was fixed and browser-verified at 1024px. Commit `baa90fb` was pushed and PR #189 opened; remote CI remains pending.
 
 ## 28 August 2026 mobile-admin visual maintenance
 
