@@ -4,7 +4,7 @@
 **Current branch:** `codex/premium-club-v2`
 **Base integrated:** `origin/main` at `1ec406f87bf4f2b66f62afd89cea3b9e575bcc4b`
 **Pull request:** #186
-**Current focus:** Resolve the base-branch overlap, verify the integrated V2, and return PR #186 to a mergeable state.
+**Current focus:** PR #186 is conflict-resolved, locally verified, and reported by GitHub as mergeable/clean; awaiting review and merge decision.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -61,7 +61,7 @@ Work in this exact isolated checkout, not the original dirty checkout:
 | complete | **Quality-pass release and live check.** | `wrangler types`, client/Worker typecheck, 77-file/324-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `343a70d` deployed as Worker version `9ebfffc3-f4e4-4589-a7cb-41073ba1d24e`; the live 390px admission screen was inspected. |
 | complete | **Premium crispness and admin simplicity pass.** | Cave Pony review kept the existing admin component and every explicit job, removed nested rules/metric-card chrome, separated destructive actions, and introduced one shared control/surface/dialog radius scale. Fresh gate: Wrangler types, both TypeScript projects, 77 files / 324 tests, production build, detector, deploy dry-run, and diff check passed. Commit `984ea84` deployed as Worker version `98426cf9-ba36-4c56-9332-29cadc594eb8`; live root and `/api/health` returned HTTP 200 and the 390px entrance was inspected. No API, auth, schema, D1, route, or dependency change. |
 | complete | **Completion-audit follow-through.** | All eight recommendations now have direct source or rendered evidence: shared radius tokens plus a no-large-one-off regression contract; stronger edge/text tokens; routine gradients removed; primary/secondary/danger contracts; refined tracking; compact labelled admin ledger/forms; flattened More and embedded rules surfaces; and a live 10px admission card. Cave Pony retained the existing seven-job admin component with no dependency or abstraction. Fresh gate: Wrangler types, both TypeScript projects, 77 files / 326 tests, production build, detector, deploy dry-run, and diff check passed. Commit `0b520ba` deployed as Worker version `eee5da65-f953-4798-96d7-8eb467c8a28f`. |
-| in progress | **PR #186 base integration.** | Merge `origin/main` at `1ec406f`; retain its generated favicon assets and metadata while preserving the superseding V2 threshold, responsive contract, and privacy boundaries. Fresh verification and remote mergeability still required. |
+| complete | **PR #186 base integration.** | Merge commit `fe7093f` integrates `origin/main` at `1ec406f`; retained the generated favicon assets and metadata while preserving the superseding V2 threshold, responsive contract, and privacy boundaries. Local gate: 77 files / 326 tests, both TypeScript projects, Wrangler types, build, diff check, and conflict-marker scan passed. GitHub Actions run `33156070229` passed `verify`; Deploy Worker was skipped for the pull request. GitHub reports PR #186 `MERGEABLE` / `CLEAN` at head `fe7093f`. |
 
 ## Evidence already reported by completed task implementations
 
@@ -88,7 +88,7 @@ These are local task, browser, and production checks. They do not establish a li
 
 ## Next action
 
-Complete fresh verification, commit the base integration, push it to PR #186, and confirm GitHub reports the PR mergeable. Do not merge or deploy as part of this conflict-resolution job.
+Review PR #186 and choose whether to merge it. This conflict-resolution job does not merge or deploy.
 
 ## Historical evidence
 
