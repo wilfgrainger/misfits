@@ -2,8 +2,9 @@
 
 **Updated:** 28 August 2026
 **Current branch:** `codex/premium-club-v2`
-**Base:** `56603ee8304955618bed870c93ad41253669ce4d` — `fix: plainer landing copy and a real favicon.ico`
-**Current focus:** Original eight-point premium crispness brief and Cave Pony admin review complete, deployed, and reconciled against live production evidence.
+**Base integrated:** `origin/main` at `1ec406f87bf4f2b66f62afd89cea3b9e575bcc4b`
+**Pull request:** #186
+**Current focus:** Resolve the base-branch overlap, verify the integrated V2, and return PR #186 to a mergeable state.
 **Backend/schema/infra change:** none
 **Production D1 migration required:** NO
 
@@ -60,6 +61,7 @@ Work in this exact isolated checkout, not the original dirty checkout:
 | complete | **Quality-pass release and live check.** | `wrangler types`, client/Worker typecheck, 77-file/324-test Vitest run, production build, detector `[]`, dry-run, and diff check passed. Commit `343a70d` deployed as Worker version `9ebfffc3-f4e4-4589-a7cb-41073ba1d24e`; the live 390px admission screen was inspected. |
 | complete | **Premium crispness and admin simplicity pass.** | Cave Pony review kept the existing admin component and every explicit job, removed nested rules/metric-card chrome, separated destructive actions, and introduced one shared control/surface/dialog radius scale. Fresh gate: Wrangler types, both TypeScript projects, 77 files / 324 tests, production build, detector, deploy dry-run, and diff check passed. Commit `984ea84` deployed as Worker version `98426cf9-ba36-4c56-9332-29cadc594eb8`; live root and `/api/health` returned HTTP 200 and the 390px entrance was inspected. No API, auth, schema, D1, route, or dependency change. |
 | complete | **Completion-audit follow-through.** | All eight recommendations now have direct source or rendered evidence: shared radius tokens plus a no-large-one-off regression contract; stronger edge/text tokens; routine gradients removed; primary/secondary/danger contracts; refined tracking; compact labelled admin ledger/forms; flattened More and embedded rules surfaces; and a live 10px admission card. Cave Pony retained the existing seven-job admin component with no dependency or abstraction. Fresh gate: Wrangler types, both TypeScript projects, 77 files / 326 tests, production build, detector, deploy dry-run, and diff check passed. Commit `0b520ba` deployed as Worker version `eee5da65-f953-4798-96d7-8eb467c8a28f`. |
+| in progress | **PR #186 base integration.** | Merge `origin/main` at `1ec406f`; retain its generated favicon assets and metadata while preserving the superseding V2 threshold, responsive contract, and privacy boundaries. Fresh verification and remote mergeability still required. |
 
 ## Evidence already reported by completed task implementations
 
@@ -81,12 +83,12 @@ These are local task, browser, and production checks. They do not establish a li
 - Plan: `docs/superpowers/plans/2026-08-27-premium-club-v2.md`
 - SDD ledger/reports/packages: `.superpowers/sdd/2026-08-27-premium-club-v2/`
 - Use explicit staging paths; do not use `git add -A`, reset, or overwrite unrelated files.
-- The V2 source branch is local only. The latest production Worker was deployed from committed source `0b520ba`; no push, PR, CI, merge, or D1 mutation was performed.
+- The latest production Worker recorded here was deployed from committed source `0b520ba`. PR #186 exists, but its integrated head, CI, merge, and any later deployment remain separate evidence gates.
 - No schema, migration, Cloudflare service, dependency, API, authorization, or data-visibility change is included.
 
 ## Next action
 
-The approved eight-point crispness brief and Cave Pony admin review are complete. If a source-hosted review is wanted next, push `codex/premium-club-v2` and open a PR as a separate handoff; production is already serving runtime commit `0b520ba`.
+Complete fresh verification, commit the base integration, push it to PR #186, and confirm GitHub reports the PR mergeable. Do not merge or deploy as part of this conflict-resolution job.
 
 ## Historical evidence
 
