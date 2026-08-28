@@ -1,9 +1,19 @@
 # Misfits 501 Progress
 
-**Updated:** 23 August 2026  
-**Current branch:** `feat/club-first-navigation`  
-**PR:** #174 `feat: make member navigation club-first`  
-**Current focus:** final exact-head CI → Cave Pony/Impeccable release review → merge → verify main deploy → production smoke  
+**Updated:** 28 August 2026
+**Current branch:** `fix/mobile-admin-overflow-ui-sharpen`
+**PR:** not opened
+**Current focus:** mobile-admin visual maintenance → final Cave Pony review → pull request
+
+## 28 August 2026 visual maintenance
+
+The signed-in admin workspace now has its own bounded, safe-area-aware content frame, matching the member experience rather than relying on page-level clipping. On phones, long action labels, member email addresses and inputs reflow inside the available column; action groups stack deliberately and admin form grids become one column at 400px and below. The seven-task rail remains horizontally scrollable rather than widening the document.
+
+Admin task panels now use restrained bordered product surfaces, improving task separation without adding routes, state, dependencies or changing any membership, competition or result behaviour.
+
+Rendered evidence was captured with installed Chromium at all required release widths: **320, 360, 375, 390, 412, 430, 768 and 1024px**. A stress harness used real production CSS and the real admin class structure with long player names, email addresses, action labels, invite URL and date input. At every width `document.documentElement.scrollWidth` equalled the viewport width: **0px page-level horizontal overflow**. The 320px and 1024px renders were manually inspected.
+
+Verification after the change: client + Worker TypeScript GREEN; production Vite build GREEN; **64 test files / 263 tests GREEN**. A first full-suite attempt was polluted by generated Chrome extension files in a temporary local browser profile; after removing that generated profile, the unchanged project suite was GREEN.
 **Backend/schema/infra change in PR #174:** NONE  
 **Production D1 migration required:** NO
 
@@ -154,7 +164,7 @@ A final diff review is still required after the exact-head GREEN run. Do not mer
 
 The repo-local Impeccable detector has remained clean in all cited runs.
 
-This execution environment does not provide a rendered browser/Playwright surface for manual pixel inspection. Do not claim screenshot-perfect acceptance. CI/static responsive rules are release evidence here; rendered device review remains a post-release visual inspection item if needed.
+The original release environment did not provide a rendered browser/Playwright surface. This working branch does have installed Chromium and now carries the rendered responsive evidence recorded above. Browser review validates the representative admin layout stress case; authenticated production flows remain covered by the repository test suite and require a separately authorised production smoke test.
 
 ## Final release gate
 
