@@ -10,13 +10,13 @@
 
 ## 28 August 2026 mobile-admin visual maintenance
 
-The signed-in admin workspace now has its own bounded, safe-area-aware content frame, matching the member experience rather than relying on page-level clipping. On phones, long action labels, member email addresses and inputs reflow inside the available column; action groups stack deliberately and admin form grids become one column at 400px and below. The seven-task rail remains horizontally scrollable rather than widening the document.
+The signed-in admin workspace now has its own bounded, safe-area-aware content frame, matching the member experience rather than relying on page-level clipping. On phones, long action labels, member email addresses and inputs reflow inside the available column; action groups stack deliberately and admin form grids become one column at 400px and below. At 680px and below, the seven-task rail becomes an always-visible two-column task grid, with Club access spanning the final row, so no admin destination requires horizontal dragging.
 
 Admin task panels use restrained bordered product surfaces, improving task separation without adding routes, state, dependencies or changing any membership, competition or result behaviour. Short fields now retain their natural height beside the taller rule panel on desktop.
 
-Rendered evidence used installed Chromium at **320, 360, 375, 390, 412, 430, 768 and 1024px**. A stress harness used production CSS and the real admin class structure with long player names, email addresses, action labels, invite URL and date input. At every width `document.documentElement.scrollWidth` equalled the viewport width: **0px page-level horizontal overflow**. The 320px mobile render and 1024px desktop render were manually inspected.
+Rendered evidence used installed Chromium at **320, 360, 375, 390, 412, 430, 768 and 1024px**. A stress harness used production CSS and the real admin class structure with long player names, email addresses, action labels, invite URL and date input. At every width `document.documentElement.scrollWidth` equalled the viewport width: **0px page-level horizontal overflow**. The 320px mobile render and 1024px desktop render were manually inspected. A follow-up DevTools capture at 320px verified all seven task buttons in the non-scrolling grid, with 320px document width and a 286px rail scroll width inside a 288px rail.
 
-Verification: client + Worker TypeScript GREEN; production Vite build GREEN; **77 test files / 326 tests GREEN**. Independent Cave Pony review approved the change with no blocking finding.
+Verification: focused responsive contract GREEN; client + Worker TypeScript GREEN; production Vite build GREEN; **77 test files / 327 tests GREEN**. Independent Cave Pony re-review approved the CSS-only grid with existing tab semantics intact.
 
 ## Current approved execution
 
