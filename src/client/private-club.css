@@ -941,7 +941,7 @@
   padding: 1rem;
   background: var(--club-card);
   border: 1px solid var(--club-border);
-  border-radius: 16px;
+  border-radius: var(--club-radius-surface);
 }
 
 .admin-desk .admin-list li {
@@ -984,9 +984,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .admin-desk [role="tabpanel"] .inline-actions > button,
-  .admin-desk [role="tabpanel"] .inline-actions > select {
+  .private-club-shell .admin-desk [role="tabpanel"] .inline-actions > button,
+  .private-club-shell .admin-desk [role="tabpanel"] .inline-actions > select {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     margin: 0;
     white-space: normal;
   }

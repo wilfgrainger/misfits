@@ -16,7 +16,7 @@ Admin task panels use restrained bordered product surfaces, improving task separ
 
 Rendered evidence used installed Chromium at **320, 360, 375, 390, 412, 430, 768 and 1024px**. A stress harness used production CSS and the real admin class structure with long player names, email addresses, action labels, invite URL and date input. At every width `document.documentElement.scrollWidth` equalled the viewport width: **0px page-level horizontal overflow**. The 320px mobile render and 1024px desktop render were manually inspected.
 
-Verification: client + Worker TypeScript GREEN; production Vite build GREEN; **64 test files / 263 tests GREEN**. Independent Cave Pony review approved the change with no blocking finding.
+Verification: client + Worker TypeScript GREEN; production Vite build GREEN; **77 test files / 326 tests GREEN**. Independent Cave Pony review approved the change with no blocking finding.
 
 ## Current approved execution
 
