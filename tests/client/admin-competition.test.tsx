@@ -152,6 +152,21 @@ describe('administrator competition workspace', () => {
     expect(JSON.parse(String(create?.[1]?.body))).toEqual({ name: '2028/29', status: 'DRAFT', isCurrent: false });
   });
 
+  it('offers a compact task switcher that reaches every admin workspace', async () => {
+    renderDesk();
+
+    const switcher = await screen.findByRole('combobox', { name: 'Admin task' });
+    expect(within(switcher).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Season', 'Leagues', 'Season members', 'Fixtures', 'Results', 'Promotion', 'Club access',
+    ]);
+
+    fireEvent.change(switcher, { target: { value: 'access' } });
+
+    expect(screen.getByRole('region', { name: 'Pending membership requests' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Club members' })).toBeTruthy();
+    expect((switcher as HTMLSelectElement).value).toBe('access');
+  });
+
   it('shows concise health for the selected season', async () => {
     renderDesk();
 
