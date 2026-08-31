@@ -77,6 +77,11 @@ export async function getResultById(db: D1Database, resultId: string): Promise<R
   return result ? normalizeResult(result) : null;
 }
 
+async function linkedFixtureId(db: D1Database, resultId: string): Promise<string | null> {
+  const row = await db.prepare('SELECT fixture_id FROM matches WHERE id = ?').bind(resultId).first<{ fixture_id: string | null }>();
+  return row?.fixture_id ?? null;
+}
+
 async function listResults(db: D1Database, leagueId: string, status?: MatchStatus, playerId?: string): Promise<ResultRecord[]> {
   const statusClause = status ? ` AND matches.status = '${status}'` : '';
   const playerClause = playerId ? ' AND (matches.player_a_id = ? OR matches.player_b_id = ? OR matches.submitted_by = ?)' : '';
@@ -138,20 +143,23 @@ export async function submitPlayerResult(db: D1Database, sessionUserId: string, 
   await requireActiveMember(db, leagueId, result.playerBId);
   const id = crypto.randomUUID();
   const timestamp = now.toISOString();
-  const inserted = await db.prepare(
-    `INSERT INTO matches (id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
-                          player_a_average, player_b_average, submitted_by, status, created_at, updated_at)
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?
-      WHERE (SELECT COUNT(*) FROM matches
-              WHERE league_id = ?
-                AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
-                AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')) < ?`,
-  ).bind(id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, sessionUserId, timestamp, timestamp, leagueId, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair).run();
+  const [inserted] = await db.batch([
+    db.prepare(
+      `INSERT INTO matches (id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
+                            player_a_average, player_b_average, submitted_by, status, created_at, updated_at)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?
+        WHERE (SELECT COUNT(*) FROM matches
+                WHERE league_id = ?
+                  AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
+                  AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')) < ?`,
+    ).bind(id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, sessionUserId, timestamp, timestamp, leagueId, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair),
+    db.prepare(
+      `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
+       SELECT ?, 'RESULT_SUBMITTED', 'MATCH', ?, NULL, ?, ?
+        WHERE EXISTS (SELECT 1 FROM matches WHERE id = ?)`,
+    ).bind(sessionUserId, id, JSON.stringify(result), timestamp, id),
+  ]);
   if (inserted.meta.changes !== 1) throw pairLimitReached();
-  await db.prepare(
-    `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
-     VALUES (?, 'RESULT_SUBMITTED', 'MATCH', ?, NULL, ?, ?)`,
-  ).bind(sessionUserId, id, JSON.stringify(result), timestamp).run();
   const saved = await getResultById(db, id);
   if (!saved) throw new Error('Result could not be loaded after submission');
   return saved;
@@ -168,13 +176,28 @@ export async function confirmResult(db: D1Database, userId: string, resultId: st
   if (!result || result.deleted_at) throw new AppError('VALIDATION_ERROR', 'Result was not found', 404);
   await requireResolvingOpponent(db, result, userId);
   const timestamp = now.toISOString();
-  const updated = await db.prepare("UPDATE matches SET status = 'CONFIRMED', confirmed_by = ?, confirmed_at = ?, updated_at = ? WHERE id = ? AND status = 'PENDING'")
-    .bind(userId, timestamp, timestamp, resultId).run();
-  if (updated.meta.changes !== 1) throw new AppError('RESULT_ALREADY_RESOLVED', 'This result has already been resolved', 409);
-  await db.prepare(
+  const fixtureId = await linkedFixtureId(db, resultId);
+  const statements: D1PreparedStatement[] = [
+    db.prepare("UPDATE matches SET status = 'CONFIRMED', confirmed_by = ?, confirmed_at = ?, updated_at = ? WHERE id = ? AND status = 'PENDING'")
+      .bind(userId, timestamp, timestamp, resultId),
+  ];
+  if (fixtureId) {
+    statements.push(db.prepare(
+      `UPDATE fixtures SET status = 'CONFIRMED', updated_at = ?
+        WHERE id = ? AND EXISTS (
+          SELECT 1 FROM matches WHERE id = ? AND status = 'CONFIRMED' AND updated_at = ? AND confirmed_by = ?
+        )`,
+    ).bind(timestamp, fixtureId, resultId, timestamp, userId));
+  }
+  statements.push(db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
-     VALUES (?, 'RESULT_CONFIRMED', 'MATCH', ?, ?, ?, ?)`,
-  ).bind(userId, resultId, JSON.stringify({ status: result.status }), JSON.stringify({ status: 'CONFIRMED' }), timestamp).run();
+     SELECT ?, 'RESULT_CONFIRMED', 'MATCH', ?, ?, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM matches WHERE id = ? AND status = 'CONFIRMED' AND updated_at = ? AND confirmed_by = ?
+      )`,
+  ).bind(userId, resultId, JSON.stringify({ status: result.status }), JSON.stringify({ status: 'CONFIRMED' }), timestamp, resultId, timestamp, userId));
+  const [updated] = await db.batch(statements);
+  if (updated.meta.changes !== 1) throw new AppError('RESULT_ALREADY_RESOLVED', 'This result has already been resolved', 409);
   const saved = await getResultById(db, resultId);
   if (!saved) throw new Error('Result could not be loaded after confirmation');
   return saved;
@@ -187,13 +210,28 @@ export async function disputeResult(db: D1Database, userId: string, resultId: st
   const trimmed = note.trim();
   if (!trimmed || trimmed.length > 240) throw new AppError('INVALID_RESULT', 'A short dispute note is required', 400);
   const timestamp = now.toISOString();
-  const updated = await db.prepare("UPDATE matches SET status = 'DISPUTED', dispute_note = ?, updated_at = ? WHERE id = ? AND status = 'PENDING'")
-    .bind(trimmed, timestamp, resultId).run();
-  if (updated.meta.changes !== 1) throw new AppError('RESULT_ALREADY_RESOLVED', 'This result has already been resolved', 409);
-  await db.prepare(
+  const fixtureId = await linkedFixtureId(db, resultId);
+  const statements: D1PreparedStatement[] = [
+    db.prepare("UPDATE matches SET status = 'DISPUTED', dispute_note = ?, updated_at = ? WHERE id = ? AND status = 'PENDING'")
+      .bind(trimmed, timestamp, resultId),
+  ];
+  if (fixtureId) {
+    statements.push(db.prepare(
+      `UPDATE fixtures SET status = 'DISPUTED', updated_at = ?
+        WHERE id = ? AND EXISTS (
+          SELECT 1 FROM matches WHERE id = ? AND status = 'DISPUTED' AND updated_at = ?
+        )`,
+    ).bind(timestamp, fixtureId, resultId, timestamp));
+  }
+  statements.push(db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
-     VALUES (?, 'RESULT_DISPUTED', 'MATCH', ?, ?, ?, ?)`,
-  ).bind(userId, resultId, JSON.stringify({ status: result.status }), JSON.stringify({ status: 'DISPUTED', note: trimmed }), timestamp).run();
+     SELECT ?, 'RESULT_DISPUTED', 'MATCH', ?, ?, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM matches WHERE id = ? AND status = 'DISPUTED' AND updated_at = ?
+      )`,
+  ).bind(userId, resultId, JSON.stringify({ status: result.status }), JSON.stringify({ status: 'DISPUTED', note: trimmed }), timestamp, resultId, timestamp));
+  const [updated] = await db.batch(statements);
+  if (updated.meta.changes !== 1) throw new AppError('RESULT_ALREADY_RESOLVED', 'This result has already been resolved', 409);
   const saved = await getResultById(db, resultId);
   if (!saved) throw new Error('Result could not be loaded after dispute');
   return saved;
@@ -207,20 +245,23 @@ export async function createAdminResult(db: D1Database, adminUserId: string, lea
   await requireActiveMember(db, leagueId, result.playerBId);
   const id = crypto.randomUUID();
   const timestamp = now.toISOString();
-  const inserted = await db.prepare(
-    `INSERT INTO matches (id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
-                          player_a_average, player_b_average, submitted_by, status, confirmed_by, created_at, updated_at, confirmed_at)
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?
-      WHERE (SELECT COUNT(*) FROM matches
-              WHERE league_id = ?
-                AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
-                AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')) < ?`,
-  ).bind(id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, adminUserId, adminUserId, timestamp, timestamp, timestamp, leagueId, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair).run();
+  const [inserted] = await db.batch([
+    db.prepare(
+      `INSERT INTO matches (id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
+                            player_a_average, player_b_average, submitted_by, status, confirmed_by, created_at, updated_at, confirmed_at)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?
+        WHERE (SELECT COUNT(*) FROM matches
+                WHERE league_id = ?
+                  AND ((player_a_id = ? AND player_b_id = ?) OR (player_a_id = ? AND player_b_id = ?))
+                  AND deleted_at IS NULL AND status IN ('PENDING', 'CONFIRMED', 'DISPUTED')) < ?`,
+    ).bind(id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, adminUserId, adminUserId, timestamp, timestamp, timestamp, leagueId, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair),
+    db.prepare(
+      `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
+       SELECT ?, 'RESULT_CREATED_BY_ADMIN', 'MATCH', ?, NULL, ?, ?
+        WHERE EXISTS (SELECT 1 FROM matches WHERE id = ?)`,
+    ).bind(adminUserId, id, JSON.stringify(result), timestamp, id),
+  ]);
   if (inserted.meta.changes !== 1) throw pairLimitReached();
-  await db.prepare(
-    `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
-     VALUES (?, 'RESULT_CREATED_BY_ADMIN', 'MATCH', ?, NULL, ?, ?)`,
-  ).bind(adminUserId, id, JSON.stringify(result), timestamp).run();
   const saved = await getResultById(db, id);
   if (!saved) throw new Error('Result could not be loaded after admin entry');
   return saved;
@@ -241,7 +282,8 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
   const nextStatus: MatchStatus = inputState.status === 'PENDING' || inputState.status === 'DISPUTED' || inputState.status === 'CONFIRMED' ? inputState.status : existing.status;
   const nextDisputeNote = inputState.disputeNote ?? null;
   const timestamp = now.toISOString();
-  const updated = await db.prepare(
+  const fixtureId = await linkedFixtureId(db, resultId);
+  const updateStatement = db.prepare(
     `UPDATE matches SET player_a_id = ?, player_b_id = ?, player_a_legs = ?, player_b_legs = ?,
             player_a_average = ?, player_b_average = ?, status = ?, dispute_note = ?, updated_at = ?,
             confirmed_by = CASE WHEN ? = 'CONFIRMED' THEN ? ELSE NULL END,
@@ -267,11 +309,7 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
     timestamp,
     resultId,
     ...(pairChanged ? [league.id, result.playerAId, result.playerBId, result.playerBId, result.playerAId, league.matches_per_pair] : []),
-  ).run();
-  if (updated.meta.changes !== 1) {
-    if (pairChanged) throw pairLimitReached();
-    throw new AppError('VALIDATION_ERROR', 'Result could not be updated', 409);
-  }
+  );
   const auditAfter = {
     ...result,
     status: nextStatus,
@@ -279,10 +317,26 @@ export async function updateAdminResult(db: D1Database, adminUserId: string, res
     confirmedBy: nextStatus === 'CONFIRMED' ? adminUserId : null,
     confirmedAt: nextStatus === 'CONFIRMED' ? timestamp : null,
   };
-  await db.prepare(
+  const statements: D1PreparedStatement[] = [updateStatement];
+  if (fixtureId) {
+    const fixtureStatus = nextStatus === 'CONFIRMED' ? 'CONFIRMED' : nextStatus === 'DISPUTED' ? 'DISPUTED' : 'PENDING_CONFIRMATION';
+    statements.push(db.prepare(
+      `UPDATE fixtures SET status = ?, updated_at = ?
+        WHERE id = ? AND EXISTS (
+          SELECT 1 FROM matches WHERE id = ? AND updated_at = ? AND deleted_at IS NULL
+        )`,
+    ).bind(fixtureStatus, timestamp, fixtureId, resultId, timestamp));
+  }
+  statements.push(db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
-     VALUES (?, 'RESULT_UPDATED_BY_ADMIN', 'MATCH', ?, ?, ?, ?)`,
-  ).bind(adminUserId, resultId, JSON.stringify(existing), JSON.stringify(auditAfter), timestamp).run();
+     SELECT ?, 'RESULT_UPDATED_BY_ADMIN', 'MATCH', ?, ?, ?, ?
+      WHERE EXISTS (SELECT 1 FROM matches WHERE id = ? AND updated_at = ? AND deleted_at IS NULL)`,
+  ).bind(adminUserId, resultId, JSON.stringify(existing), JSON.stringify(auditAfter), timestamp, resultId, timestamp));
+  const [updated] = await db.batch(statements);
+  if (updated.meta.changes !== 1) {
+    if (pairChanged) throw pairLimitReached();
+    throw new AppError('VALIDATION_ERROR', 'Result could not be updated', 409);
+  }
   const saved = await getResultById(db, resultId);
   if (!saved) throw new Error('Result could not be loaded after admin update');
   return saved;
@@ -292,11 +346,23 @@ export async function deleteAdminResult(db: D1Database, adminUserId: string, res
   const existing = await getResultById(db, resultId);
   if (!existing || existing.deleted_at) throw new AppError('VALIDATION_ERROR', 'Result was not found', 404);
   const timestamp = now.toISOString();
-  await db.prepare('UPDATE matches SET deleted_at = ?, updated_at = ? WHERE id = ?').bind(timestamp, timestamp, resultId).run();
-  await db.prepare(
+  const fixtureId = await linkedFixtureId(db, resultId);
+  const statements: D1PreparedStatement[] = [
+    db.prepare('UPDATE matches SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL').bind(timestamp, timestamp, resultId),
+  ];
+  if (fixtureId) {
+    statements.push(db.prepare(
+      `UPDATE fixtures SET status = 'OUTSTANDING', updated_at = ?
+        WHERE id = ? AND EXISTS (SELECT 1 FROM matches WHERE id = ? AND deleted_at = ?)`,
+    ).bind(timestamp, fixtureId, resultId, timestamp));
+  }
+  statements.push(db.prepare(
     `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
-     VALUES (?, 'RESULT_DELETED_BY_ADMIN', 'MATCH', ?, ?, NULL, ?)`,
-  ).bind(adminUserId, resultId, JSON.stringify(existing), timestamp).run();
+     SELECT ?, 'RESULT_DELETED_BY_ADMIN', 'MATCH', ?, ?, NULL, ?
+      WHERE EXISTS (SELECT 1 FROM matches WHERE id = ? AND deleted_at = ?)`,
+  ).bind(adminUserId, resultId, JSON.stringify(existing), timestamp, resultId, timestamp));
+  const [deleted] = await db.batch(statements);
+  if (deleted.meta.changes !== 1) throw new AppError('VALIDATION_ERROR', 'Result could not be deleted', 409);
 }
 
 export async function getPublicResults(db: D1Database, leagueId: string): Promise<ResultRecord[]> {
