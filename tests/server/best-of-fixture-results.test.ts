@@ -88,6 +88,12 @@ class MemoryD1 {
     };
   }
 
+  async batch(statements: Array<{ run: () => Promise<unknown> }>) {
+    const results = [];
+    for (const statement of statements) results.push(await statement.run());
+    return results;
+  }
+
   private async run(sql: string, values: unknown[]) {
     if (sql.includes('INSERT INTO matches') && sql.includes('fixture_id')) {
       const [id, fixtureId, leagueId, playerAId, playerBId, aLegs, bLegs, aAverage, bAverage, submittedBy, createdAt, updatedAt] = values as [string, string, string, string, string, number, number, number, number, string, string, string];
