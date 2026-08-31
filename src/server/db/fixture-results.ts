@@ -100,21 +100,27 @@ export async function submitFixtureResult(
   const result = resultFromFixtureInput(fixture, input, scoringRulesForLeague(league));
   const id = crypto.randomUUID();
   const at = now.toISOString();
-  const inserted = await db.prepare(
-    `INSERT INTO matches (
-      id, fixture_id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
-      player_a_average, player_b_average, submitted_by, status, created_at, updated_at
-    )
-    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?
-     WHERE EXISTS (SELECT 1 FROM fixtures WHERE id = ? AND league_id = ? AND status = 'OUTSTANDING')
-       AND NOT EXISTS (SELECT 1 FROM matches WHERE fixture_id = ? AND deleted_at IS NULL)`,
-  ).bind(id, fixture.id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, sessionUserId, at, at, fixture.id, leagueId, fixture.id).run();
+  const [inserted] = await db.batch([
+    db.prepare(
+      `INSERT INTO matches (
+        id, fixture_id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
+        player_a_average, player_b_average, submitted_by, status, created_at, updated_at
+      )
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?
+       WHERE EXISTS (SELECT 1 FROM fixtures WHERE id = ? AND league_id = ? AND status = 'OUTSTANDING')
+         AND NOT EXISTS (SELECT 1 FROM matches WHERE fixture_id = ? AND deleted_at IS NULL)`,
+    ).bind(id, fixture.id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, sessionUserId, at, at, fixture.id, leagueId, fixture.id),
+    db.prepare(
+      `UPDATE fixtures SET status = 'PENDING_CONFIRMATION', updated_at = ?
+        WHERE id = ? AND EXISTS (SELECT 1 FROM matches WHERE id = ? AND deleted_at IS NULL)`,
+    ).bind(at, fixture.id, id),
+    db.prepare(
+      `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
+       SELECT ?, 'FIXTURE_RESULT_SUBMITTED', 'MATCH', ?, NULL, ?, ?
+        WHERE EXISTS (SELECT 1 FROM matches WHERE id = ? AND deleted_at IS NULL)`,
+    ).bind(sessionUserId, id, JSON.stringify({ fixtureId: fixture.id, leagueId, ...result }), at, id),
+  ]);
   if (inserted.meta.changes !== 1) throw new AppError('RESULT_ALREADY_RESOLVED', 'This fixture already has a result in progress or settled', 409);
-  await db.prepare("UPDATE fixtures SET status = 'PENDING_CONFIRMATION', updated_at = ? WHERE id = ?").bind(at, fixture.id).run();
-  await db.prepare(
-    `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
-     VALUES (?, 'FIXTURE_RESULT_SUBMITTED', 'MATCH', ?, NULL, ?, ?)`,
-  ).bind(sessionUserId, id, JSON.stringify({ fixtureId: fixture.id, leagueId, ...result }), at).run();
   const saved = await getFixtureResultById(db, id);
   if (!saved) throw new Error('Fixture result could not be loaded after submission');
   return saved;
@@ -138,21 +144,27 @@ export async function createAdminFixtureResult(
   const result = resultFromFixtureInput(fixture, input, scoringRulesForLeague(league));
   const id = crypto.randomUUID();
   const at = now.toISOString();
-  const inserted = await db.prepare(
-    `INSERT INTO matches (
-      id, fixture_id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
-      player_a_average, player_b_average, submitted_by, status, confirmed_by, created_at, updated_at, confirmed_at
-    )
-    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?
-     WHERE EXISTS (SELECT 1 FROM fixtures WHERE id = ? AND league_id = ? AND status = 'OUTSTANDING')
-       AND NOT EXISTS (SELECT 1 FROM matches WHERE fixture_id = ? AND deleted_at IS NULL)`,
-  ).bind(id, fixture.id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, adminUserId, adminUserId, at, at, at, fixture.id, leagueId, fixture.id).run();
+  const [inserted] = await db.batch([
+    db.prepare(
+      `INSERT INTO matches (
+        id, fixture_id, league_id, player_a_id, player_b_id, player_a_legs, player_b_legs,
+        player_a_average, player_b_average, submitted_by, status, confirmed_by, created_at, updated_at, confirmed_at
+      )
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM fixtures WHERE id = ? AND league_id = ? AND status = 'OUTSTANDING')
+         AND NOT EXISTS (SELECT 1 FROM matches WHERE fixture_id = ? AND deleted_at IS NULL)`,
+    ).bind(id, fixture.id, leagueId, result.playerAId, result.playerBId, result.playerALegs, result.playerBLegs, result.playerAAverage, result.playerBAverage, adminUserId, adminUserId, at, at, at, fixture.id, leagueId, fixture.id),
+    db.prepare(
+      `UPDATE fixtures SET status = 'CONFIRMED', updated_at = ?
+        WHERE id = ? AND EXISTS (SELECT 1 FROM matches WHERE id = ? AND deleted_at IS NULL)`,
+    ).bind(at, fixture.id, id),
+    db.prepare(
+      `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
+       SELECT ?, 'FIXTURE_RESULT_CREATED_BY_ADMIN', 'MATCH', ?, NULL, ?, ?
+        WHERE EXISTS (SELECT 1 FROM matches WHERE id = ? AND deleted_at IS NULL)`,
+    ).bind(adminUserId, id, JSON.stringify({ fixtureId: fixture.id, leagueId, ...result }), at, id),
+  ]);
   if (inserted.meta.changes !== 1) throw new AppError('RESULT_ALREADY_RESOLVED', 'This fixture is already settled or awaiting settlement', 409);
-  await db.prepare("UPDATE fixtures SET status = 'CONFIRMED', updated_at = ? WHERE id = ?").bind(at, fixture.id).run();
-  await db.prepare(
-    `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at)
-     VALUES (?, 'FIXTURE_RESULT_CREATED_BY_ADMIN', 'MATCH', ?, NULL, ?, ?)`,
-  ).bind(adminUserId, id, JSON.stringify({ fixtureId: fixture.id, leagueId, ...result }), at).run();
   const saved = await getFixtureResultById(db, id);
   if (!saved) throw new Error('Fixture result could not be loaded after admin entry');
   return saved;
