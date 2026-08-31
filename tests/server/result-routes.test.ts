@@ -44,6 +44,12 @@ class MemoryD1 {
     };
   }
 
+  async batch(statements: Array<{ run: () => Promise<unknown> }>) {
+    const results = [];
+    for (const statement of statements) results.push(await statement.run());
+    return results;
+  }
+
   private async run(sql: string, values: unknown[]) {
     if (sql.includes('INSERT INTO sessions')) {
       const [tokenHash, userId, createdAt, expiresAt] = values as string[];

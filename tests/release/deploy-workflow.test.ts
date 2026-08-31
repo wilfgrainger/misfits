@@ -13,13 +13,13 @@ function jobBlock(jobName: string): string {
 }
 
 describe('production deployment workflow', () => {
-  it('keeps verification mandatory, avoids duplicate branch pushes, and deploys main only', () => {
+  it('verifies code and the real local migration chain before deploying main', () => {
     const verify = jobBlock('verify');
     const deploy = jobBlock('deploy');
 
     expect(workflow).toContain('  push:\n    branches:\n      - main\n  pull_request:');
 
-    for (const command of ['npm ci', 'npx wrangler types', 'npm run typecheck', 'npm test', 'npm run build']) {
+    for (const command of ['npm ci', 'npx wrangler types', 'npm run typecheck', 'npm run db:migrate:local', 'npm test', 'npm run build']) {
       expect(verify).toContain(command);
     }
 
@@ -29,9 +29,10 @@ describe('production deployment workflow', () => {
     expect(deploy).toContain('command: deploy --keep-vars');
     expect(deploy).toContain('apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}');
     expect(deploy).toContain('accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}');
+    expect(deploy).toContain('https://darts.graingers.agency/api/health');
+    expect(deploy).toContain('curl --fail-with-body');
 
     expect(workflow).not.toContain('db:migrate:remote');
-    expect(workflow).not.toContain('--remote');
     expect(verify).not.toMatch(/(?:npm run deploy|wrangler deploy|migrations apply.*--remote)/);
   });
 });

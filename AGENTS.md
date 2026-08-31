@@ -1,46 +1,47 @@
 # Misfits 501 — Agent Entry Point
 
-Read this before changing code, configuration, migrations, documentation or release workflow. It is a durable operating manual, not a dated delivery brief.
+Read this before changing code, configuration, migrations, documentation or release workflow. Keep this file durable and `PROGRESS.md` current.
 
-## Authority and reading order
+## Fast reading order
 
-1. `PRODUCT.md` — the core product authority: users, purpose, scope and evidence.
-2. `VISION.md` — the enduring strategic, voice and platform guardrail.
-3. `DESIGN.md` — the implemented visual system and responsive rules derived from the product and vision.
-4. `PROGRESS.md` — mutable release/handoff truth: active work, verification, blockers and next handoff.
-5. For architectural or multi-step work, the active approved plan named by `PROGRESS.md`, then the affected code, tests and operations runbook.
+1. `AGENTS.md` — operating and safety rules.
+2. `PROGRESS.md` — current branch, release state, blockers and next action.
+3. Read only the durable authority relevant to the change:
+   - `PRODUCT.md` for product behaviour/scope.
+   - `VISION.md` for strategic/platform guardrails.
+   - `DESIGN.md` for UI/interaction work.
+4. Read an active plan only when `PROGRESS.md` names one or the change is genuinely architectural/high-risk.
 
-Do not pin this entry point to a dated spec filename. Files in `docs/superpowers/specs/`, `plans/` and `evidence/` retain the decision trail. Historical records are context only and must never restore white-label tenancy, player-owned administration or generic League Board language.
+Do **not** preload dated specs, evidence folders, closed PRs or historical release narratives. Use them only to resolve a specific question or conflict. This keeps agent context/token use low without weakening durable product truth.
 
 ## Fast commands
 
 ```bash
-./node_modules/.bin/vitest run
-./node_modules/.bin/tsc -p tsconfig.client.json --noEmit
-./node_modules/.bin/tsc -p tsconfig.worker.json --noEmit
-./node_modules/.bin/vite build
+npm run db:migrate:local
+npm run typecheck
+npm test
+npm run build
+npx wrangler types
 node .agents/skills/impeccable/scripts/detect.mjs --json src/client
-git diff --check
 ```
 
 ## Non-negotiable product boundaries
 
-- Misfits 501 is one private club. It can retain many seasons over time; it is not a multi-club platform.
-- The experience is dull Misfits luxury: dark, restrained, specific, mobile-first and equally deliberate in a desktop browser. Never make it look like generic league SaaS.
-- DartCounter is the scoring surface. This app records club results; it does not become a live scorer.
-- Google Identity Services is the only sign-in method. Browser state is never authorization; the Worker verifies identity and authorizes protected operations.
-- Keep supplied brand artwork intact. Do not destructively crop it or use it as low-contrast decoration behind copy.
+- Misfits 501 is one private club. It can retain many seasons; it is not a multi-club platform.
+- The experience is dull Misfits luxury: dark, restrained, specific, mobile-first and deliberate on desktop. Never make it generic league SaaS.
+- DartCounter is the scoring surface. Misfits records club results; it does not become a live scorer.
+- Google Identity Services is the only sign-in method. Browser state is never authorization; the Worker verifies identity and protected operations.
+- Keep supplied brand artwork intact and accessible.
 
-## Cloudflare free-tier boundary
+## Cloudflare/free-tier boundary
 
 - Core path: one Cloudflare Worker, static assets and one D1 database.
-- Do not add paid Cloudflare services, queues, R2/object storage, Durable Objects, scheduled jobs, background polling, or another runtime service without an explicit product decision.
+- Do not add paid Cloudflare services, queues, R2, Durable Objects, scheduled jobs, background polling or another runtime service without an explicit product decision.
 - Keep secrets in Cloudflare/Wrangler configuration or `.dev.vars`; never commit or log them.
 - Add only additive D1 migrations. Never edit an applied migration.
-- Production D1 mutations are executed only through `.github/workflows/manual-d1-migration.yml`. The workflow is manual `workflow_dispatch` only, requires an immutable commit SHA plus typed confirmation, runs the full selected-code gate before migration, verifies remote D1 afterwards, and never deploys application code.
-- Do not use an authenticated local Wrangler session as an alternative production migration path. Local D1/Wrangler commands are for development and non-production verification only.
-- Apply and verify a remote additive migration through the production D1 management workflow before merging code that depends on it.
-- Before a release that materially affects Cloudflare usage, use `docs/operations/cloudflare-free-tier-runbook.md` and compare dashboard measurements with current official Cloudflare limits.
+- Production D1 mutations run only through `.github/workflows/manual-d1-migration.yml`; never use an authenticated developer machine as a production migration path.
+- Apply and verify a required production migration before merging code that depends on it.
+- Normal PR CI should prove the full migration chain against local D1. Merge-to-main deploys code only and then proves production health.
 
 ## Risk-proportionate delivery
 
@@ -48,58 +49,56 @@ Use the lightest process that safely fits the change.
 
 ### Routine bounded changes
 
-Examples: copy/label corrections, small CSS/layout adjustments, focused bug fixes with an existing flow, test maintenance, documentation, dependency cleanup, and low-risk refactors with no interface or trust-boundary change.
+Examples: copy/CSS corrections, focused bug fixes, tests, documentation, dependency cleanup and low-risk refactors with no trust-boundary/interface change.
 
-- Read the affected code and durable product/design authority.
-- State the intended change briefly; a separate written spec or implementation plan is not required.
+- Read affected code plus only the relevant authority above.
+- State the change briefly; no separate spec/plan is required.
 - Use focused tests where behaviour can regress.
-- Batch coherent edits.
-- Run one fresh full repository gate before merge.
-- Do not repeatedly seek approval for tasks already covered by the user's approved request unless scope changes materially.
+- Batch coherent edits and run one fresh full repository gate before merge.
+- Do not repeatedly seek approval for work already inside the user's approved scope.
 
-### Architectural, multi-step or high-risk changes
+### Architectural/high-risk changes
 
-Examples: new subsystems, schema/data-model changes, authentication/authorization changes, migration work, destructive operations, Cloudflare architecture changes, significant interface changes, or a broad release spanning several coupled behaviours.
+Examples: new subsystems, schema/data-model changes, auth/authorization changes, destructive operations, Cloudflare architecture changes or broad coupled releases.
 
-- Use Superpowers to clarify, design, plan, test, debug, verify and finish the work.
-- An approved design/release plan authorizes the implementation tasks inside that scope. Do not re-run approval ceremony for each planned task unless assumptions or scope materially change.
+- Use Superpowers to design, plan, test, debug and verify.
+- An approved design/release plan authorizes implementation inside that scope unless assumptions materially change.
 - Expand verification in proportion to risk.
 
 ### UI authority
 
-- `DESIGN.md` is the standing UI authority for routine visual work.
-- Use the repo-local Impeccable skill for **material** interaction/visual changes, new surfaces, replacement visual worlds, responsive redesigns, or when explicitly requested.
-- Do not require a full Impeccable critique/audit/polish cycle for copy changes, tiny CSS corrections, test-only work, or adjustments already directly governed by `DESIGN.md`.
+- `DESIGN.md` is standing UI authority.
+- Use repo-local Impeccable for material interaction/visual changes or when explicitly requested.
+- Do not run a full visual audit for copy, tiny CSS or test-only work.
 
 ### Simplicity review
 
-- Cave Pony is the simplicity gate for meaningful refactors, architecture changes, dependency/infrastructure proposals, broad cleanup, or when explicitly requested.
-- Routine bounded PRs need only an ordinary simplicity self-check. They do not require a formal Cave Pony finding table.
-- Never let simplification weaken accessibility, security, authorization, data integrity or durable product truth.
+- Cave Pony is the simplicity gate for meaningful refactors, architecture/infrastructure proposals, broad cleanup or when explicitly requested.
+- Prefer the smallest correct change; do not add abstraction or process that costs more to understand than it saves.
+- Never simplify by weakening accessibility, security, authorization, data integrity or durable product truth.
 
 ### Handoff
 
-- Update `PROGRESS.md` when release/handoff truth changes: starting or completing a meaningful release, encountering a durable blocker, changing scope, or leaving work for another agent.
-- Do not update `PROGRESS.md` after every test, tiny task or documentation checkpoint.
+- `PROGRESS.md` is a snapshot, not a diary. Keep one concise current-state block and one next action.
+- Update it for a meaningful release start/completion, durable blocker or scope change.
+- Put historical narratives/evidence in dated docs, not by appending them to `PROGRESS.md`.
 
 ## Boundaries
 
-- **Always:** understand the changed path; preserve semantics, accessibility, authorization and data integrity; test behaviour that can regress; record genuine evidence.
-- **Ask first:** schema/data-model changes; new Cloudflare services or architecture; remote D1 migration; secret creation/rotation; destructive production-data operations; material rewrite of product truth; production deployment when it has not already been explicitly requested or approved as part of the release.
-- **No extra approval needed once in approved scope:** ordinary dependencies, routine CI/test maintenance, non-destructive refactors, bounded UI changes, and the production deployment step of an explicitly approved release after its required gate is green.
-- **Never:** commit secrets; edit applied migrations; bypass the production D1 management workflow with local Wrangler; apply remote D1 migrations automatically from push, pull request, merge, schedule or timer; add paid Cloudflare services or extra runtimes without approval; weaken authorization; discard existing user work; claim a command passed when it did not run.
+- **Always:** preserve semantics, accessibility, authorization and data integrity; test behaviour that can regress; record genuine evidence.
+- **Ask first:** schema/data-model changes; new Cloudflare services/architecture; remote D1 migration; secret creation/rotation; destructive production-data operations; material product-truth rewrite; production deployment not already approved as part of a release.
+- **No extra approval once in approved scope:** routine CI/test maintenance, ordinary dependencies, non-destructive refactors, bounded UI changes and the deploy step of an explicitly approved release after its gate is green.
+- **Never:** commit secrets; edit applied migrations; bypass the production D1 workflow; automatically apply remote D1 migrations from push/PR/merge/schedule; weaken authorization; discard user work; claim a check passed when it did not run.
 
 ## Testing and verification
 
-Tests own durable behaviour, not repository history. Keep one clear owner for each contract where practical:
+Tests own durable behaviour, not repository history:
 
-- `tests/domain/` — pure competition and validation invariants.
-- `tests/server/` — authentication, authorization, persistence and API behaviour.
-- `tests/client/` — user journeys and presentation behaviour.
-- `tests/release/` — deployment, schema and operational guardrails that are not already owned elsewhere.
+- `tests/domain/` — competition/validation invariants.
+- `tests/server/` — auth, persistence and API behaviour.
+- `tests/client/` — journeys/presentation behaviour.
+- `tests/release/` — deployment/schema/operational guardrails.
 
-During implementation, run the smallest focused test that proves the changed path. Do **not** run or retrigger the complete CI pipeline after every small edit or documentation checkpoint. Batch coherent low-risk changes, then run one fresh repository gate before review/merge: Wrangler types, both TypeScript projects, full Vitest suite and production build. Expand proof only for material risk such as security, permissions, migrations, destructive operations or data loss.
+During implementation, run the smallest focused proof. Do not repeatedly run the full pipeline after tiny edits. Before merge, run one fresh gate: local D1 migrations, Wrangler types, both TypeScript projects, full Vitest suite and production build. Expand proof only for material security, permission, migration or data-loss risk.
 
-Do not add story-number tests when an existing domain/server/client test already proves the same acceptance contract. Do not test that a deleted filename stays deleted or that CI has an exact number of jobs. Test the safety or user behaviour that matters.
-
-Report actual output only. If a check is blocked by the environment, record the blocker and do not claim it passed.
+Report actual output only. If evidence is blocked, record the blocker instead of claiming success.

@@ -44,6 +44,12 @@ class IntegrityD1 {
     };
   }
 
+  async batch(statements: Array<{ run: () => Promise<unknown> }>) {
+    const results = [];
+    for (const statement of statements) results.push(await statement.run());
+    return results;
+  }
+
   private async run(sql: string, values: unknown[]) {
     if (sql.includes('UPDATE matches SET player_a_id')) {
       const [playerAId, playerBId, playerALegs, playerBLegs, playerAAverage, playerBAverage, status, note, updatedAt, _confirmStatus, confirmedBy, _confirmAtStatus, confirmedAt] = values as [string, string, number, number, number, number, Match['status'], string | null, string, string, string, string, string];
@@ -67,6 +73,9 @@ class IntegrityD1 {
   }
 
   private async first<T>(sql: string, values: unknown[]): Promise<T | null> {
+    if (sql.includes('SELECT fixture_id FROM matches WHERE id = ?')) {
+      return { fixture_id: this.match.fixture_id } as T;
+    }
     if (sql.includes('FROM matches') && sql.includes('WHERE matches.id')) {
       return { ...this.match, player_a_username: 'Alpha', player_b_username: 'Bravo' } as T;
     }

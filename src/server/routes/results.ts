@@ -7,7 +7,6 @@ import {
   fixtureIdForResult,
   leagueHasPersistedFixtures,
   submitFixtureResult,
-  syncFixtureForResult,
   type FixtureResultRecord,
 } from '../db/fixture-results';
 
@@ -92,7 +91,6 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
     const resultId = c.req.param('resultId');
     try {
       const result = await confirmResult(c.env.DB, c.get('user').id, resultId, now());
-      await syncFixtureForResult(c.env.DB, resultId, now());
       return c.json({ result: await serializeResolvedResult(c.env.DB, result) }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
@@ -106,7 +104,6 @@ export function createResultRoutes(dependencies: ResultRouteDependencies = {}) {
     if (typeof body?.note !== 'string') return jsonError(c, new AppError('INVALID_RESULT', 'A dispute note is required', 400));
     try {
       const result = await disputeResult(c.env.DB, c.get('user').id, resultId, body.note, now());
-      await syncFixtureForResult(c.env.DB, resultId, now());
       return c.json({ result: await serializeResolvedResult(c.env.DB, result) }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);

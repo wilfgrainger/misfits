@@ -18,6 +18,7 @@ jobs:
       - run: npm ci
       - run: npx wrangler types
       - run: npm run typecheck
+      - run: npm run db:migrate:local
       - name: Impeccable source detector
         run: node .agents/skills/impeccable/scripts/detect.mjs --json src/client
       - run: npm test
@@ -55,3 +56,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --keep-vars
+      - name: Smoke production
+        run: curl --fail-with-body --retry 3 --retry-delay 2 https://darts.graingers.agency/api/health
