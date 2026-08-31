@@ -31,6 +31,12 @@ class GovernanceD1 {
     };
   }
 
+  async batch(statements: Array<{ run: () => Promise<unknown> }>) {
+    const results = [];
+    for (const statement of statements) results.push(await statement.run());
+    return results;
+  }
+
   private async first<T>(sql: string, values: unknown[]): Promise<T | null> {
     if (sql.includes('FROM sessions') && sql.includes('JOIN users')) {
       return {
@@ -64,7 +70,7 @@ class GovernanceD1 {
       const [actor, target, before, after] = values as string[];
       this.audit.push({ actor, target, before, after });
     }
-    return { success: true };
+    return { success: true, meta: { changes: 1 } };
   }
 }
 
