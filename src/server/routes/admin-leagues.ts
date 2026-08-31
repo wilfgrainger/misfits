@@ -9,7 +9,6 @@ import {
   createAdminFixtureResult,
   fixtureIdForResult,
   leagueHasPersistedFixtures,
-  syncFixtureForResult,
   type FixtureResultRecord,
 } from '../db/fixture-results';
 
@@ -184,7 +183,6 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
     try {
       await assertAdminUpdateMatchesFixture(c.env.DB, resultId, body);
       const result = await updateAdminResult(c.env.DB, c.get('user').id, resultId, body, now());
-      await syncFixtureForResult(c.env.DB, resultId, now());
       return c.json({ result: await serializeAdminResult(c.env.DB, result) }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
@@ -200,7 +198,6 @@ export function createAdminLeagueRoutes(dependencies: AdminLeagueRouteDependenci
     if (access instanceof Response) return access;
     try {
       await deleteAdminResult(c.env.DB, c.get('user').id, resultId, now());
-      await syncFixtureForResult(c.env.DB, resultId, now());
       return c.json({ ok: true }, 200, { 'Cache-Control': 'private, no-store' });
     } catch (error) {
       if (error instanceof AppError) return jsonError(c, error);
