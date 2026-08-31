@@ -23,6 +23,7 @@ class MemoryD1 {
   sessions = new Map<string, Session>();
   leaguePlayers = new Set<string>();
   audit: Audit[] = [];
+  failAuditWrites = false;
 
   prepare(sql: string) {
     const prepared = {
@@ -38,8 +39,17 @@ class MemoryD1 {
   }
 
   async batch(statements: Array<{ run: () => Promise<unknown> }>) {
-    for (const statement of statements) await statement.run();
-    return [];
+    const usersBefore = new Map([...this.users].map(([id, user]) => [id, { ...user }]));
+    const auditBefore = this.audit.map((entry) => ({ ...entry }));
+    try {
+      const results = [];
+      for (const statement of statements) results.push(await statement.run());
+      return results;
+    } catch (error) {
+      this.users = usersBefore;
+      this.audit = auditBefore;
+      throw error;
+    }
   }
 
   private async run(sql: string, values: unknown[]) {
@@ -47,21 +57,27 @@ class MemoryD1 {
       const [tokenHash, userId, createdAt, expiresAt] = values as string[];
       this.sessions.set(tokenHash, { token_hash: tokenHash, user_id: userId, created_at: createdAt, expires_at: expiresAt });
     } else if (sql.includes('UPDATE users SET role = ?, status = ?, club_status = ?')) {
-      const [role, status, clubStatus, id] = values as ['PLAYER' | 'ADMIN', 'ACTIVE' | 'SUSPENDED', User['club_status'], string];
+      const [role, status, clubStatus, id, removingActiveAdmin] = values as ['PLAYER' | 'ADMIN', 'ACTIVE' | 'SUSPENDED', User['club_status'], string, number];
+      if (removingActiveAdmin === 1) {
+        const hasOtherAdmin = [...this.users.values()].some((user) => user.id !== id && user.role === 'ADMIN' && user.status === 'ACTIVE' && user.club_status === 'APPROVED');
+        if (!hasOtherAdmin) return { success: true, meta: { changes: 0 } };
+      }
       const user = this.users.get(id)!;
       user.role = role;
       user.status = status;
       user.club_status = clubStatus;
+      return { success: true, meta: { changes: 1 } };
     } else if (sql.includes('UPDATE users SET role = ?, status = ?')) {
       const [role, status, id] = values as ['PLAYER' | 'ADMIN', 'ACTIVE' | 'SUSPENDED', string];
       const user = this.users.get(id)!;
       user.role = role;
       user.status = status;
     } else if (sql.includes('INSERT INTO audit_log')) {
+      if (this.failAuditWrites) throw new Error('audit unavailable');
       const [actorUserId, entityId, beforeJson, afterJson] = values as string[];
       this.audit.push({ actor_user_id: actorUserId, action: 'ADMIN_PLAYER_UPDATED', entity_type: 'USER', entity_id: entityId, before_json: beforeJson, after_json: afterJson });
     }
-    return { success: true };
+    return { success: true, meta: { changes: 1 } };
   }
 
   private async first<T>(sql: string, values: unknown[]): Promise<T | null> {
@@ -167,6 +183,20 @@ describe('admin routes', () => {
     expect(db.audit[0]).toMatchObject({ actor_user_id: 'admin-1', action: 'ADMIN_PLAYER_UPDATED', entity_type: 'USER', entity_id: 'player-1' });
     expect(JSON.parse(db.audit[0].before_json)).toMatchObject({ role: 'PLAYER' });
     expect(JSON.parse(db.audit[0].after_json)).toMatchObject({ role: 'ADMIN' });
+  });
+
+  it('rolls back an administrator change when its audit write fails', async () => {
+    const { db, routes, env } = setup();
+    db.failAuditWrites = true;
+    const cookie = await cookieFor(db, 'admin-1');
+    const response = await routes.fetch(new Request('https://misfits.test/api/admin/players/player-1', {
+      method: 'PATCH',
+      headers: { Cookie: cookie, Origin: 'https://misfits.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'ADMIN' }),
+    }), env, {} as never);
+    expect(response.status).toBe(400);
+    expect(db.users.get('player-1')).toMatchObject({ role: 'PLAYER', status: 'ACTIVE', club_status: 'APPROVED' });
+    expect(db.audit).toHaveLength(0);
   });
 
   it('prevents removing or suspending the last active administrator', async () => {
